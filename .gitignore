@@ -1,0 +1,15 @@
+.env
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+.venv/
+venv/
+.streamlit/
+data/rejected/*.csv
+data/processed/*
+!data/processed/.gitkeep
+airflow/logs/*
+!airflow/logs/.gitkeep
+postgres_data/
+.DS_Store

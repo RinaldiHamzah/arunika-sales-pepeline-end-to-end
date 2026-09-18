@@ -1,5 +1,28 @@
 # Data Quality — kebijakan v1.0
 
+## Kontrak data canonical
+
+`pipeline.validation.contracts` adalah satu-satunya sumber definisi kontrak yang
+dipakai oleh validasi, notebook analysis, dan loader berikutnya. Modul tersebut
+menetapkan schema raw, schema clean, grain, key bisnis, status valid, serta
+disposition record.
+
+| Area | Kontrak |
+| --- | --- |
+| Raw source | `product.csv`, `shopee.csv`, `tokopedia.csv`, `website.csv`, `offline.csv`; setiap file memiliki kolom wajib yang didefinisikan oleh `SOURCE_SPECS` |
+| Clean transaction | `order_id, product_id, product_name, kategori, quantity, total_harga, tanggal_order, kota, channel, status, customer_email, harga_satuan` |
+| Clean product | `product_id, product_name, brand, kategori, harga_satuan` |
+| Grain | Satu baris per order; `line_number=1` karena source saat ini belum menyediakan line ID |
+| Business key | `(source, order_id, line_number)` pada internal layer; master menggunakan `sku` |
+| Status valid | `COMPLETED`, `CANCELLED`, `RETURNED` |
+| Clean | Record valid pertama untuk business key |
+| Duplicate | Record valid berikutnya dengan business key yang sama |
+| Rejected | Record dengan error atau seluruh versi pada conflicting duplicate |
+
+Field source-only tidak tersedia pada clean transaction. Record rejected dan
+duplicate tidak dibuang: metadata, alasan, checksum, serta raw payload disimpan
+di laporan evidence untuk audit dan perbaikan sumber.
+
 ## Format notebook yang disederhanakan
 
 Semua notebook memakai enam bagian yang sama: Missing value, Duplicate, Invalid
@@ -123,8 +146,10 @@ Metadata teknis tidak menambah kolom tabel transaksi yang ditampilkan.
 Output merupakan snapshot terbaru. Folder hasil detail versi sebelumnya
 `data/processed/data_quality/` tetap ada, tetapi bukan output utama notebook sekarang.
 
-Proses ini berjalan lokal tanpa database; belum mengisi `audit.data_quality_results`
-atau warehouse. Integrasi tersebut merupakan pekerjaan pipeline berikutnya.
+Validasi file menjadi input untuk pipeline database melalui staging, dimension,
+dan fact loader. Record rejected tetap berada di laporan evidence file dan dapat
+diteruskan ke tabel audit saat orkestrasi database diaktifkan. Pipeline database
+memerlukan PostgreSQL yang sehat sebelum `pipeline.runner` dijalankan.
 
 ## Hasil snapshot sumber saat implementasi
 
@@ -141,3 +166,38 @@ Tokopedia: 45 kejadian unmapped product, 9 invalid date, 13 non-positive numeric
 sebagian terjadi pada record sama sehingga rejected berjumlah 65. Sebanyak 165
 perbedaan harga master diberi warning dan memerlukan tinjauan bisnis. Nilai
 terbaru selalu dibaca dari `clean/summary.csv` dan `clean/quality_issues.csv`, bukan tabel snapshot ini.
+
+## Kebijakan incremental loading
+
+Business key warehouse adalah `(source_name, source_order_id, source_line_number)`.
+Transform menghitung `source_record_hash` dari isi canonical row tanpa metadata
+file. Transaksi baru di-insert; key sama dengan hash berbeda di-upsert; key dan
+hash sama dilewati sebagai idempotent. Koreksi harga, status, kuantitas, tanggal,
+atau SKU mengikuti aturan upsert ini.
+
+Transaksi yang hilang dari snapshot tidak dihapus otomatis. Fact tetap aktif untuk
+audit dan penghapusan hanya dilakukan melalui tombstone/reconciliation eksplisit.
+Late-arriving transaction tetap diterima berdasarkan business key dan tanggalnya
+diisi ke `dim_date`.
+
+## Audit metrics
+
+`audit.pipeline_runs` membedakan tahapan pipeline melalui
+`extracted_records`, `validated_records`, `rejected_records`, `duplicate_records`,
+`incremental_records`, `staged_records`, `dimension_records`,
+`fact_inserted_records`, dan `fact_skipped_records`. Kolom lama `valid_records`,
+`invalid_records`, dan `loaded_records` dipertahankan sebagai alias kompatibilitas;
+metric baru menjadi sumber kebenaran operasional.
+
+## Observability
+
+`audit.pipeline_stage_runs` menyimpan status, durasi, dan jumlah record untuk
+setiap tahap (`extract`, `validate`, `incremental_filter`, `transform`, `raw_load`,
+`staging_load`, `dimension_load`, dan `fact_load`). `audit.source_ingestions`
+menyimpan checksum SHA-256 dan waktu ingestion per source. Script
+`scripts/check_freshness.py` memeriksa umur source file, sedangkan
+`ALERT_WEBHOOK_URL` dapat digunakan untuk notifikasi failure.
+
+Endpoint dashboard menggabungkan `pipeline_success_rate`, durasi run terakhir,
+rejected/duplicate rate, fact load rate, source freshness, dan status stage terakhir
+agar operasional dapat dipantau tanpa membaca log mentah.

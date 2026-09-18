@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS raw.shopee_orders (
     source_row_number INTEGER NOT NULL CHECK (source_row_number > 0),
     ingested_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     order_id TEXT, order_date TEXT, product_name TEXT, qty TEXT, unit_price TEXT,
-    customer_id TEXT, customer_name TEXT, customer_city TEXT, payment_method TEXT, status TEXT,
+    customer_name TEXT, customer_city TEXT, payment_method TEXT, status TEXT,
     source_payload JSONB NOT NULL,
     CONSTRAINT uq_raw_shopee_file_row UNIQUE (ingestion_run_id, source_file_name, source_row_number)
 );
@@ -53,8 +53,8 @@ CREATE TABLE IF NOT EXISTS raw.product_master (
 );
 
 -- Compatibility migration for databases initialized by the earlier source contract.
--- Raw data remains source-faithful (including Shopee customer_id in source_payload),
--- while downstream clean tables deliberately exclude that source-only attribute.
+-- Existing databases may retain legacy columns, but fresh databases follow the
+-- active source contract above and do not create the retired source-only identifier.
 DO $$
 BEGIN
     IF EXISTS (

@@ -15,10 +15,17 @@ CREATE TABLE IF NOT EXISTS warehouse.fact_sales (
     gross_amount NUMERIC(16,2) NOT NULL CHECK (gross_amount >= 0),
     discount_amount NUMERIC(16,2) NOT NULL DEFAULT 0 CHECK (discount_amount >= 0),
     net_amount NUMERIC(16,2) NOT NULL CHECK (net_amount >= 0),
+    source_record_hash CHAR(64) NOT NULL,
+    is_source_active BOOLEAN NOT NULL DEFAULT TRUE,
     loaded_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_fact_sales_business_key UNIQUE (source_name, source_order_id, source_line_number),
     CONSTRAINT chk_fact_sales_amounts CHECK (gross_amount = quantity * unit_price AND discount_amount <= gross_amount AND net_amount = gross_amount - discount_amount)
 );
+
+ALTER TABLE warehouse.fact_sales ADD COLUMN IF NOT EXISTS source_record_hash CHAR(64);
+UPDATE warehouse.fact_sales SET source_record_hash = repeat('0', 64) WHERE source_record_hash IS NULL;
+ALTER TABLE warehouse.fact_sales ALTER COLUMN source_record_hash SET NOT NULL;
+ALTER TABLE warehouse.fact_sales ADD COLUMN IF NOT EXISTS is_source_active BOOLEAN NOT NULL DEFAULT TRUE;
 
 CREATE INDEX IF NOT EXISTS idx_fact_sales_date ON warehouse.fact_sales (date_key);
 CREATE INDEX IF NOT EXISTS idx_fact_sales_product ON warehouse.fact_sales (product_key);

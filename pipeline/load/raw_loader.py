@@ -18,8 +18,17 @@ def load_raw(connection: Connection, run_id: UUID, source: ExtractedSource) -> i
     columns = ["ingestion_run_id", "source_file_name", "source_row_number", *source.column_mapping.values(), "source_payload"]
     placeholders = [":ingestion_run_id", ":source_file_name", ":source_row_number", *[f":{column}" for column in source.column_mapping.values()], "CAST(:source_payload AS JSONB)"]
     statement = text(f"INSERT INTO {source.raw_table} ({', '.join(columns)}) VALUES ({', '.join(placeholders)}) ON CONFLICT DO NOTHING")
+    existing_rows = {
+        row[0]
+        for row in connection.execute(
+            text(f"SELECT source_row_number FROM {source.raw_table} WHERE source_file_name = :file_name"),
+            {"file_name": source.file_path.name},
+        )
+    }
     records = []
     for source_row_number, row in enumerate(source.frame.to_dict(orient="records"), start=1):
+        if source_row_number in existing_rows:
+            continue
         record = {target: "" if row.get(input_name) is None else str(row.get(input_name, "")) for input_name, target in source.column_mapping.items()}
         record.update({
             "ingestion_run_id": str(run_id),

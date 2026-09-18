@@ -9,9 +9,28 @@ CREATE TABLE IF NOT EXISTS audit.pipeline_runs (
     duplicate_records INTEGER NOT NULL DEFAULT 0 CHECK (duplicate_records >= 0),
     invalid_records INTEGER NOT NULL DEFAULT 0 CHECK (invalid_records >= 0),
     loaded_records INTEGER NOT NULL DEFAULT 0 CHECK (loaded_records >= 0),
+    validated_records INTEGER NOT NULL DEFAULT 0 CHECK (validated_records >= 0),
+    rejected_records INTEGER NOT NULL DEFAULT 0 CHECK (rejected_records >= 0),
+    incremental_records INTEGER NOT NULL DEFAULT 0 CHECK (incremental_records >= 0),
+    staged_records INTEGER NOT NULL DEFAULT 0 CHECK (staged_records >= 0),
+    dimension_records INTEGER NOT NULL DEFAULT 0 CHECK (dimension_records >= 0),
+    fact_inserted_records INTEGER NOT NULL DEFAULT 0 CHECK (fact_inserted_records >= 0),
+    fact_skipped_records INTEGER NOT NULL DEFAULT 0 CHECK (fact_skipped_records >= 0),
+    duration_seconds NUMERIC(12,3),
     error_message TEXT,
     CONSTRAINT chk_pipeline_run_end CHECK (ended_at IS NULL OR ended_at >= started_at)
 );
+
+ALTER TABLE audit.pipeline_runs
+    ADD COLUMN IF NOT EXISTS duration_seconds NUMERIC(12,3);
+ALTER TABLE audit.pipeline_runs
+    ADD COLUMN IF NOT EXISTS validated_records INTEGER NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS rejected_records INTEGER NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS incremental_records INTEGER NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS staged_records INTEGER NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS dimension_records INTEGER NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS fact_inserted_records INTEGER NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS fact_skipped_records INTEGER NOT NULL DEFAULT 0;
 
 CREATE TABLE IF NOT EXISTS audit.data_quality_results (
     quality_result_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -58,10 +77,24 @@ CREATE TABLE IF NOT EXISTS audit.source_ingestions (
     CONSTRAINT uq_source_ingestion_file UNIQUE (run_id, source_name, file_checksum_sha256)
 );
 
+CREATE TABLE IF NOT EXISTS audit.pipeline_stage_runs (
+    stage_run_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    run_id UUID NOT NULL REFERENCES audit.pipeline_runs(run_id) ON DELETE CASCADE,
+    stage_name VARCHAR(50) NOT NULL,
+    status VARCHAR(20) NOT NULL CHECK (status IN ('SUCCESS', 'FAILED')),
+    started_at TIMESTAMPTZ NOT NULL,
+    ended_at TIMESTAMPTZ NOT NULL,
+    duration_seconds NUMERIC(12,3) NOT NULL CHECK (duration_seconds >= 0),
+    records_processed INTEGER NOT NULL DEFAULT 0 CHECK (records_processed >= 0),
+    error_message TEXT,
+    CONSTRAINT chk_stage_run_end CHECK (ended_at >= started_at)
+);
+
 CREATE INDEX IF NOT EXISTS idx_audit_runs_pipeline_started ON audit.pipeline_runs (pipeline_name, started_at DESC);
 CREATE INDEX IF NOT EXISTS idx_audit_quality_run ON audit.data_quality_results (run_id);
 CREATE INDEX IF NOT EXISTS idx_audit_rejected_run ON audit.rejected_records (run_id);
 CREATE INDEX IF NOT EXISTS idx_audit_source_ingestions_run ON audit.source_ingestions (run_id);
+CREATE INDEX IF NOT EXISTS idx_audit_stage_runs_run ON audit.pipeline_stage_runs (run_id, started_at);
 
 -- Raw and staging run IDs reference the audit table only after it exists.
 DO $$

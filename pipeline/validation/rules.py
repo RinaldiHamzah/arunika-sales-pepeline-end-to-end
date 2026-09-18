@@ -49,6 +49,11 @@ def parse_date(value, source):
         ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'])}
     try:
         if source == 'website':
+            for fmt in ('%Y-%m-%dT%H:%M:%S', '%Y-%m-%d %H:%M:%S'):
+                try:
+                    return datetime.strptime(value, fmt), None
+                except ValueError:
+                    pass
             m = re.fullmatch(r'([A-Za-z]{3}) (\d{1,2}), (\d{4})', value)
             if m:
                 return datetime(int(m[3]), months[m[1].lower()], int(m[2])), None

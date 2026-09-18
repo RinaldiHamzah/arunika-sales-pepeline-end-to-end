@@ -1,1 +1,0 @@
-"""Source-schema validation."""

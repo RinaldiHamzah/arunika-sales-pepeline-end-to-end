@@ -15,30 +15,16 @@ import re
 import pandas as pd
 
 from pipeline.validation.rules import clean_text, match_key, number, parse_date
+from pipeline.validation.contracts import (
+    INTERNAL_SALES_COLUMNS, META_COLUMNS, PRODUCT_RAW_COLUMNS, SOURCE_SPECS,
+    VALID_STATUSES,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
-SPECS = {
-    'shopee': {'order_id': 'order_id', 'order_date': 'order_date', 'product_input': 'product_name',
-               'quantity': 'qty', 'unit_price': 'unit_price',
-               'customer_name': 'customer_name', 'customer_city': 'customer_city',
-               'payment_method': 'payment_method', 'status': 'status'},
-    'tokopedia': {'order_id': 'transaction_id', 'order_date': 'transaction_date', 'product_input': 'item_name',
-                  'quantity': 'quantity', 'unit_price': 'price', 'customer_name': 'buyer_name',
-                  'customer_city': 'city', 'payment_method': 'payment', 'status': 'status'},
-    'website': {'order_id': 'invoice_no', 'order_date': 'created_at', 'product_input': 'product_identifier',
-                'quantity': 'quantity', 'unit_price': 'unit_price', 'source_total_amount': 'total_amount',
-                'customer_email': 'customer_email', 'status': 'status'},
-    'offline': {'order_id': 'pos_receipt_no', 'order_date': 'sold_at', 'product_input': 'item_description',
-                'quantity': 'units', 'unit_price': 'item_price', 'store_name': 'store_name',
-                'store_city': 'store_city', 'payment_method': 'payment_type', 'status': 'status'},
-}
-PRODUCT_COLUMNS = ['sku', 'product_name', 'brand', 'category', 'price']
-META = ['source', 'source_file', 'source_row_number', 'source_sha256']
-SALES_COLUMNS = ['source', 'order_id', 'line_number', 'order_date', 'sku', 'product_name', 'brand',
-                 'category', 'quantity', 'unit_price', 'gross_amount', 'source_total_amount',
-                 'customer_name', 'customer_email', 'customer_city',
-                 'store_name', 'store_city', 'payment_method', 'status', 'source_file',
-                 'source_row_number', 'source_sha256']
+SPECS = {source: dict(spec) for source, spec in SOURCE_SPECS.items()}
+PRODUCT_COLUMNS = list(PRODUCT_RAW_COLUMNS)
+META = list(META_COLUMNS)
+SALES_COLUMNS = list(INTERNAL_SALES_COLUMNS)
 PAYMENTS = {match_key(v): v for v in ['Transfer Bank', 'E-Wallet', 'Credit Card', 'COD', 'Cash']}
 CITIES = {match_key(v): v for v in ['Jakarta', 'Bandung', 'Surabaya', 'Yogyakarta', 'Semarang',
                                   'Medan', 'Makassar', 'Denpasar']}
@@ -141,7 +127,7 @@ def analyze(path, source, products=None):
             status = (row['status'] or '').upper()
             if not status:
                 issue('MISSING_REQUIRED', mapping['status'])
-            elif status not in {'COMPLETED', 'CANCELLED', 'RETURNED'}:
+            elif status not in VALID_STATUSES:
                 issue('INVALID_STATUS', mapping['status'])
             row['status'] = status
             product = lookup.get(match_key(row['product_input']))

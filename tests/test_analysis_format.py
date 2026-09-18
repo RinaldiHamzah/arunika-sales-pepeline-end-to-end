@@ -6,6 +6,7 @@ import pandas as pd
 
 from pipeline.validation.analysis import (
     ROOT, SALES_COLUMNS, PRODUCT_COLUMNS, load_analysis, standard_data, export_analysis,
+    quality_issues, missing_values,
 )
 
 
@@ -38,11 +39,26 @@ def test_exports_have_one_schema_and_single_source_does_not_replace_overview(tmp
     for source in ['shopee', 'tokopedia', 'website', 'offline', 'sales']:
         data = pd.read_csv(tmp_path / f'{source}.csv', dtype='string')
         assert list(data) == SALES_COLUMNS
+        assert 'customer_id' not in data.columns
         assert data.tanggal_order.str.fullmatch(r'\d{4}-\d{2}-\d{2}').all()
     export_analysis({'shopee': results['shopee']}, tmp_path)
     assert report == (tmp_path / 'summary.csv').read_bytes()
     issues = pd.read_csv(tmp_path / 'quality_issues.csv')
     assert {'raw_payload', 'source_row_number', 'source_sha256', 'rule'} <= set(issues)
+
+
+def test_clean_export_files_do_not_include_customer_id():
+    clean_dir = ROOT / 'data/processed/clean'
+    for path in clean_dir.glob('*.csv'):
+        data = pd.read_csv(path, dtype='string')
+        assert 'customer_id' not in data.columns, f'{path.name} still contains customer_id'
+
+
+def test_analysis_view_excludes_source_only_customer_id():
+    results = load_analysis()
+    missing = quality_issues(results, 'missing')
+    assert 'customer_id' not in set(missing['kolom'])
+    assert 'customer_id' not in set(missing_values(results)['kolom'])
 
 
 def test_notebook_cells_run_without_changing_sources(monkeypatch, tmp_path):

@@ -1,1 +1,0 @@
--- Analytics views are defined here.

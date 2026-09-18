@@ -3,15 +3,12 @@ from pathlib import Path
 
 import pandas as pd
 
+from pipeline.validation.contracts import CHANNEL_LABELS, CLEAN_PRODUCT_COLUMNS, CLEAN_SALES_COLUMNS
 from pipeline.validation.data_quality import ROOT, SPECS, analyze, run_quality
 
-SALES_COLUMNS = [
-    'order_id', 'product_id', 'product_name', 'kategori', 'quantity',
-    'total_harga', 'tanggal_order', 'kota', 'channel', 'status',
-    'customer_email', 'harga_satuan',
-]
-PRODUCT_COLUMNS = ['product_id', 'product_name', 'brand', 'kategori', 'harga_satuan']
-CHANNELS = {'shopee': 'Shopee', 'tokopedia': 'Tokopedia', 'website': 'Website', 'offline': 'Offline Store'}
+SALES_COLUMNS = list(CLEAN_SALES_COLUMNS)
+PRODUCT_COLUMNS = list(CLEAN_PRODUCT_COLUMNS)
+CHANNELS = dict(CHANNEL_LABELS)
 CHECKS = {
     'missing': {'MISSING_REQUIRED', 'MISSING_OPTIONAL'},
     'duplicate': {'DUPLICATE_BUSINESS_KEY', 'CONFLICTING_DUPLICATE'},
@@ -75,6 +72,7 @@ def quality_issues(results, check=None):
     issues = pd.concat([r.issues for r in results.values()], ignore_index=True)
     if check is not None:
         issues = issues[issues['rule'].isin(CHECKS[check])]
+    issues = issues[~issues['field'].astype(str).str.lower().eq('customer_id')]
     return issues.rename(columns={
         'source': 'sumber', 'source_row_number': 'baris', 'severity': 'tingkat',
         'field': 'kolom', 'rule': 'masalah', 'raw_value': 'nilai_asli',
@@ -87,8 +85,9 @@ def missing_values(results):
         profile = result.profile[['column', 'missing_count']].copy()
         profile.insert(0, 'sumber', source)
         parts.append(profile)
-    return pd.concat(parts, ignore_index=True).rename(columns={
+    missing = pd.concat(parts, ignore_index=True).rename(columns={
         'column': 'kolom', 'missing_count': 'jumlah_kosong'})
+    return missing[~missing['kolom'].astype(str).str.lower().eq('customer_id')].reset_index(drop=True)
 
 
 def type_report(data):

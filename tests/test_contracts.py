@@ -11,7 +11,11 @@ from pipeline.validation.contracts import (
 )
 from pipeline.validation.data_quality import (
     META,
+)
+from pipeline.validation.data_quality import (
     PRODUCT_COLUMNS as RAW_PRODUCT_COLUMNS,
+)
+from pipeline.validation.data_quality import (
     SALES_COLUMNS as INTERNAL_SALES_COLUMNS,
 )
 

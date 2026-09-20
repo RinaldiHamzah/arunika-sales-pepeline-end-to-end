@@ -1,4 +1,5 @@
 """Shared extraction contracts and file metadata capture."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -22,9 +23,20 @@ class ExtractedSource:
         return sha256(self.file_path.read_bytes()).hexdigest()
 
 
-def extract_delimited(source_name: str, raw_table: str, file_path: Path, column_mapping: dict[str, str]) -> ExtractedSource:
-    return ExtractedSource(source_name, raw_table, file_path, "CSV", pd.read_csv(file_path, dtype=str, keep_default_na=False), column_mapping)
+def extract_delimited(
+    source_name: str, raw_table: str, file_path: Path, column_mapping: dict[str, str]
+) -> ExtractedSource:
+    return ExtractedSource(
+        source_name,
+        raw_table,
+        file_path,
+        "CSV",
+        pd.read_csv(file_path, dtype=str, keep_default_na=False),
+        column_mapping,
+    )
 
 
 def extract_json(source_name: str, raw_table: str, file_path: Path, column_mapping: dict[str, str]) -> ExtractedSource:
-    return ExtractedSource(source_name, raw_table, file_path, "JSON", pd.read_json(file_path, dtype=False), column_mapping)
+    return ExtractedSource(
+        source_name, raw_table, file_path, "JSON", pd.read_json(file_path, dtype=False), column_mapping
+    )

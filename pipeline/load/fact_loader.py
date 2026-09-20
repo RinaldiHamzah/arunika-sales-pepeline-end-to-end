@@ -1,4 +1,5 @@
 """Incremental fact loader with dimension-key resolution."""
+
 from __future__ import annotations
 
 from uuid import UUID
@@ -8,8 +9,9 @@ from sqlalchemy.engine import Connection
 
 
 def load_facts(connection: Connection, run_id: UUID) -> int:
-	"""Load valid staging rows into fact_sales without duplicate business keys."""
-	result = connection.execute(text("""
+    """Load valid staging rows into fact_sales without duplicate business keys."""
+    result = connection.execute(
+        text("""
 		INSERT INTO warehouse.fact_sales (
 			source_name, source_order_id, source_line_number, date_key, product_key,
 			customer_key, channel_key, payment_key, sale_status, quantity, unit_price,
@@ -35,5 +37,7 @@ def load_facts(connection: Connection, run_id: UUID) -> int:
 			gross_amount = EXCLUDED.gross_amount, net_amount = EXCLUDED.net_amount,
 			source_record_hash = EXCLUDED.source_record_hash,
 			is_source_active = TRUE, loaded_at = CURRENT_TIMESTAMP
-	"""), {"run_id": str(run_id)})
-	return result.rowcount
+	"""),
+        {"run_id": str(run_id)},
+    )
+    return result.rowcount

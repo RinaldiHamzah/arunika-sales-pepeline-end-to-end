@@ -4,6 +4,9 @@
 .env.*
 __pycache__
 .pytest_cache
+.pytest_tmp
+.test_runtime
+.ruff_cache
 env
 venv
 .venv

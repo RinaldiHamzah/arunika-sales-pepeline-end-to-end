@@ -1,12 +1,16 @@
-"""Acceptance tests against a disposable PostgreSQL database.
+"""Acceptance tests against an isolated PostgreSQL database.
 
-Run explicitly with ``RUN_POSTGRES_TESTS=1`` after the schema has been loaded.
-The test executes the real runner three times and verifies the published API.
+The test is intentionally blocked unless its dedicated test-database markers
+are present. It executes the real runner three times and must never target a
+developer or production warehouse.
 """
+
 import csv
 import os
 import shutil
+import tempfile
 from pathlib import Path
+from uuid import uuid4
 
 import pytest
 from sqlalchemy import text
@@ -14,21 +18,30 @@ from sqlalchemy import text
 from pipeline.database import get_engine
 from pipeline.runner import run
 
-
 pytestmark = pytest.mark.integration
 ROOT = Path(__file__).resolve().parents[1]
 
 
 def _enabled():
-    return os.getenv("RUN_POSTGRES_TESTS", "0") == "1"
+    return (
+        os.getenv("RUN_POSTGRES_TESTS", "0") == "1"
+        and os.getenv("ARUNIKA_ISOLATED_TEST_DATABASE", "0") == "1"
+        and os.getenv("DATABASE_URL", "").rstrip("/").endswith("/ecommerce_sales_test")
+    )
 
 
 def _counts(connection):
     return {
-        "raw": sum(connection.execute(text(f"SELECT COUNT(*) FROM {table}")).scalar_one()
-                   for table in ("raw.shopee_orders", "raw.tokopedia_transactions",
-                                 "raw.website_transactions", "raw.offline_store_sales",
-                                 "raw.product_master")),
+        "raw": sum(
+            connection.execute(text(f"SELECT COUNT(*) FROM {table}")).scalar_one()
+            for table in (
+                "raw.shopee_orders",
+                "raw.tokopedia_transactions",
+                "raw.website_transactions",
+                "raw.offline_store_sales",
+                "raw.product_master",
+            )
+        ),
         "staging": connection.execute(text("SELECT COUNT(*) FROM staging.stg_sales")).scalar_one(),
         "products": connection.execute(text("SELECT COUNT(*) FROM warehouse.dim_product")).scalar_one(),
         "facts": connection.execute(text("SELECT COUNT(*) FROM warehouse.fact_sales")).scalar_one(),
@@ -41,9 +54,12 @@ def _append_valid_website_rows(source_dir, count=20):
         rows = list(csv.DictReader(file))
         fields = rows[0].keys()
     template = next(row for row in rows if row["status"] == "completed")
+    test_batch = uuid4().hex[:12].upper()
     for index in range(count):
         row = dict(template)
-        row["invoice_no"] = f"WEB-NEW-{index:04d}"
+        # A unique business key keeps the test repeatable against a persistent
+        # developer database where a previous acceptance run may still exist.
+        row["invoice_no"] = f"WEB-TEST-{test_batch}-{index:04d}"
         rows.append(row)
     with path.open("w", newline="", encoding="utf-8") as file:
         writer = csv.DictWriter(file, fieldnames=fields)
@@ -51,56 +67,82 @@ def _append_valid_website_rows(source_dir, count=20):
         writer.writerows(rows)
 
 
-@pytest.mark.skipif(not _enabled(), reason="set RUN_POSTGRES_TESTS=1 to run PostgreSQL integration tests")
-def test_full_pipeline_and_incremental_acceptance(tmp_path):
-    source_dir = tmp_path / "source"
+def _source_row_count(source_dir):
+    return sum(
+        len(list(csv.DictReader((Path(source_dir) / name).open(encoding="utf-8", newline=""))))
+        for name in ("product.csv", "shopee.csv", "tokopedia.csv", "website.csv", "offline.csv")
+    )
+
+
+@pytest.mark.skipif(
+    not _enabled(),
+    reason="run against the isolated ecommerce_sales_test database via the test compose profile",
+)
+def test_full_pipeline_and_incremental_acceptance():
+    # pytest's ``tmp_path`` and a repository folder can be locked by OneDrive
+    # on Windows. Use a dedicated directory in the OS temporary area instead.
+    runtime_root = Path(
+        os.getenv("ARUNIKA_TEST_RUNTIME", str(Path(tempfile.gettempdir()) / "arunika_ecommerce_tests"))
+    )
+    runtime_root.mkdir(exist_ok=True)
+    source_dir = Path(tempfile.mkdtemp(dir=runtime_root)) / "source"
     source_dir.mkdir()
     for name in ("product.csv", "shopee.csv", "tokopedia.csv", "website.csv", "offline.csv"):
         shutil.copy2(ROOT / "data" / "source" / name, source_dir / name)
+    source_rows = _source_row_count(source_dir)
 
     engine = get_engine()
     with engine.connect() as connection:
         before = _counts(connection)
-        required = connection.execute(text("""
+        required = connection.execute(
+            text("""
             SELECT COUNT(*) FROM information_schema.tables
             WHERE (table_schema, table_name) IN
               (('raw', 'shopee_orders'), ('staging', 'stg_sales'),
                ('warehouse', 'fact_sales'), ('warehouse', 'dim_product'),
                ('audit', 'pipeline_runs'))
-        """)).scalar_one()
+        """)
+        ).scalar_one()
         if required != 5:
             pytest.fail("Database schema is not initialized; load database/schema/*.sql first")
 
     run(source_dir)
     with engine.connect() as connection:
         first = _counts(connection)
-        first_successes = connection.execute(text(
-            "SELECT COUNT(*) FROM audit.pipeline_runs WHERE status = 'SUCCESS'"
-        )).scalar_one()
+        first_successes = connection.execute(
+            text("SELECT COUNT(*) FROM audit.pipeline_runs WHERE status = 'SUCCESS'")
+        ).scalar_one()
 
     run(source_dir)
     with engine.connect() as connection:
         second = _counts(connection)
-        second_successes = connection.execute(text(
-            "SELECT COUNT(*) FROM audit.pipeline_runs WHERE status = 'SUCCESS'"
-        )).scalar_one()
-        second_metrics = connection.execute(text("""
+        second_successes = connection.execute(
+            text("SELECT COUNT(*) FROM audit.pipeline_runs WHERE status = 'SUCCESS'")
+        ).scalar_one()
+        second_metrics = connection.execute(
+            text("""
             SELECT incremental_records, staged_records, fact_inserted_records
             FROM audit.pipeline_runs WHERE status = 'SUCCESS'
             ORDER BY started_at DESC LIMIT 1
-        """)).one()
-        duplicate_facts = connection.execute(text("""
+        """)
+        ).one()
+        duplicate_facts = connection.execute(
+            text("""
             SELECT COUNT(*) FROM (
                 SELECT source_name, source_order_id, source_line_number
                 FROM warehouse.fact_sales
                 GROUP BY source_name, source_order_id, source_line_number
                 HAVING COUNT(*) > 1
             ) duplicates
-        """)).scalar_one()
+        """)
+        ).scalar_one()
     assert first["raw"] >= before["raw"]
     assert first["staging"] >= before["staging"]
     assert first["facts"] >= before["facts"]
-    assert second == first, "unchanged snapshot inserted new records"
+    assert second["raw"] == first["raw"] + source_rows, "raw must retain each source snapshot"
+    assert second["staging"] == first["staging"]
+    assert second["products"] == first["products"]
+    assert second["facts"] == first["facts"]
     assert second_successes == first_successes + 1
     assert tuple(second_metrics) == (0, 0, 0)
     assert duplicate_facts == 0
@@ -109,16 +151,17 @@ def test_full_pipeline_and_incremental_acceptance(tmp_path):
     run(source_dir)
     with engine.connect() as connection:
         third = _counts(connection)
-        third_successes = connection.execute(text(
-            "SELECT COUNT(*) FROM audit.pipeline_runs WHERE status = 'SUCCESS'"
-        )).scalar_one()
-    assert third["raw"] == second["raw"] + 20
+        third_successes = connection.execute(
+            text("SELECT COUNT(*) FROM audit.pipeline_runs WHERE status = 'SUCCESS'")
+        ).scalar_one()
+    assert third["raw"] == second["raw"] + source_rows + 20
     assert third["staging"] == second["staging"] + 20
     assert third["facts"] == second["facts"] + 20
     assert third["products"] == second["products"]
     assert third_successes == second_successes + 1
 
     from dashboard.flask import app
+
     client = app.test_client()
     assert client.get("/healthz").status_code == 200
     response = client.get("/api/dashboard?start=2026-01-01&end=2026-12-31")

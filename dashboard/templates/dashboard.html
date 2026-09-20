@@ -1,19 +1,408 @@
 <!doctype html>
-<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Arunika Sales Intelligence</title><link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
-<script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script><script defer src="{{ url_for('static', filename='dashboard.js') }}"></script></head>
-<body><div class="shell"><aside class="sidebar"><div class="identity"><span class="logo">A</span><span><b>ARUNIKA</b><small>SALES INTELLIGENCE</small></span></div>
-<nav><a class="active" href="#overview">Overview</a><a href="#transactions">Transactions</a><a href="http://localhost:8080" target="_blank" rel="noopener" title="Requires the Airflow Docker service to be running">Open Airflow scheduler ↗</a></nav><div class="sidebar-footer"><span class="dot"></span>Warehouse connected</div></aside>
-<main><header class="header"><div><p class="eyebrow">Commercial performance</p><h1>Sales intelligence</h1><p class="subtitle">Unified marketplace, website, and offline sales view.</p></div><div class="actions"><span id="updated-at" class="updated">Loading warehouse…</span><button id="refresh-button" class="button secondary">Refresh</button><button id="run-pipeline" class="button primary">Run pipeline</button></div></header>
-<div id="message" class="message hidden" role="alert"></div>
-<section class="filter-card"><div class="filter-heading"><div><p class="eyebrow">Explore sales data</p><h3>1. Select a period, then refine if needed</h3><small>All filters are optional. Start with a quick period or choose a custom date range.</small></div><button id="reset-button" class="text-button">Reset filters</button></div>
-<div class="filter-main"><div class="quick-range"><button data-preset="today">Today</button><button data-preset="7">Last 7 days</button><button data-preset="30">Last 30 days</button><button data-preset="ytd">This year</button></div><label>From<input id="start-date" type="date"></label><label>To<input id="end-date" type="date"></label><label>Channel<select id="channel-filter"><option value="">All channels</option></select></label><label>Status<select id="status-filter"><option value="">All statuses</option></select></label><button id="apply-button" class="button primary">Apply filters</button></div>
-<details class="advanced-filters"><summary>More filters: category, brand, and product</summary><div><label>Category<select id="category-filter"><option value="">All categories</option></select></label><label>Brand<select id="brand-filter"><option value="">All brands</option></select></label><label>Product / SKU<select id="product-filter"><option value="">All products</option></select></label><button id="export-button" class="button secondary">Export filtered CSV</button></div></details></section>
-<section class="pipeline-card"><div><p class="eyebrow">Pipeline health</p><strong id="pipeline-status">—</strong><small id="pipeline-run">Checking latest run…</small></div><div><span>Success rate</span><b id="pipeline-success-rate">—</b></div><div><span>Last duration</span><b id="pipeline-duration">—</b></div><div><span>Rejected rate</span><b id="pipeline-rejected-rate">—</b></div><div class="sources"><span>Source freshness</span><div id="source-freshness">—</div></div></section>
-<section id="overview"><div class="section-title"><div><p class="eyebrow">Overview</p><h2>Performance snapshot</h2></div><span class="badge">LIVE WAREHOUSE</span></div>
-<div class="kpis"><article><span>Net sales</span><strong id="metric-sales">—</strong><small id="metric-sales-change">Compared with previous period</small></article><article><span>Gross sales</span><strong id="metric-gross">—</strong><small>Before discount</small></article><article><span>Orders</span><strong id="metric-orders">—</strong><small>Unique transactions</small></article><article><span>Units sold</span><strong id="metric-units">—</strong><small>Total quantity</small></article><article><span>Avg. order value</span><strong id="metric-aov">—</strong><small>Net sales per order</small></article><article><span>Return rate</span><strong id="metric-return-rate">—</strong><small>Returned orders</small></article></div>
-<div class="charts primary-charts"><article class="panel"><div class="panel-title"><div><p class="eyebrow">Trend</p><h3>Gross vs net sales</h3></div></div><div class="chart-wrap"><canvas id="month-chart"></canvas></div></article><article class="panel"><div class="panel-title"><div><p class="eyebrow">Channels</p><h3>Sales contribution</h3></div></div><div class="chart-wrap"><canvas id="channel-chart"></canvas></div></article></div>
-<div class="charts"><article class="panel"><div class="panel-title"><h3>Top brands</h3></div><div class="chart-wrap small"><canvas id="brand-chart"></canvas></div></article><article class="panel"><div class="panel-title"><h3>Top categories</h3></div><div class="chart-wrap small"><canvas id="category-chart"></canvas></div></article><article class="panel"><div class="panel-title"><h3>Top SKUs</h3></div><div class="chart-wrap small"><canvas id="sku-chart"></canvas></div></article></div>
-<div class="details"><article class="panel"><div class="panel-title"><div><p class="eyebrow">Merchandising</p><h3>Top products</h3></div><span>By units</span></div><div id="product-list" class="rank-list"></div></article><article class="panel"><div class="panel-title"><div><p class="eyebrow">Order health</p><h3>Status breakdown</h3></div></div><div id="status-list" class="rank-list"></div></article></div></section>
-<section id="transactions" class="panel transactions"><div class="panel-title"><div><p class="eyebrow">Warehouse records</p><h3>Transaction detail</h3></div><span id="row-count">0 rows</span></div><div class="table-wrap"><table><thead><tr><th>Date</th><th>Order</th><th>Channel</th><th>Product</th><th>Category</th><th>Status</th><th>Units</th><th>Net sales</th></tr></thead><tbody id="transaction-rows"></tbody></table></div><div class="pagination"><button id="prev-page" class="button secondary">Previous</button><span id="page-info">Page 1 / 1</span><button id="next-page" class="button secondary">Next</button></div></section>
-</main></div></body></html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Arunika Beauty Indonesia</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css', v='20260920-1') }}">
+  <script defer src="{{ url_for('static', filename='dashboard.js', v='20260920-1') }}"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Navigasi utama">
+      <div class="brand">
+        <span class="brand-mark">A</span>
+        <div>
+          <strong>ARUNIKA</strong>
+          <small>Beauty Indonesia</small>
+        </div>
+      </div>
+
+      <nav class="navigation">
+        <a class="navigation-link active" data-page-link="overview" href="#overview">Overview</a>
+        <a class="navigation-link" data-page-link="transactions" href="#transactions">Transactions</a>
+        <a class="navigation-link" data-page-link="settings" href="#settings">Settings</a>
+      </nav>
+
+      <div class="sidebar-status">
+        <span class="status-dot"></span>
+        <span>Warehouse connected</span>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="page-header">
+        <div>
+          <p class="eyebrow">Arunika Beauty · Commercial data</p>
+          <h1 id="page-title">Sales Dashboard</h1>
+          <p id="page-subtitle" class="subtitle">
+            Analytic penjualan dari marketplace, website, dan offline store
+          </p>
+        </div>
+        <div class="header-actions">
+          <span id="updated-at" class="last-updated">Load data warehouse…</span>
+          <button id="refresh-button" class="button button-secondary" type="button">Refresh Data</button>
+        </div>
+      </header>
+
+      <div id="message" class="alert hidden" role="alert"></div>
+
+      <section id="overview" class="dashboard-page active" data-page="overview">
+        <section class="pipeline-status card" aria-label="Kesehatan pipeline">
+          <div>
+            <p class="eyebrow">Pipeline terakhir</p>
+            <strong id="pipeline-status">—</strong>
+            <small id="pipeline-run">Memeriksa run terakhir…</small>
+            <small id="pipeline-volume" class="pipeline-volume">—</small>
+          </div>
+          <div>
+            <span>Success rate</span>
+            <strong id="pipeline-success-rate">—</strong>
+          </div>
+          <div>
+            <span>Durasi terakhir</span>
+            <strong id="pipeline-duration">—</strong>
+          </div>
+          <div>
+            <span>Data ditolak</span>
+            <strong id="pipeline-rejected-rate">—</strong>
+          </div>
+          <div class="freshness">
+            <span>Freshness source</span>
+            <div id="source-freshness">—</div>
+          </div>
+        </section>
+
+        <section class="card filter-card">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Explore sales data</p>
+              <h2>Periode Analisis</h2>
+              <p class="helper-text">Gunakan filter tambahan bila diperlukan</p>
+            </div>
+            <button id="reset-button" class="text-button" type="button">Reset</button>
+          </div>
+
+          <div class="filter-grid">
+            <div class="quick-ranges" aria-label="Rentang tanggal cepat">
+              <button data-preset="today" type="button">Hari ini</button>
+              <button data-preset="7" type="button">Minggu ini</button>
+              <button data-preset="30" type="button">Bulan ini</button>
+              <button data-preset="ytd" type="button">Tahun ini</button>
+            </div>
+            <label>
+              Dari
+              <input id="start-date" type="date">
+            </label>
+            <label>
+              Sampai
+              <input id="end-date" type="date">
+            </label>
+            <label>
+              Channel
+              <select id="channel-filter">
+                <option value="">Semua channel</option>
+              </select>
+            </label>
+            <label>
+              Status
+              <select id="status-filter">
+                <option value="">Semua status</option>
+              </select>
+            </label>
+            <button id="apply-button" class="button button-primary" type="button">Terapkan</button>
+          </div>
+
+          <details class="advanced-filters">
+            <summary>More filters: kategori, brand, dan produk</summary>
+            <div class="advanced-grid">
+              <label>
+                Kategori
+                <select id="category-filter">
+                  <option value="">Semua kategori</option>
+                </select>
+              </label>
+              <label>
+                Brand
+                <select id="brand-filter">
+                  <option value="">Semua brand</option>
+                </select>
+              </label>
+              <label>
+                Produk / SKU
+                <select id="product-filter">
+                  <option value="">Semua produk</option>
+                </select>
+              </label>
+            </div>
+          </details>
+        </section>
+
+        <section class="overview-section">
+          <div class="section-heading overview-heading">
+            <div>
+              <p class="eyebrow">Performance</p>
+              <h2>Ringkasan Performa</h2>
+            </div>
+            <span class="badge">LIVE WAREHOUSE</span>
+          </div>
+
+          <div class="kpi-grid">
+            <article class="kpi-card featured">
+              <span>Net sales</span>
+              <strong id="metric-sales">—</strong>
+              <small id="metric-sales-change">Dibanding periode sebelumnya</small>
+            </article>
+            <article class="kpi-card">
+              <span>Gross sales</span>
+              <strong id="metric-gross">—</strong>
+              <small>Sebelum diskon</small>
+            </article>
+            <article class="kpi-card">
+              <span>Orders</span>
+              <strong id="metric-orders">—</strong>
+              <small>Transaksi unik</small>
+            </article>
+            <article class="kpi-card">
+              <span>Units sold</span>
+              <strong id="metric-units">—</strong>
+              <small>Total unit</small>
+            </article>
+            <article class="kpi-card">
+              <span>Average order value</span>
+              <strong id="metric-aov">—</strong>
+              <small>Net sales per order</small>
+            </article>
+            <article class="kpi-card">
+              <span>Return rate</span>
+              <strong id="metric-return-rate">—</strong>
+              <small>Order returned</small>
+            </article>
+          </div>
+
+          <div class="chart-grid chart-grid-primary">
+            <article class="panel">
+              <div class="panel-title">
+                <div>
+                  <p class="eyebrow">Trend</p>
+                  <h3>Gross vs Net Sales</h3>
+                </div>
+              </div>
+              <div class="chart-container">
+                <canvas id="month-chart"></canvas>
+              </div>
+            </article>
+            <article class="panel">
+              <div class="panel-title">
+                <div>
+                  <p class="eyebrow">Channels</p>
+                  <h3>Kontribusi Penjualan</h3>
+                </div>
+              </div>
+              <div class="chart-container">
+                <canvas id="channel-chart"></canvas>
+              </div>
+            </article>
+          </div>
+
+          <div class="chart-grid chart-grid-three">
+            <article class="panel">
+              <h3>Top Brands</h3>
+              <div class="chart-container chart-small">
+                <canvas id="brand-chart"></canvas>
+              </div>
+            </article>
+            <article class="panel">
+              <h3>Top Categories</h3>
+              <div class="chart-container chart-small">
+                <canvas id="category-chart"></canvas>
+              </div>
+            </article>
+            <article class="panel">
+              <h3>Top SKUs</h3>
+              <div class="chart-container chart-small">
+                <canvas id="sku-chart"></canvas>
+              </div>
+            </article>
+          </div>
+
+          <div class="detail-grid">
+            <article class="panel">
+              <div class="panel-title">
+                <div>
+                  <p class="eyebrow">Merchandising</p>
+                  <h3>Top Products</h3>
+                </div>
+                <span>By units</span>
+              </div>
+              <div id="product-list" class="rank-list"></div>
+            </article>
+            <article class="panel">
+              <div class="panel-title">
+                <div>
+                  <p class="eyebrow">Order Health</p>
+                  <h3>Status Breakdown</h3>
+                </div>
+              </div>
+              <div id="status-list" class="rank-list"></div>
+            </article>
+          </div>
+        </section>
+      </section>
+
+      <section id="transactions" class="dashboard-page" data-page="transactions">
+        <section class="panel transactions">
+          <div class="panel-title">
+            <div>
+              <p class="eyebrow">Warehouse records</p>
+              <h2>Transaction Detail</h2>
+              <p class="helper-text">Filter data dihalaman Overview untuk mempersempit hasil transaksi</p>
+            </div>
+            <div class="transaction-actions">
+              <span id="row-count">0 rows</span>
+              <button id="download-transactions" class="button button-secondary" type="button">
+                Download CSV
+              </button>
+            </div>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Order</th>
+                  <th>Channel</th>
+                  <th>Product</th>
+                  <th>Category</th>
+                  <th>Status</th>
+                  <th>Units</th>
+                  <th>Net sales</th>
+                </tr>
+              </thead>
+              <tbody id="transaction-rows"></tbody>
+            </table>
+          </div>
+          <div class="pagination">
+            <button id="prev-page" class="button button-secondary" type="button">Previous</button>
+            <span id="page-info">Page 1 / 1</span>
+            <button id="next-page" class="button button-secondary" type="button">Next</button>
+          </div>
+        </section>
+      </section>
+
+      <section id="settings" class="dashboard-page" data-page="settings">
+        <div class="settings-intro">
+          <p class="eyebrow">Administrator area</p>
+          <h2>Pengaturan data dan Pipeline</h2>
+          <p>Halaman untuk unggah data baru, menjalankan pipeline, dan melihat status proses terakhir</p>
+        </div>
+
+        <div class="settings-grid">
+          <section class="card settings-card upload-card">
+            <div class="settings-card-header">
+              <span class="step-number">01</span>
+              <p class="eyebrow">Step 1 · Data intake</p>
+            </div>
+            <h3>Tambahkan Batch</h3>
+            <p class="helper-text">
+              Pilih sumber data dan unggah CSV dengan header yang sesuai. Data belum dianalisis sampai pipeline dijalankan
+            </p>
+            <div class="settings-form">
+              <label>
+                Source
+                <select id="upload-source">
+                  <option value="shopee">Shopee</option>
+                  <option value="tokopedia">Tokopedia</option>
+                  <option value="website">Website</option>
+                  <option value="offline">Offline Store</option>
+                  <option value="product">Product Master</option>
+                </select>
+              </label>
+              <label class="file-upload-label">
+                CSV file
+                <span class="file-picker">
+                  <input id="upload-file" class="file-input" type="file" accept=".csv,text/csv">
+                  <span class="file-picker-button">Choose File</span>
+                  <span id="upload-file-name" class="file-picker-name">Belum ada file</span>
+                </span>
+              </label>
+              <label>
+                Admin token
+                <input id="admin-token" type="password" autocomplete="off" placeholder="Token Administrator">
+              </label>
+              <button id="upload-button" class="button button-secondary" type="button">Upload CSV</button>
+            </div>
+            <p class="settings-footnote">CSV akan divalidasi sebelum dimuat ke warehouse</p>
+          </section>
+
+          <section class="card settings-card pipeline-action-card">
+            <div class="settings-card-header">
+              <span class="step-number">02</span>
+              <p class="eyebrow">Step 2 · Process data</p>
+            </div>
+            <h3>Jalankan Pipeline</h3>
+            <p class="pipeline-summary" aria-label="Alur pipeline: validasi, warehouse, dashboard">
+              <span>Validasi</span>
+              <b>→</b>
+              <span>Warehouse</span>
+              <b>→</b>
+              <span>Dashboard</span>
+            </p>
+            <p id="pipeline-progress" class="pipeline-progress" aria-live="polite">Siap dijalankan</p>
+            <button id="run-pipeline" class="button button-primary" type="button">Jalankan sekarang</button>
+          </section>
+        </div>
+
+        <section class="card operations-card">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Pipeline Monitoring</p>
+              <h3>Riwayat Eksekusi</h3>
+              <p class="helper-text">Masukkan admin token di atas, kemudian muat status proses</p>
+            </div>
+            <button id="operations-button" class="button button-secondary" type="button">Check Status</button>
+          </div>
+          <p id="operations-empty" class="empty-state">
+            Masukkan admin token pada Step 1, lalu klik <strong>Check Status</strong> untuk melihat riwayat eksekusi
+          </p>
+          <div id="operations-content" class="hidden">
+            <div class="operation-kpis">
+              <div>
+                <span>Latest pipeline</span>
+                <strong id="operation-latest-status">—</strong>
+              </div>
+              <div>
+                <span>Facts loaded</span>
+                <strong id="operation-latest-facts">—</strong>
+              </div>
+              <div>
+                <span>Failed runs / 7 days</span>
+                <strong id="failed-runs">—</strong>
+              </div>
+            </div>
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Run ID</th>
+                    <th>Status</th>
+                    <th>Started</th>
+                    <th>Duration</th>
+                    <th>Extracted</th>
+                    <th>Valid</th>
+                    <th>Rejected</th>
+                    <th>Duplicate</th>
+                    <th>New</th>
+                    <th>Facts</th>
+                  </tr>
+                </thead>
+                <tbody id="operation-run-rows"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

@@ -2,6 +2,8 @@
 __pycache__/
 *.py[cod]
 .pytest_cache/
+.pytest_tmp/
+.test_runtime/
 .coverage
 .venv/
 venv/
@@ -13,3 +15,5 @@ airflow/logs/*
 !airflow/logs/.gitkeep
 postgres_data/
 .DS_Store
+logs/*.log
+!logs/.gitkeep

@@ -1,11 +1,11 @@
 """Load validated canonical rows into the staging table."""
+
 from __future__ import annotations
 
 from uuid import UUID
 
 from sqlalchemy import text
 from sqlalchemy.engine import Connection
-
 
 RAW_TABLES = {
     "SHOPEE": "raw.shopee_orders",
@@ -18,18 +18,11 @@ RAW_TABLES = {
 def _raw_record_ids(connection: Connection, run_id: UUID) -> dict[tuple[str, int], int]:
     records = {}
     for source_name, table in RAW_TABLES.items():
-        rows = connection.execute(text(
-            f"SELECT raw_record_id, source_row_number FROM {table} WHERE ingestion_run_id = :run_id"
-        ), {"run_id": str(run_id)}).mappings()
+        rows = connection.execute(
+            text(f"SELECT raw_record_id, source_row_number FROM {table} WHERE ingestion_run_id = :run_id"),
+            {"run_id": str(run_id)},
+        ).mappings()
         records.update({(source_name, row["source_row_number"]): row["raw_record_id"] for row in rows})
-        # Idempotent raw ingestion may reuse an existing row from an earlier
-        # run.  Fall back to the latest raw record so staging is not coupled
-        # to the current audit run id.
-        rows = connection.execute(text(
-            f"SELECT raw_record_id, source_row_number FROM {table} ORDER BY raw_record_id DESC"
-        )).mappings()
-        for row in rows:
-            records.setdefault((source_name, row["source_row_number"]), row["raw_record_id"])
     return records
 
 

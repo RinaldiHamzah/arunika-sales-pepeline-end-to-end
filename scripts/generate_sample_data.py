@@ -1,4 +1,5 @@
 """Generate deterministic, deliberately imperfect input files for the ETL."""
+
 from __future__ import annotations
 
 import csv
@@ -84,14 +85,29 @@ def write(name: str, fields: list[str], rows: list[dict], convert) -> None:
         writer.writerows(convert(r) for r in rows)
 
 
+def format_date(value, pattern: str):
+    """Format date values while preserving intentionally invalid test values."""
+    return value.strftime(pattern) if isinstance(value, date) else value
+
+
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     shopee_rows, tokopedia_rows, website_rows, offline_rows = records(1), records(101), records(201), records(301)
-    fmt = lambda value, pattern: value.strftime(pattern) if isinstance(value, date) else value
+    fmt = format_date
 
     write(
         "shopee.csv",
-        ["order_id", "order_date", "product_name", "qty", "unit_price", "customer_name", "customer_city", "payment_method", "status"],
+        [
+            "order_id",
+            "order_date",
+            "product_name",
+            "qty",
+            "unit_price",
+            "customer_name",
+            "customer_city",
+            "payment_method",
+            "status",
+        ],
         shopee_rows,
         lambda r: {
             "order_id": f"SHP-{r['id']:04}",
@@ -108,7 +124,17 @@ def main() -> None:
 
     write(
         "tokopedia.csv",
-        ["transaction_id", "transaction_date", "item_name", "quantity", "price", "buyer_name", "city", "payment", "status"],
+        [
+            "transaction_id",
+            "transaction_date",
+            "item_name",
+            "quantity",
+            "price",
+            "buyer_name",
+            "city",
+            "payment",
+            "status",
+        ],
         tokopedia_rows,
         lambda r: {
             "transaction_id": f"TKP-{r['id']:04}",
@@ -125,7 +151,16 @@ def main() -> None:
 
     write(
         "website.csv",
-        ["invoice_no", "created_at", "product_identifier", "quantity", "unit_price", "total_amount", "customer_email", "status"],
+        [
+            "invoice_no",
+            "created_at",
+            "product_identifier",
+            "quantity",
+            "unit_price",
+            "total_amount",
+            "customer_email",
+            "status",
+        ],
         website_rows,
         lambda r: {
             "invoice_no": f"WEB-{r['id']:04}",
@@ -141,7 +176,17 @@ def main() -> None:
 
     write(
         "offline.csv",
-        ["pos_receipt_no", "sold_at", "item_description", "units", "item_price", "store_name", "store_city", "payment_type", "status"],
+        [
+            "pos_receipt_no",
+            "sold_at",
+            "item_description",
+            "units",
+            "item_price",
+            "store_name",
+            "store_city",
+            "payment_type",
+            "status",
+        ],
         offline_rows,
         lambda r: {
             "pos_receipt_no": f"POS-{r['id']:04}",

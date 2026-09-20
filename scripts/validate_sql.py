@@ -1,9 +1,11 @@
 """Static SQL gate used in CI (no database required)."""
-from pathlib import Path
+
 import re
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SQL_DIRS = [ROOT / "database/schema", ROOT / "database/views"]
+
 
 def main() -> int:
     files = [p for d in SQL_DIRS for p in d.glob("*.sql")]
@@ -18,6 +20,7 @@ def main() -> int:
         return 1
     print(f"SQL validation OK ({len(files)} files)")
     return 0
+
 
 if __name__ == "__main__":
     raise SystemExit(main())

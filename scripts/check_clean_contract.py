@@ -2,6 +2,7 @@
 
 Run before publishing a notebook or exporting a final dataset.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -56,10 +57,7 @@ def main() -> int:
         print(f"Clean folder not found: {CLEAN_DIR}")
         return 1
 
-    files = [
-        path for path in sorted(CLEAN_DIR.glob("*.csv"))
-        if path.name not in {"summary.csv", "quality_issues.csv"}
-    ]
+    files = [path for path in sorted(CLEAN_DIR.glob("*.csv")) if path.name not in {"summary.csv", "quality_issues.csv"}]
     if not files:
         print(f"No clean export CSV files found in {CLEAN_DIR}")
         return 1

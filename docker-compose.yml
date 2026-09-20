@@ -7,6 +7,8 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-ecommerce_sales}
       POSTGRES_USER: ${POSTGRES_USER:-ecommerce_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Jakarta}
+      TZ: ${APP_TIMEZONE:-Asia/Jakarta}
     ports:
       - "${POSTGRES_BIND_ADDRESS:-127.0.0.1}:${POSTGRES_PORT:-5433}:5432"
     volumes:
@@ -27,9 +29,13 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-ecommerce_sales}
       POSTGRES_USER: ${POSTGRES_USER:-ecommerce_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Jakarta}
+      TZ: ${APP_TIMEZONE:-Asia/Jakarta}
     depends_on:
       postgres:
         condition: service_healthy
+    volumes:
+      - ./data/source:/app/data/source:ro
     restart: "no"
 
   dashboard:
@@ -41,6 +47,10 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-ecommerce_sales}
       POSTGRES_USER: ${POSTGRES_USER:-ecommerce_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      DASHBOARD_ADMIN_TOKEN: ${DASHBOARD_ADMIN_TOKEN:?Set DASHBOARD_ADMIN_TOKEN in .env}
+      APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Jakarta}
+      TZ: ${APP_TIMEZONE:-Asia/Jakarta}
+      AIRFLOW_HEALTH_URL: http://airflow-webserver:8080/api/v2/monitor/health
     ports:
       - "${DASHBOARD_PORT:-8501}:8501"
     healthcheck:
@@ -51,30 +61,54 @@ services:
     depends_on:
       pipeline:
         condition: service_completed_successfully
+    volumes:
+      - ./data/source:/app/data/source:rw
     restart: unless-stopped
+
+  # PostgreSQL init scripts run only for a new volume. This idempotent bootstrap
+  # also supports existing developer volumes created before Airflow was added.
+  airflow-db-bootstrap:
+    image: postgres:16-alpine
+    command:
+      - sh
+      - -ec
+      - |
+        until pg_isready -h postgres -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"; do sleep 1; done
+        if [ "$$(psql -h postgres -U "$$POSTGRES_USER" -d "$$POSTGRES_DB" -Atqc "SELECT 1 FROM pg_database WHERE datname = 'airflow'")" != "1" ]; then
+          psql -h postgres -U "$$POSTGRES_USER" -d "$$POSTGRES_DB" -c "CREATE DATABASE airflow"
+        fi
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ecommerce_sales}
+      POSTGRES_USER: ${POSTGRES_USER:-ecommerce_user}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
 
   airflow-init:
     build: .
-    command: >-
-      bash -c "airflow db migrate &&
-      (airflow users create --username $${AIRFLOW_ADMIN_USERNAME}
-      --password $${AIRFLOW_ADMIN_PASSWORD} --firstname Arunika --lastname Admin
-      --role Admin --email $${AIRFLOW_ADMIN_EMAIL} || true)"
+    command: airflow db migrate
     environment:
       AIRFLOW_HOME: /opt/airflow
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
+      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: ${AIRFLOW_ADMIN_USERNAME:-admin}:admin
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg://${POSTGRES_USER:-ecommerce_user}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/airflow
       AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY:?Set AIRFLOW_FERNET_KEY in .env}
       AIRFLOW__API__SECRET_KEY: ${AIRFLOW_SECRET_KEY:?Set AIRFLOW_SECRET_KEY in .env}
+      APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Jakarta}
+      AIRFLOW__CORE__DEFAULT_TIMEZONE: ${APP_TIMEZONE:-Asia/Jakarta}
+      TZ: ${APP_TIMEZONE:-Asia/Jakarta}
       AIRFLOW_ADMIN_USERNAME: ${AIRFLOW_ADMIN_USERNAME:-admin}
       AIRFLOW_ADMIN_PASSWORD: ${AIRFLOW_ADMIN_PASSWORD:?Set AIRFLOW_ADMIN_PASSWORD in .env}
-      AIRFLOW_ADMIN_EMAIL: ${AIRFLOW_ADMIN_EMAIL:-admin@arunika.local}
+      AIRFLOW_ADMIN_EMAIL: ${AIRFLOW_ADMIN_EMAIL:-admin@arunika.co.id}
     volumes:
+      - airflow_home:/opt/airflow
       - ./airflow/dags:/opt/airflow/dags:ro
     depends_on:
-      postgres:
-        condition: service_healthy
+      airflow-db-bootstrap:
+        condition: service_completed_successfully
     restart: "no"
 
   airflow-dag-processor:
@@ -84,11 +118,17 @@ services:
       AIRFLOW_HOME: /opt/airflow
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
+      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: ${AIRFLOW_ADMIN_USERNAME:-admin}:admin
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg://${POSTGRES_USER:-ecommerce_user}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/airflow
       AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY:?Set AIRFLOW_FERNET_KEY in .env}
       AIRFLOW__API__SECRET_KEY: ${AIRFLOW_SECRET_KEY:?Set AIRFLOW_SECRET_KEY in .env}
+      APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Jakarta}
+      AIRFLOW__CORE__DEFAULT_TIMEZONE: ${APP_TIMEZONE:-Asia/Jakarta}
+      TZ: ${APP_TIMEZONE:-Asia/Jakarta}
     volumes:
+      - airflow_home:/opt/airflow
       - ./airflow/dags:/opt/airflow/dags:ro
+      - ./data/source:/app/data/source:ro
     depends_on:
       airflow-init:
         condition: service_completed_successfully
@@ -101,11 +141,17 @@ services:
       AIRFLOW_HOME: /opt/airflow
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
+      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: ${AIRFLOW_ADMIN_USERNAME:-admin}:admin
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg://${POSTGRES_USER:-ecommerce_user}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/airflow
       AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY:?Set AIRFLOW_FERNET_KEY in .env}
       AIRFLOW__API__SECRET_KEY: ${AIRFLOW_SECRET_KEY:?Set AIRFLOW_SECRET_KEY in .env}
+      APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Jakarta}
+      AIRFLOW__CORE__DEFAULT_TIMEZONE: ${APP_TIMEZONE:-Asia/Jakarta}
+      TZ: ${APP_TIMEZONE:-Asia/Jakarta}
     volumes:
+      - airflow_home:/opt/airflow
       - ./airflow/dags:/opt/airflow/dags:ro
+      - ./data/source:/app/data/source:ro
     depends_on:
       airflow-init:
         condition: service_completed_successfully
@@ -119,13 +165,24 @@ services:
       AIRFLOW_HOME: /opt/airflow
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
+      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: ${AIRFLOW_ADMIN_USERNAME:-admin}:admin
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg://${POSTGRES_USER:-ecommerce_user}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/airflow
       AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY:?Set AIRFLOW_FERNET_KEY in .env}
       AIRFLOW__API__SECRET_KEY: ${AIRFLOW_SECRET_KEY:?Set AIRFLOW_SECRET_KEY in .env}
+      APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Jakarta}
+      AIRFLOW__CORE__DEFAULT_TIMEZONE: ${APP_TIMEZONE:-Asia/Jakarta}
+      TZ: ${APP_TIMEZONE:-Asia/Jakarta}
     volumes:
+      - airflow_home:/opt/airflow
       - ./airflow/dags:/opt/airflow/dags:ro
+      - ./data/source:/app/data/source:ro
     ports:
       - "${AIRFLOW_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/api/v2/monitor/health', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
     depends_on:
       airflow-init:
         condition: service_completed_successfully
@@ -135,7 +192,7 @@ services:
     image: dpage/pgadmin4:8
     profiles: ["tools"]
     environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@arunika.local}
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@arunika.co.id}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:?Set PGADMIN_DEFAULT_PASSWORD in .env}
     ports:
       - "${PGADMIN_PORT:-5050}:80"
@@ -146,6 +203,41 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+
+  postgres-test:
+    image: postgres:16-alpine
+    profiles: ["test"]
+    environment:
+      POSTGRES_DB: ecommerce_sales_test
+      POSTGRES_USER: ecommerce_test_user
+      POSTGRES_PASSWORD: ${POSTGRES_TEST_PASSWORD:-test_password}
+    volumes:
+      - ./database/schema:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ecommerce_test_user -d ecommerce_sales_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: "no"
+
+  integration-tests:
+    build: .
+    profiles: ["test"]
+    command: python -m pytest tests/test_integration_postgres.py -q
+    environment:
+      DATABASE_URL: postgresql+psycopg://ecommerce_test_user:${POSTGRES_TEST_PASSWORD:-test_password}@postgres-test:5432/ecommerce_sales_test
+      RUN_POSTGRES_TESTS: "1"
+      ARUNIKA_ISOLATED_TEST_DATABASE: "1"
+      ARUNIKA_TEST_RUNTIME: /tmp/arunika_ecommerce_tests
+      LOG_FORMAT: json
+      APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Jakarta}
+      TZ: ${APP_TIMEZONE:-Asia/Jakarta}
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+    restart: "no"
+
 volumes:
   postgres_data:
+  airflow_home:
   pgadmin_data:

@@ -1,4 +1,5 @@
 """Optional failure notification without making alerts a pipeline dependency."""
+
 import json
 import os
 from urllib.request import Request, urlopen

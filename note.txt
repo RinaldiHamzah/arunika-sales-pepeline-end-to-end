@@ -1,382 +1,49 @@
-## Kondisi Saat Ini
+Secara keseluruhan, project ini sudah kuat sebagai portfolio Data Engineering end-to-end: struktur repository rapi, layer raw–staging–warehouse jelas, data quality, incremental load, audit metrics, Alembic, Airflow, dashboard, CI/CD, dan integration test sudah tersedia.
 
-Pipeline, warehouse loader, dashboard Flask, Airflow DAG, clean contract,
-integration test, CI/CD, security baseline, dan observability sudah tersedia.
-Model database tunggal yang dipakai adalah `raw`, `staging`, `warehouse`, dan
-`audit`. Nama file repository yang aktif menjadi acuan resmi proyek.
+Namun belum “production-perfect”. Temuan utama saya:
 
-## Langkah Berikutnya yang Paling Tepat
+| Prioritas | Temuan | Dampak |
+|---|---|---|
+| Tinggi | Dashboard Docker tidak me-mount `data/source/` dari host | CSV baru yang Anda simpan di laptop belum tentu terbaca oleh tombol **Run pipeline** di dashboard; container dapat memakai salinan CSV saat image dibangun. |
+| Tinggi | Endpoint `POST /api/pipeline/run` dapat menjalankan pipeline tanpa autentikasi | Jika dashboard terbuka dari jaringan, orang lain berpotensi menjalankan pipeline. |
+| Tinggi | Raw loader melewati baris berdasarkan nama file + nomor baris | Jika CSV lama diedit, urutan baris berubah, atau data dikoreksi, lineage raw dapat tidak akurat. |
+| Sedang | Staging fallback mencari raw record berdasarkan source + nomor baris | Berisiko salah menghubungkan row jika file source berubah urutan. |
+| Sedang | Airflow masih belum tervalidasi berjalan di Docker pada mesin Anda | Link Airflow hanya berfungsi jika service Airflow berhasil aktif. |
+| Sedang | Virtual environment belum lengkap | `ruff` belum terpasang pada `env`; CI punya dependency-nya, tetapi local developer environment belum konsisten. |
+| Sedang | README belum sepenuhnya mengikuti dashboard terbaru | Dokumentasi dashboard masih menyebut filter terbatas, sedangkan UI sekarang memiliki brand, SKU, preset tanggal, export, dan run pipeline. |
+| Rendah | `note.txt` masih menjadi backlog internal | Sebaiknya dipindahkan menjadi GitHub Issues atau diringkas agar repository lebih profesional. |
+| Rendah | Notebook analisis cukup banyak dan besar | Baik untuk eksplorasi, tetapi perlu dipastikan output notebook dibersihkan sebelum publikasi GitHub. |
 
-### 1. Bekukan kontrak data
+Hal yang sudah terbukti baik:
 
-Tetapkan secara resmi:
+- Terdapat 32 test yang terdeteksi.
+- Targeted test untuk extraction, contract, incremental, dan warehouse transform: **7 passed**.
+- Validasi SQL: **OK, 10 file**.
+- Validasi clean contract: **OK**.
+- `.env` sudah di-ignore Git.
+- Password aktual tidak disimpan pada `docker-compose.yml`.
+- PostgreSQL dibind ke `127.0.0.1` secara default.
+- Ada Docker, Alembic migration, health check, audit schema, structured logging, webhook alert, dan GitHub Actions.
 
-- schema raw setiap sumber
-- schema clean 12 kolom
-- grain fact: satu baris per order
-- aturan status, duplicate, invalid value, dan product mapping
-- perlakuan data rejected
+Rekomendasi urutan penyempurnaan:
 
-Kontrak ini sudah sebagian ada di `data_quality.py` dan `analysis.py`. Langkah berikutnya adalah menjadikannya acuan tunggal untuk seluruh pipeline.
-
-### 2. Selesaikan pipeline database end-to-end
-
-Prioritas utama adalah membuat alur berikut benar-benar berjalan:
-
-```text
-source CSV
-  -> raw
-  -> staging
-  -> dim_product
-  -> dim_channel
-  -> dim_date
-  -> fact_sales
-  -> analytics views
-```
-
-Implementasikan lebih dulu:
-
-- `standardize.py`
-- `dimension_loader.py`
-- `fact_loader.py`
-- integrasi semua proses tersebut ke `runner.py`
-
-Ini adalah pekerjaan paling penting karena README saat ini menjanjikan data warehouse, tetapi pipeline belum memuat data sampai warehouse.
-
-### 3. Tambahkan pengujian integrasi PostgreSQL
-
-Setelah loader selesai, verifikasi:
-
-- jumlah raw record sama dengan jumlah record yang diekstrak
-- record invalid masuk rejected/audit
-- product dimension tidak duplikat
-- fact sales tidak memiliki duplicate business key
-- pipeline bisa dijalankan ulang tanpa menggandakan data
-- audit run berubah menjadi `SUCCESS` atau `FAILED` secara benar
-
-Test yang ada saat ini lebih banyak menguji Python dan data-quality layer. Anda masih membutuhkan integration test menggunakan Docker PostgreSQL.
-
-### 4. Jalankan dan rapikan Airflow
-
-Setelah `pipeline.runner` sudah end-to-end, baru implementasikan DAG di `ecommerce_pipeline.py`.
-
-DAG sebaiknya memiliki task:
-
-```text
-extract
-  -> validate
-  -> load_raw
-  -> transform_staging
-  -> load_dimensions
-  -> load_fact
-  -> validate_contract
-```
-
-Jangan membuat DAG lebih dulu sebelum runner biasa berhasil, supaya debugging tetap sederhana.
-
-### 5. Bangun dashboard dari analytics views
-
-Setelah database berisi fact dan dimension, implementasikan `flask_app.py`.
-
-Dashboard minimal sebaiknya menampilkan:
-
-- total revenue
-- jumlah order
-- quantity terjual
-- revenue per channel
-- revenue per kategori
-- tren penjualan per bulan
-- produk terlaris
-- jumlah record rejected dan warning
-- filter tanggal, channel, kategori, dan status
-
-Gunakan data dari `analytics_views.sql`, bukan membaca CSV secara langsung.
-
-### 6. Perbarui dokumentasi dan README
-
-Setelah pipeline database selesai, perbaiki:
-
-- `README.md`
-- `architecture.md`
-- `erd.md`
-- `data_dictionary.md`
-- `data_quality.md`
-
-README perlu menggambarkan perintah aktual project saat ini. Saat ini masih ada referensi lama seperti `data_generator/generate_data.py`, `tokopedia.json`, dan `offline_store.csv` yang tidak lagi sesuai.
-
-### 7. Rapikan repository sebelum presentasi
-
-`git status` masih menunjukkan banyak perubahan belum committed, termasuk penghapusan placeholder dan perubahan notebook/source. Setelah semua fitur stabil:
+1. Perbaiki volume mount `data/source` pada service `pipeline`, `dashboard`, dan Airflow agar CSV baru dari user selalu terbaca.
+2. Buat mekanisme ingestion melalui UI: upload CSV → validasi schema → simpan sebagai batch → jalankan pipeline.
+3. Amankan tombol **Run pipeline** dengan login atau token admin.
+4. Ubah identitas raw record dari `source_row_number` menjadi file checksum + business key/source hash.
+5. Install dependency local yang kurang:
 
 ```powershell
-git diff --check
-.\env\Scripts\python.exe .\scripts\check_clean_contract.py
+.\env\Scripts\python.exe -m pip install -r requirements.txt
+```
+
+6. Jalankan validasi local:
+
+```powershell
+.\env\Scripts\python.exe -m ruff check .
 .\env\Scripts\python.exe -m pytest -q
-git status
+.\env\Scripts\python.exe scripts\validate_sql.py
+.\env\Scripts\python.exe scripts\check_clean_contract.py
 ```
 
-Kemudian commit perubahan secara terpisah, misalnya:
-
-1. `align source and clean contracts`
-2. `refresh analysis notebooks`
-3. `implement warehouse loading`
-4. `add dashboard and documentation`
-
-## Rekomendasi Prioritas
-
-Urutan paling aman:
-
-1. **Implementasi staging, dimension, dan fact loader**
-2. **Integrasi end-to-end ke runner**
-3. **Integration test PostgreSQL**
-4. **Airflow DAG**
-5. **Dashboard**
-6. **Dokumentasi dan final cleanup**
-
-Jangan mulai dari dashboard dulu. Nilai project akan naik paling besar ketika pipeline benar-benar dapat mengubah source CSV menjadi data warehouse yang bisa di-query ulang secara idempotent.
-
-docker compose up -d
-.\env\Scripts\python.exe -m pipeline.runner
-.\env\Scripts\python.exe .\scripts\check_warehouse.py
-.\env\Scripts\python.exe dashboard\flask.py
-
-
-Secara keseluruhan proyek ini sudah berada di level **prototype portofolio yang kuat**, tetapi belum bisa disebut 100% production-ready. Bagian terbesar yang masih kurang bukan tampilan dashboard, melainkan konsistensi arsitektur, reproducibility, dan operational readiness.
-
-Yang sudah kuat:
-
-- Multi-source ingestion.
-- Raw, staging, warehouse, dan audit layer.
-- Data quality dan product mapping.
-- Star schema.
-- Incremental fact loading.
-- Analytics views.
-- Dashboard Flask.
-- Test otomatis.
-- Dokumentasi dasar.
-
-Prioritas perbaikannya:
-
-### 1. Satukan desain database
-
-Saat ini ada dua konsep warehouse:
-
-- Schema utama: `raw`, `staging`, `warehouse`, `audit`.
-- Schema tambahan: `arunika_source` di `database/schema/1_source_schema.sql`.
-
-Ini berpotensi membingungkan karena pipeline utama memakai `warehouse`, sedangkan `arunika_source` memiliki tabel star schema lain.
-
-Untuk proyek final, harus ditentukan satu model resmi:
-
-```text
-raw → staging → warehouse → analytics
-```
-
-Schema `arunika_source` dapat dipertahankan sebagai file repository, tetapi harus dijelaskan apakah hanya compatibility layer atau benar-benar digunakan.
-
-### 2. Perbaiki compatibility dependency PostgreSQL
-
-`pipeline/config.py` menggunakan:
-
-```text
-postgresql+psycopg2://
-```
-
-sedangkan `requirements.txt` memasang:
-
-```text
-psycopg[binary]
-```
-
-Untuk environment baru, ini bisa menyebabkan koneksi gagal. Pilih salah satu secara konsisten:
-
-```text
-postgresql+psycopg://
-```
-
-atau tambahkan `psycopg2-binary`.
-
-Ini termasuk perbaikan penting.
-
-### 3. Buat environment benar-benar reproducible
-
-Saat ini Docker Compose baru menjalankan PostgreSQL. Untuk environment lengkap, idealnya tersedia:
-
-- PostgreSQL
-- Airflow scheduler
-- Airflow webserver
-- Dashboard Flask
-- Optional: pgAdmin
-
-Dengan begitu project dapat dijalankan oleh reviewer tanpa konfigurasi manual yang panjang.
-
-### 4. Tambahkan integration test dengan PostgreSQL
-
-Unit test sudah cukup baik, tetapi perlu integration test yang benar-benar memverifikasi:
-
-- raw insert
-- staging insert
-- dimension upsert
-- fact loading
-- unique constraint
-- incremental run kedua
-- dashboard API
-- warehouse health check
-
-Contoh acceptance test:
-
-```text
-Run 1: 1,500 source rows → 1,320 fact rows
-Run 2 tanpa perubahan → 0 fact baru
-Source bertambah 20 rows → hanya 20 rows baru diproses
-```
-
-### 5. Sempurnakan incremental loading
-
-Saat ini duplicate fact sudah dicegah, tetapi perlu kebijakan eksplisit untuk:
-
-- transaksi baru
-- transaksi yang berubah
-- transaksi yang dihapus dari source
-- koreksi harga
-- koreksi status
-- late-arriving transaction
-
-Untuk production, gunakan strategi seperti:
-
-```text
-business key + source hash + updated_at/watermark
-```
-
-dan dokumentasikan apakah perubahan lama di-update, di-versioning, atau ditolak.
-
-### 6. Perbaiki audit metrics
-
-Audit sebaiknya membedakan:
-
-```text
-extracted_records
-validated_records
-rejected_records
-duplicate_records
-incremental_records
-staged_records
-dimension_records
-fact_inserted_records
-fact_skipped_records
-```
-
-Saat ini `valid_records` merupakan hasil validasi source, sedangkan `loaded_records` adalah fact count. Keduanya perlu dibuat lebih eksplisit agar tidak menimbulkan interpretasi yang salah.
-
-### 7. Schema migration tool (selesai)
-
-Alembic menjadi jalur resmi perubahan schema setelah bootstrap SQL. Revision
-`20260917_01_metrics_and_hashes` mengelola metric audit dan hash incremental
-secara idempotent. Service `pipeline` menjalankan `alembic upgrade head` sebelum
-ETL sehingga volume PostgreSQL lama tidak perlu dihapus.
-
-### 8. Tingkatkan security
-
-Hal yang perlu diperbaiki:
-
-- Jangan menyimpan password database nyata di `docker-compose.yml`.
-- Gunakan `.env` yang tidak di-commit.
-- Tambahkan validasi environment variable.
-- Gunakan user database dengan privilege terbatas (bootstrap development memakai
-  owner; production membuat role `NOSUPERUSER NOCREATEDB NOCREATEROLE`).
-- Jangan expose PostgreSQL ke semua interface jika tidak diperlukan.
-- Matikan `debug=True` untuk deployment.
-
-### 9. Observability (selesai)
-
-Selain log biasa, tambahkan:
-
-- structured JSON logging
-- execution duration setiap tahap
-- row count per source
-- error count per rule
-- checksum file
-- freshness check
-- alert ketika pipeline gagal
-- dashboard status pipeline terakhir
-
-Metric penting:
-
-```text
-pipeline_success_rate
-pipeline_duration
-source_freshness
-rejected_record_rate
-duplicate_rate
-fact_load_rate
-```
-
-### 10. Dashboard masih bisa diperkuat
-
-Dashboard sekarang sudah jauh lebih baik, tetapi masih bisa ditambah:
-
-- filter brand
-- filter product
-- date preset: Today, 7D, 30D, YTD
-- export CSV
-- pagination transaksi
-- gross vs net sales
-- comparison period
-- top brand
-- top SKU
-- status rate
-- data freshness timestamp
-- quality warning banner
-- empty-state yang lebih informatif
-
-### 11. Tambahkan CI/CD
-
-Repository idealnya memiliki workflow GitHub Actions untuk:
-
-```text
-install dependencies
-run lint
-run unit tests
-run integration tests
-validate SQL
-validate clean contract
-build Docker image
-```
-
-Minimal tambahkan:
-
-- `ruff`
-- `pytest`
-- `pre-commit`
-- GitHub Actions
-- coverage report
-
-### 12. Lengkapi dokumentasi teknis
-
-Dokumentasi sebaiknya menjelaskan:
-
-- architecture diagram
-- data lineage
-- source-to-target mapping
-- grain fact table
-- business key
-- DQ treatment
-- incremental strategy
-- failure recovery
-- schema migration
-- dashboard screenshots
-- sample API response
-- operational runbook
-- known limitations
-
-### Kesimpulan
-
-Jika dinilai sebagai assignment internship, proyek ini sudah sangat baik—sekitar **8 sampai 8,5/10**.
-
-Agar mendekati 100%, tiga hal paling penting adalah:
-
-1. Hilangkan dua desain database yang tumpang tindih.
-2. Pastikan fresh installation benar-benar berjalan dari Docker dan dependency yang konsisten.
-3. Tambahkan integration test untuk membuktikan pipeline end-to-end dan incremental loading.
-
-Dengan tiga perbaikan tersebut, ditambah CI/CD, security, dan observability, proyek ini akan terlihat seperti sistem data engineering yang matang, bukan hanya demonstrasi ETL.
+Kesimpulannya: proyek ini sudah sekitar **85–90% siap sebagai portfolio/interview Data Engineer**. Poin terbesar yang perlu dibereskan adalah pengalaman user saat memasukkan CSV baru serta konsistensi data source antara host, Docker, raw layer, dan dashboard.

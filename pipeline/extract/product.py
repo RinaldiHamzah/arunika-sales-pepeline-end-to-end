@@ -1,5 +1,7 @@
 """Product master CSV extractor."""
+
 from pathlib import Path
+
 from pipeline.extract.base import ExtractedSource, extract_delimited
 from pipeline.validation.contracts import raw_column_mapping
 

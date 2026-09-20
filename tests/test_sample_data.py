@@ -2,7 +2,6 @@ from pathlib import Path
 
 from pipeline.extract.sources import extract_all
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 

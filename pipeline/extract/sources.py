@@ -1,4 +1,5 @@
 """Build the complete list of project source extracts."""
+
 from pathlib import Path
 
 from pipeline.extract import offline, product, shopee, tokopedia, website

@@ -16,6 +16,8 @@ CREATE TABLE IF NOT EXISTS audit.pipeline_runs (
     dimension_records INTEGER NOT NULL DEFAULT 0 CHECK (dimension_records >= 0),
     fact_inserted_records INTEGER NOT NULL DEFAULT 0 CHECK (fact_inserted_records >= 0),
     fact_skipped_records INTEGER NOT NULL DEFAULT 0 CHECK (fact_skipped_records >= 0),
+    current_stage VARCHAR(50),
+    current_stage_started_at TIMESTAMPTZ,
     duration_seconds NUMERIC(12,3),
     error_message TEXT,
     CONSTRAINT chk_pipeline_run_end CHECK (ended_at IS NULL OR ended_at >= started_at)
@@ -31,6 +33,10 @@ ALTER TABLE audit.pipeline_runs
     ADD COLUMN IF NOT EXISTS dimension_records INTEGER NOT NULL DEFAULT 0,
     ADD COLUMN IF NOT EXISTS fact_inserted_records INTEGER NOT NULL DEFAULT 0,
     ADD COLUMN IF NOT EXISTS fact_skipped_records INTEGER NOT NULL DEFAULT 0;
+
+ALTER TABLE audit.pipeline_runs
+    ADD COLUMN IF NOT EXISTS current_stage VARCHAR(50),
+    ADD COLUMN IF NOT EXISTS current_stage_started_at TIMESTAMPTZ;
 
 CREATE TABLE IF NOT EXISTS audit.data_quality_results (
     quality_result_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,

@@ -11,18 +11,19 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_DB: ecommerce_sales
+          POSTGRES_DB: ecommerce_sales_test
           POSTGRES_USER: ecommerce_user
           POSTGRES_PASSWORD: ci_password
         ports:
           - 5433:5432
         options: >-
-          --health-cmd "pg_isready -U ecommerce_user -d ecommerce_sales"
+          --health-cmd "pg_isready -U ecommerce_user -d ecommerce_sales_test"
           --health-interval 5s --health-timeout 5s --health-retries 10
     env:
-      DATABASE_URL: postgresql+psycopg://ecommerce_user:ci_password@localhost:5433/ecommerce_sales
+      DATABASE_URL: postgresql+psycopg://ecommerce_user:ci_password@localhost:5433/ecommerce_sales_test
       POSTGRES_PASSWORD: ci_password
       RUN_POSTGRES_TESTS: "1"
+      ARUNIKA_ISOLATED_TEST_DATABASE: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -41,7 +42,7 @@ jobs:
           PGPASSWORD: ci_password
         run: |
           for file in database/schema/*.sql; do
-            psql -h localhost -p 5433 -U ecommerce_user -d ecommerce_sales -f "$file"
+            psql -h localhost -p 5433 -U ecommerce_user -d ecommerce_sales_test -f "$file"
           done
       - name: Run tests with coverage
         run: python -m pytest --cov=pipeline --cov=dashboard --cov-report=term-missing --cov-report=xml -q

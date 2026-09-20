@@ -37,7 +37,12 @@ overwritten.
    tersedia di `http://127.0.0.1:8080`.
 
    Airflow 3 memakai `airflow api-server` sebagai pengganti proses webserver
-   Airflow 2. Login memakai `AIRFLOW_ADMIN_USERNAME` dan `AIRFLOW_ADMIN_PASSWORD`.
+   Airflow 2. Runtime lokal ini memakai Simple Auth Manager bawaan Airflow 3:
+   username mengikuti `AIRFLOW_ADMIN_USERNAME` (default `admin`), sedangkan
+   password dibuat saat API server pertama hidup. Ambil sekali dari
+   `docker compose logs airflow-webserver`, kemudian simpan sebagai secret
+   lokal; jangan commit atau membagikannya. `AIRFLOW_ADMIN_PASSWORD` tidak
+   dipakai oleh Simple Auth Manager.
    pgAdmin bersifat opsional dan dapat diaktifkan dengan `docker compose --profile
    tools up -d pgadmin` pada `http://127.0.0.1:5050`.
 
@@ -46,6 +51,26 @@ overwritten.
    ```powershell
    .\env\Scripts\python.exe -m pipeline.runner
    ```
+
+### Menambahkan CSV baru melalui dashboard
+
+1. Tambahkan `DASHBOARD_ADMIN_TOKEN` yang panjang dan rahasia pada `.env`.
+2. Buka dashboard, isi **Admin token**, pilih source, lalu unggah batch CSV.
+3. Header CSV harus persis sama dengan file source yang dipilih.
+4. Klik **Run pipeline** dengan token yang sama.
+
+Upload menambahkan baris ke `data/source/<source>.csv`; pipeline kemudian
+menyimpan snapshot raw baru, memvalidasi data, dan hanya memuat fact baru atau
+fact yang berubah. Semua service Docker membaca folder host `data/source/`
+melalui volume mount, sehingga file baru tidak membutuhkan rebuild image.
+
+### Monitoring scheduler dan operasi
+
+Bagian **Settings** pada dashboard, dengan admin token, menampilkan riwayat
+sepuluh pipeline run terbaru, status, durasi, volume data, dan metrik quality.
+Tombol **Run pipeline** menampilkan tahap aktif dari audit database secara
+real-time. Pengaturan jadwal tetap dikelola oleh Airflow di environment
+orchestration, bukan dari dashboard.
 
 Perubahan schema pada database yang sudah berjalan menggunakan Alembic:
 
@@ -62,6 +87,20 @@ Freshness source dapat diperiksa sebelum run:
 ```powershell
 .\env\Scripts\python.exe .\scripts\check_freshness.py
 ```
+
+Untuk melihat performa pipeline lengkap dari audit PostgreSQL dalam format JSON:
+
+```powershell
+.\env\Scripts\python.exe .\scripts\monitor_pipeline.py
+```
+
+Gunakan `--follow 10` untuk refresh setiap 10 detik. Log lokal tersimpan di
+`logs/pipeline.log` dan `logs/dashboard.log`; gunakan `LOG_FORMAT=json` untuk
+log terstruktur.
+
+Semua timestamp pada backend, session PostgreSQL, structured log, dan dashboard
+menggunakan **WIB (`Asia/Jakarta`, offset `+07:00`)**. Atur `APP_TIMEZONE` di
+`.env` bila kebijakan waktu perlu diubah secara terkontrol.
 
 Set `ALERT_WEBHOOK_URL` untuk mengirim notifikasi kegagalan pipeline ke webhook
 monitoring pilihan Anda. Alert bersifat opsional dan tidak membuat ETL gagal bila
@@ -117,8 +156,23 @@ Pastikan PostgreSQL dan pipeline sudah berjalan, lalu jalankan:
 .\env\Scripts\python.exe dashboard\flask.py
 ```
 
-Buka `http://127.0.0.1:8501`. Dashboard Flask membaca analytics view PostgreSQL
-dan menyediakan filter periode, channel, status, serta kategori.
+Buka `http://127.0.0.1:8501`. Dashboard Flask membaca analytics view PostgreSQL,
+menyediakan filter periode, channel, status, kategori, brand, SKU, export CSV,
+upload batch CSV tervalidasi, dan run pipeline terproteksi admin token.
+
+## Integration test PostgreSQL terisolasi
+
+Jangan jalankan acceptance test pada database development. Project menyediakan
+database sementara bernama `ecommerce_sales_test` melalui Docker profile
+`test`:
+
+```powershell
+docker compose --profile test run --rm integration-tests
+```
+
+Service tersebut menjalankan skenario raw → staging → dimension → fact,
+membuktikan rerun idempotent, lalu menambahkan 20 transaksi baru pada database
+test saja. Tidak ada tabel atau data pada `ecommerce_sales` yang dipakai.
 
 ## Orkestrasi Airflow
 
@@ -131,3 +185,8 @@ dan Airflow yang kompatibel. Eksekusi manual tetap tersedia melalui:
 .\env\Scripts\python.exe -m pipeline.runner
 .\env\Scripts\python.exe .\scripts\check_warehouse.py
 ```
+
+Pada startup, service `airflow-db-bootstrap` memastikan database metadata
+`airflow` tersedia bahkan bila volume PostgreSQL dibuat sebelum Airflow
+ditambahkan. Cek kesehatan API server melalui
+`http://127.0.0.1:8080/api/v2/monitor/health`.

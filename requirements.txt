@@ -1,7 +1,9 @@
+# Direct project dependencies. Resolve transitive packages through pip/constraints in CI or Docker.
 pandas==3.0.5
 SQLAlchemy==2.0.51
 alembic>=1.15,<2.0
 psycopg[binary]==3.3.5
+asyncpg>=0.29,<1.0
 python-dotenv==1.2.1
 Flask>=3.1,<4.0
 plotly>=6.0,<7.0

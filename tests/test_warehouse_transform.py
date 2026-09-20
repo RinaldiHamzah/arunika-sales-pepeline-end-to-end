@@ -11,9 +11,7 @@ def test_clean_rows_transform_to_staging_contract():
     rows = clean_results_to_staging(results)
 
     assert len(rows) == sum(
-        result.summary["valid_records"]
-        for source, result in results.items()
-        if source != "product"
+        result.summary["valid_records"] for source, result in results.items() if source != "product"
     )
     expected_sources = {
         SOURCE_NAMES[source]

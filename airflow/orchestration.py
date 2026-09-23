@@ -98,9 +98,8 @@ with DAG(
     description="Validate sources, load the warehouse, and verify published facts.",
     start_date=pendulum.datetime(2026, 1, 1, tz="Asia/Jakarta"),
     # Cron format: minute hour day-of-month month day-of-week.
-    # Temporary operational test: runs once every day at 21:00 WIB.
-    # Restore this to "0 13 * * *" after today's verification.
-    schedule="0 21 * * *",
+    # Runs once every day at 13:00 WIB (Asia/Jakarta).
+    schedule="0 13 * * *",
     catchup=False,
     default_args={
         "owner": "data-engineering",

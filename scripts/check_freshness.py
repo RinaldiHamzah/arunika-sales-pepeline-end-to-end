@@ -6,9 +6,12 @@ from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from pipeline.config import settings
-
 ROOT = Path(__file__).resolve().parents[1]
+if __package__ is None and str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from pipeline.config import settings  # noqa: E402  # Root path is prepared for direct script execution.
+
 SOURCES = ("product.csv", "shopee.csv", "tokopedia.csv", "website.csv", "offline.csv")
 max_age = float(os.getenv("MAX_SOURCE_AGE_HOURS", "48"))
 APP_TIMEZONE = ZoneInfo(settings.app_timezone)

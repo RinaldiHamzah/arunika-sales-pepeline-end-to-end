@@ -61,35 +61,47 @@ def collect_performance(run_id: str | None = None) -> dict:
             return {"status": "NO_RUN", "message": "Belum ada pipeline run pada audit database."}
 
         selected_run_id = str(run["run_id"])
-        stages = connection.execute(
-            text("""
+        stages = (
+            connection.execute(
+                text("""
                 SELECT stage_name, status, started_at, ended_at,
                        duration_seconds, records_processed, error_message
                 FROM audit.pipeline_stage_runs
                 WHERE run_id = :run_id
                 ORDER BY started_at
             """),
-            {"run_id": selected_run_id},
-        ).mappings().all()
-        quality = connection.execute(
-            text("""
+                {"run_id": selected_run_id},
+            )
+            .mappings()
+            .all()
+        )
+        quality = (
+            connection.execute(
+                text("""
                 SELECT source_name, rule_name, severity, failed_records, details
                 FROM audit.data_quality_results
                 WHERE run_id = :run_id
                 ORDER BY failed_records DESC, source_name, rule_name
             """),
-            {"run_id": selected_run_id},
-        ).mappings().all()
-        freshness = connection.execute(
-            text("""
+                {"run_id": selected_run_id},
+            )
+            .mappings()
+            .all()
+        )
+        freshness = (
+            connection.execute(
+                text("""
                 SELECT source_name, source_file_name, file_checksum_sha256,
                        extracted_records, extracted_at
                 FROM audit.source_ingestions
                 WHERE run_id = :run_id
                 ORDER BY source_name
             """),
-            {"run_id": selected_run_id},
-        ).mappings().all()
+                {"run_id": selected_run_id},
+            )
+            .mappings()
+            .all()
+        )
 
     payload = _row(run)
     payload["stages"] = [_row(item) for item in stages]

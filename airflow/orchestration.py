@@ -5,11 +5,11 @@ from __future__ import annotations
 from datetime import timedelta
 
 import pendulum
+from sqlalchemy import text
+
 from airflow.providers.standard.operators.empty import EmptyOperator
 from airflow.providers.standard.operators.python import PythonOperator
 from airflow.sdk import DAG
-from sqlalchemy import text
-
 from pipeline.alerts import send_pipeline_report
 from pipeline.database import get_engine
 from pipeline.logger import get_logger

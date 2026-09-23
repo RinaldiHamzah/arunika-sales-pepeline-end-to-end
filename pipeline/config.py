@@ -24,9 +24,7 @@ class Settings:
     flask_debug: bool = os.getenv("FLASK_DEBUG", "0").lower() in {"1", "true", "yes"}
     dashboard_admin_token: str = os.getenv("DASHBOARD_ADMIN_TOKEN", "")
     pipeline_stale_run_minutes: int = int(os.getenv("PIPELINE_STALE_RUN_MINUTES", "60"))
-    airflow_health_url: str = os.getenv(
-        "AIRFLOW_HEALTH_URL", "http://127.0.0.1:8080/api/v2/monitor/health"
-    )
+    airflow_health_url: str = os.getenv("AIRFLOW_HEALTH_URL", "http://127.0.0.1:8080/api/v2/monitor/health")
 
     @property
     def sqlalchemy_url(self) -> str:

@@ -15,7 +15,9 @@ load_dotenv(Path(__file__).resolve().with_name(".env"))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Jalankan ngrok tunnel ke Flask di port 8501.")
-    parser.add_argument("--token", "-t", help="Ngrok auth token. Jika tidak diberikan, akan membaca dari NGROK_AUTH_TOKEN.")
+    parser.add_argument(
+        "--token", "-t", help="Ngrok auth token. Jika tidak diberikan, akan membaca dari NGROK_AUTH_TOKEN."
+    )
     args = parser.parse_args()
 
     auth_token = args.token or os.getenv("NGROK_AUTH_TOKEN")
@@ -24,10 +26,11 @@ if __name__ == "__main__":
             "NGROK_AUTH_TOKEN belum diset dan token tidak diberikan. "
             "Gunakan salah satu metode berikut:\n"
             "1) Set token di PowerShell saat ini:\n"
-            "   $env:NGROK_AUTH_TOKEN = \"<token-anda>\"\n"
+            '   $env:NGROK_AUTH_TOKEN = "<token-anda>"\n'
             "   python ngrok.py\n"
             "2) Jalankan langsung dengan argumen token:\n"
-            "   python ngrok.py --token <token-anda>\n")
+            "   python ngrok.py --token <token-anda>\n"
+        )
     try:
         ngrok.set_auth_token(auth_token)
         public_url = ngrok.connect(PORT, "http")
@@ -46,4 +49,4 @@ if __name__ == "__main__":
         print(f"Gagal menjalankan ngrok: {e}")
         raise
 
-#python ngrok.py --token
+# python ngrok.py --token

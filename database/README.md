@@ -1,69 +1,49 @@
-# Database Layer
+# Dokumentasi Database
 
-The canonical database model uses four PostgreSQL schemas:
+Database utama proyek bernama `ecommerce_sales`. Metadata Airflow disimpan pada database terpisah bernama `airflow`.
 
-- `raw`: source-faithful CSV records and ingestion metadata.
-- `staging`: validated canonical rows before warehouse key resolution.
-- `warehouse`: date, product, customer, channel, payment, and sales fact tables.
-- `audit`: pipeline runs, quality evidence, rejected records, and lineage.
+## Schema PostgreSQL
 
-Initialization order is numeric:
+| Schema | Isi |
+| --- | --- |
+| `raw` | Record source baru atau berubah dan metadata ingestion. |
+| `staging` | Record canonical yang sudah valid sebelum resolusi foreign key. |
+| `warehouse` | Star schema: dimensi dan `fact_sales`. |
+| `audit` | Status run, kualitas data, record ditolak, snapshot, dan lineage. |
 
-1. `schema/00_schemas.sql`
-2. `schema/02_raw_tables.sql`
-3. `schema/03_staging_tables.sql`
-4. `schema/04_dimensions.sql`
-5. `schema/05_fact_tables.sql`
-6. `schema/06_audit_tables.sql`
-7. `schema/07_analytics_views.sql`
+Jangan membuat schema warehouse kedua untuk source yang sama.
 
-`schema/00_airflow_database.sql` membuat database metadata Airflow terpisah pada
-inisialisasi PostgreSQL pertama. Airflow tidak menyimpan tabel metadata di
-database warehouse `ecommerce_sales`.
+## Urutan bootstrap
 
-## Schema migrations
+1. `00_airflow_database.sql` — database metadata Airflow.
+2. `00_schemas.sql` — schema aplikasi.
+3. `01_extensions.sql` — extension `pgcrypto`.
+4. `02_raw_tables.sql` — tabel raw dan ingestion.
+5. `03_staging_tables.sql` — tabel staging.
+6. `04_dimensions.sql` — tabel dimensi.
+7. `05_fact_tables.sql` — tabel fakta.
+8. `06_audit_tables.sql` — tabel audit dan kualitas data.
+9. `07_analytics_views.sql` — view analitik.
+10. `99_security_hardening.sql` — hardening privilege.
 
-SQL pada folder `schema/` digunakan untuk bootstrap volume baru. Perubahan setelah
-database berjalan dikelola dengan Alembic:
-
-```powershell
-alembic upgrade head
-```
-
-Buat revision baru setelah perubahan model:
+Script init Docker hanya berjalan saat volume pertama kali dibuat. Untuk schema yang sudah ada, gunakan Alembic:
 
 ```powershell
-alembic revision -m "describe schema change"
-alembic upgrade head
+.\env\Scripts\python.exe -m alembic upgrade head
 ```
 
-Service `pipeline` di Docker menjalankan `alembic upgrade head` sebelum ETL,
-sehingga volume lama menerima perubahan schema tanpa dihapus.
+## Keamanan dan koneksi
 
-## Security baseline
+- Password dibaca dari `.env`.
+- PostgreSQL Docker hanya bind ke `127.0.0.1` secara default.
+- Role production harus memakai hak minimum dan tidak memiliki `SUPERUSER`, `CREATEDB`, atau `CREATEROLE`.
 
-PostgreSQL hanya di-bind ke `127.0.0.1` secara default melalui
-`POSTGRES_BIND_ADDRESS`. Password dibaca dari `.env` (yang di-ignore Git),
-password default ditolak oleh konfigurasi Python, dan revision Alembic kedua
-mencabut akses `PUBLIC`. Untuk deployment multi-user, role aplikasi harus dibuat
-oleh cluster administrator sebagai `NOSUPERUSER NOCREATEDB NOCREATEROLE`; bootstrap
-single-user Docker tetap menggunakan role pemilik database. Jika
-database perlu diakses dari host lain, ubah bind address secara sadar dan batasi
-aksesnya dengan firewall/network policy.
+Koneksi dari komputer lokal:
 
-Model operasional tunggal menggunakan schema `raw`, `staging`, `warehouse`, dan
-`audit`. Tidak ada schema star kedua; seluruh loader, view, dashboard, dan health
-check menggunakan `warehouse`. Kontrak clean publik dimiliki
-`pipeline/validation/contracts.py`; kolom warehouse menggunakan nama seperti
-`source_name`, `source_order_id`, dan `sale_status`.
-
-For a fresh local database:
-
-```powershell
-docker compose up -d
-.\env\Scripts\python.exe -m pipeline.runner
+```text
+Host     : 127.0.0.1
+Port     : 5433
+Database : ecommerce_sales
 ```
 
-The PostgreSQL init scripts run only when the data volume is first created. For
-a schema change on an existing local volume, apply the changed SQL manually or
-recreate the disposable development volume.
+Antar-container memakai `postgres:5432`.

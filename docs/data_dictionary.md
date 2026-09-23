@@ -1,49 +1,48 @@
-# Data Dictionary
+# Kamus Data Warehouse
 
-## Warehouse tables
+## `warehouse.fact_sales`
 
-### `warehouse.fact_sales`
+Grain: satu produk dalam satu transaksi source. Primary key: `sales_key`. Business key: `(source_name, source_order_id, source_line_number)`.
 
-Grain: one product line in one source order. Primary key: `sales_key`. Natural
-business key: `(source_name, source_order_id, source_line_number)`.
-
-| Column | Type | Meaning |
+| Kolom | Tipe | Keterangan |
 | --- | --- | --- |
-| `sales_key` | BIGINT | Warehouse surrogate key |
-| `source_name` | VARCHAR | `SHOPEE`, `TOKOPEDIA`, `WEBSITE`, or `OFFLINE_STORE` |
-| `source_order_id` | TEXT | Identifier from the source |
-| `source_line_number` | INTEGER | Line within the order; currently `1` |
-| `date_key` | INTEGER | FK to `dim_date` |
-| `product_key` | BIGINT | FK to `dim_product` |
-| `customer_key` | BIGINT | Nullable FK to `dim_customer` |
-| `channel_key` | SMALLINT | FK to `dim_channel` |
-| `payment_key` | SMALLINT | Nullable FK to `dim_payment` |
-| `sale_status` | VARCHAR | `COMPLETED`, `CANCELLED`, or `RETURNED` |
-| `quantity` | INTEGER | Positive units sold |
-| `unit_price` | NUMERIC(14,2) | Transaction unit price |
-| `gross_amount` | NUMERIC(16,2) | Quantity multiplied by unit price |
-| `discount_amount` | NUMERIC(16,2) | Current default is zero |
-| `net_amount` | NUMERIC(16,2) | Gross amount less discount |
-| `source_record_hash` | CHAR(64) | Content hash for correction detection and idempotent upsert |
-| `is_source_active` | BOOLEAN | Source snapshot activity flag; rows are not hard-deleted |
+| `sales_key` | BIGINT | Surrogate key fact. |
+| `source_name` | VARCHAR | `SHOPEE`, `TOKOPEDIA`, `WEBSITE`, atau `OFFLINE_STORE`. |
+| `source_order_id` | TEXT | ID transaksi dari source. |
+| `source_line_number` | INTEGER | Nomor baris produk; saat ini umumnya `1`. |
+| `date_key` | INTEGER | Foreign key ke `dim_date`. |
+| `product_key` | BIGINT | Foreign key ke `dim_product`. |
+| `customer_key` | BIGINT | Foreign key opsional ke `dim_customer`. |
+| `channel_key` | SMALLINT | Foreign key ke `dim_channel`. |
+| `payment_key` | SMALLINT | Foreign key opsional ke `dim_payment`. |
+| `sale_status` | VARCHAR | `COMPLETED`, `CANCELLED`, atau `RETURNED`. |
+| `quantity` | INTEGER | Jumlah unit positif. |
+| `unit_price` | NUMERIC(14,2) | Harga satuan transaksi. |
+| `gross_amount` | NUMERIC(16,2) | `quantity × unit_price`. |
+| `discount_amount` | NUMERIC(16,2) | Diskon tervalidasi; saat ini nol. |
+| `net_amount` | NUMERIC(16,2) | `gross_amount - discount_amount`. |
+| `source_record_hash` | CHAR(64) | Hash isi record untuk koreksi dan idempotensi. |
+| `is_source_active` | BOOLEAN | Status source; record tidak dihapus fisik. |
 
-### Dimensions
+## Dimensi
 
-| Table | Key | Purpose |
+| Tabel | Key | Isi |
 | --- | --- | --- |
-| `warehouse.dim_product` | `product_key`, unique `sku` | Master SKU, product name, brand, category, standard price |
-| `warehouse.dim_date` | `date_key` | Calendar attributes for daily/monthly analysis |
-| `warehouse.dim_customer` | `customer_key`, unique `customer_nk` | Source-scoped customer identity and city |
-| `warehouse.dim_channel` | `channel_key`, unique `channel_code` | Channel name and channel type |
-| `warehouse.dim_payment` | `payment_key`, unique `payment_method` | Canonical payment method |
+| `warehouse.dim_product` | `product_key`, unik `sku` | SKU, nama, brand, kategori, harga standar. |
+| `warehouse.dim_date` | `date_key` | Atribut kalender. |
+| `warehouse.dim_customer` | `customer_key`, unik `customer_nk` | Identitas pelanggan per source dan kota terverifikasi. |
+| `warehouse.dim_channel` | `channel_key`, unik `channel_code` | Nama dan tipe channel. |
+| `warehouse.dim_payment` | `payment_key`, unik `payment_method` | Metode pembayaran canonical. |
 
-### Staging and audit
+## Staging dan audit
 
-| Table | Purpose |
+| Tabel | Isi |
 | --- | --- |
-| `staging.stg_sales` | Validated canonical rows with raw record lineage before FK resolution |
-| `audit.pipeline_runs` | Run status, duration, and extracted/validated/incremental/staging/dimension/fact counts |
-| `audit.data_quality_results` | Rule/severity aggregates per run |
-| `audit.rejected_records` | Rejected source payloads and reasons |
-| `audit.pipeline_watermarks` | Last successful source/run marker |
-| `audit.source_ingestions` | File checksum, path, format, and extracted count |
+| `staging.stg_sales` | Record canonical valid dan lineage raw sebelum resolusi foreign key. |
+| `audit.pipeline_runs` | Status, durasi, dan metrik pipeline. |
+| `audit.pipeline_stage_runs` | Status serta durasi setiap tahap. |
+| `audit.data_quality_results` | Ringkasan rule kualitas data per run. |
+| `audit.rejected_records` | Payload yang ditolak dan alasannya. |
+| `audit.pipeline_watermarks` | Penanda source/run sukses terakhir. |
+| `audit.source_ingestions` | Checksum, path, format, dan jumlah record source. |
+| `audit.source_snapshots` | Fingerprint source untuk incremental loading. |

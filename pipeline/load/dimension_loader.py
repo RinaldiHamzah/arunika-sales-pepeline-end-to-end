@@ -39,10 +39,15 @@ def load_dimensions(connection: Connection, product_rows, staging_rows) -> dict[
             "is_weekend": date_value.weekday() >= 5,
         }
         if row.get("customer_nk"):
-            customers[row["customer_nk"]] = {
+            customer_key = row["customer_nk"]
+            existing_customer = customers.get(customer_key, {})
+            customers[customer_key] = {
                 "customer_nk": row["customer_nk"],
-                "customer_name": row.get("customer_name"),
-                "city": row.get("city"),
+                "customer_name": row.get("customer_name") or existing_customer.get("customer_name"),
+                # A valid city seen earlier in the same batch remains the
+                # source-of-record when another line for that exact customer
+                # omits the optional location field.
+                "city": row.get("city") or existing_customer.get("city"),
             }
         if row.get("payment_method"):
             payments.add(row["payment_method"])
@@ -65,8 +70,17 @@ def load_dimensions(connection: Connection, product_rows, staging_rows) -> dict[
                 INSERT INTO warehouse.dim_customer (customer_nk, customer_name, city)
                 VALUES (:customer_nk, :customer_name, :city)
                 ON CONFLICT (customer_nk) DO UPDATE SET
-                    customer_name = EXCLUDED.customer_name,
-                    city = EXCLUDED.city,
+                    customer_name = COALESCE(EXCLUDED.customer_name, warehouse.dim_customer.customer_name),
+                    -- Do not erase a previously verified city when a later
+                    -- source row has no location.  This is deterministic
+                    -- enrichment by the exact customer natural key, not a
+                    -- geographic guess.
+                    city = CASE
+                        WHEN EXCLUDED.city IS NULL
+                          OR LOWER(BTRIM(EXCLUDED.city)) IN ('', 'nan', 'none', 'null', 'n/a', 'na')
+                            THEN warehouse.dim_customer.city
+                        ELSE EXCLUDED.city
+                    END,
                     updated_at = CURRENT_TIMESTAMP
             """),
             list(customers.values()),

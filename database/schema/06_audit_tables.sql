@@ -103,6 +103,26 @@ CREATE INDEX IF NOT EXISTS idx_audit_source_ingestions_run ON audit.source_inges
 CREATE INDEX IF NOT EXISTS idx_audit_stage_runs_run ON audit.pipeline_stage_runs (run_id, started_at);
 
 -- Raw and staging run IDs reference the audit table only after it exists.
+CREATE TABLE IF NOT EXISTS audit.source_snapshots (
+    pipeline_name VARCHAR(100) NOT NULL,
+    source_name VARCHAR(30) NOT NULL,
+    file_checksum_sha256 CHAR(64) NOT NULL,
+    payload_hashes JSONB NOT NULL CHECK (jsonb_typeof(payload_hashes) = 'array'),
+    run_id UUID NOT NULL REFERENCES audit.pipeline_runs(run_id),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (pipeline_name, source_name)
+);
+ALTER TABLE audit.pipeline_runs ADD COLUMN IF NOT EXISTS orchestration_run_id TEXT;
+CREATE INDEX IF NOT EXISTS idx_runs_orchestration
+    ON audit.pipeline_runs (pipeline_name, orchestration_run_id, started_at DESC);
+ALTER TABLE audit.source_snapshots ADD COLUMN IF NOT EXISTS source_records BIGINT CHECK (source_records >= 0);
+ALTER TABLE audit.pipeline_runs
+    ADD COLUMN IF NOT EXISTS source_records BIGINT CHECK (source_records >= 0),
+    ADD COLUMN IF NOT EXISTS skipped_unchanged_records BIGINT CHECK (skipped_unchanged_records >= 0),
+    ADD COLUMN IF NOT EXISTS source_metrics JSONB,
+    ADD COLUMN IF NOT EXISTS outcome_message TEXT;
+
+-- Raw and staging run IDs reference the audit table only after it exists.
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_raw_shopee_run') THEN

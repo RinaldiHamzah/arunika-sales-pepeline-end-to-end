@@ -81,16 +81,12 @@ def _source_row_count(source_dir):
 def test_full_pipeline_and_incremental_acceptance():
     # pytest's ``tmp_path`` and a repository folder can be locked by OneDrive
     # on Windows. Use a dedicated directory in the OS temporary area instead.
-    runtime_root = Path(
-        os.getenv("ARUNIKA_TEST_RUNTIME", str(Path(tempfile.gettempdir()) / "arunika_ecommerce_tests"))
-    )
+    runtime_root = Path(os.getenv("ARUNIKA_TEST_RUNTIME", str(Path(tempfile.gettempdir()) / "arunika_ecommerce_tests")))
     runtime_root.mkdir(exist_ok=True)
     source_dir = Path(tempfile.mkdtemp(dir=runtime_root)) / "source"
     source_dir.mkdir()
     for name in ("product.csv", "shopee.csv", "tokopedia.csv", "website.csv", "offline.csv"):
         shutil.copy2(ROOT / "data" / "source" / name, source_dir / name)
-    source_rows = _source_row_count(source_dir)
-
     engine = get_engine()
     with engine.connect() as connection:
         before = _counts(connection)
@@ -139,12 +135,26 @@ def test_full_pipeline_and_incremental_acceptance():
     assert first["raw"] >= before["raw"]
     assert first["staging"] >= before["staging"]
     assert first["facts"] >= before["facts"]
-    assert second["raw"] == first["raw"] + source_rows, "raw must retain each source snapshot"
+    assert second["raw"] == first["raw"], "unchanged source rows must not be ingested again"
     assert second["staging"] == first["staging"]
     assert second["products"] == first["products"]
     assert second["facts"] == first["facts"]
     assert second_successes == first_successes + 1
     assert tuple(second_metrics) == (0, 0, 0)
+    with engine.connect() as connection:
+        report = (
+            connection.execute(
+                text("""
+            SELECT source_records, skipped_unchanged_records, extracted_records, outcome_message
+            FROM audit.pipeline_runs WHERE status='SUCCESS' ORDER BY started_at DESC LIMIT 1
+        """)
+            )
+            .mappings()
+            .one()
+        )
+        assert report["source_records"] == report["skipped_unchanged_records"]
+        assert report["extracted_records"] == 0
+        assert "Tidak ada kandidat" in report["outcome_message"]
     assert duplicate_facts == 0
 
     _append_valid_website_rows(source_dir, 20)
@@ -154,7 +164,7 @@ def test_full_pipeline_and_incremental_acceptance():
         third_successes = connection.execute(
             text("SELECT COUNT(*) FROM audit.pipeline_runs WHERE status = 'SUCCESS'")
         ).scalar_one()
-    assert third["raw"] == second["raw"] + source_rows + 20
+    assert third["raw"] == second["raw"] + 20
     assert third["staging"] == second["staging"] + 20
     assert third["facts"] == second["facts"] + 20
     assert third["products"] == second["products"]

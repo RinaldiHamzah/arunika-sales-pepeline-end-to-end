@@ -46,9 +46,9 @@ class QualityResult:
     summary: dict
 
 
-def read_source(path):
+def read_source(path, payload=None):
     """Hash exactly the bytes parsed; preserve strings, empty cells, and identifiers."""
-    payload = path.read_bytes()
+    payload = path.read_bytes() if payload is None else payload
     reader = csv.reader(io.StringIO(payload.decode("utf-8-sig"), newline=""))
     try:
         header = next(reader)
@@ -84,13 +84,16 @@ def frame(rows, columns):
     return result
 
 
-def analyze(path, source, products=None):
+def analyze(path, source, products=None, selected_row_numbers=None, captured=None):
     path = Path(path)
-    data, checksum = read_source(path)
+    data, checksum = read_source(path) if captured is None else captured
     expected = PRODUCT_COLUMNS if source == "product" else list(SPECS[source].values())
     missing = sorted(set(expected) - set(data.columns))
     if missing:
         raise ValueError(f"{path.name}: missing columns {missing}")
+    if selected_row_numbers is not None:
+        selected = {int(row_number) for row_number in selected_row_numbers}
+        data = data.iloc[[index for index in range(len(data)) if index + 1 in selected]].copy()
     profile = pd.DataFrame(
         [
             {
@@ -112,8 +115,10 @@ def analyze(path, source, products=None):
                     raise ValueError(f"Ambiguous Product Master mapping: {key}")
                 lookup[key] = prod
     issues, candidates = [], []
-    for offset, raw in enumerate(data.to_dict("records"), 1):
-        meta = dict(source=source, source_file=path.name, source_row_number=offset, source_sha256=checksum)
+    for source_row_number, raw in zip(data.index + 1, data.to_dict("records")):
+        meta = dict(
+            source=source, source_file=path.name, source_row_number=int(source_row_number), source_sha256=checksum
+        )
         errors = []
 
         def issue(code, field, severity="ERROR"):
@@ -270,12 +275,16 @@ def analyze(path, source, products=None):
     )
 
 
-def run_quality(source_dir=None, output_dir=None):
+def run_quality(source_dir=None, output_dir=None, selected_row_numbers=None, captured_sources=None):
     """Explicit source allowlist; never accidentally ingest old exports or copies."""
     source_dir = Path(source_dir) if source_dir else ROOT / "data/source"
-    results = {"product": analyze(source_dir / "product.csv", "product")}
+    captured = captured_sources or {}
+    results = {"product": analyze(source_dir / "product.csv", "product", captured=captured.get("product"))}
     for source in SPECS:
-        results[source] = analyze(source_dir / f"{source}.csv", source, results["product"].clean)
+        selected_rows = (selected_row_numbers or {}).get(source)
+        results[source] = analyze(
+            source_dir / f"{source}.csv", source, results["product"].clean, selected_rows, captured.get(source)
+        )
     if output_dir is not None:
         target = Path(output_dir).resolve()
         original = source_dir.resolve()

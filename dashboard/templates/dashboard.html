@@ -1,88 +1,18 @@
-<!doctype html>
-<html lang="id">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Arunika Beauty Indonesia</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css', v='20260920-1') }}">
-  <script defer src="{{ url_for('static', filename='dashboard.js', v='20260920-1') }}"></script>
-</head>
-<body>
-  <div class="app-shell">
-    <aside class="sidebar" aria-label="Navigasi utama">
-      <div class="brand">
-        <span class="brand-mark">A</span>
-        <div>
-          <strong>ARUNIKA</strong>
-          <small>Beauty Indonesia</small>
-        </div>
-      </div>
+{% extends "base.html" %}
 
-      <nav class="navigation">
-        <a class="navigation-link active" data-page-link="overview" href="#overview">Overview</a>
-        <a class="navigation-link" data-page-link="transactions" href="#transactions">Transactions</a>
-        <a class="navigation-link" data-page-link="settings" href="#settings">Settings</a>
-      </nav>
-
-      <div class="sidebar-status">
-        <span class="status-dot"></span>
-        <span>Warehouse connected</span>
-      </div>
-    </aside>
-
-    <main class="main-content">
-      <header class="page-header">
-        <div>
-          <p class="eyebrow">Arunika Beauty · Commercial data</p>
-          <h1 id="page-title">Sales Dashboard</h1>
-          <p id="page-subtitle" class="subtitle">
-            Analytic penjualan dari marketplace, website, dan offline store
-          </p>
-        </div>
-        <div class="header-actions">
-          <span id="updated-at" class="last-updated">Load data warehouse…</span>
-          <button id="refresh-button" class="button button-secondary" type="button">Refresh Data</button>
-        </div>
-      </header>
-
-      <div id="message" class="alert hidden" role="alert"></div>
-
+{% block page_content %}
       <section id="overview" class="dashboard-page active" data-page="overview">
-        <section class="pipeline-status card" aria-label="Kesehatan pipeline">
-          <div>
-            <p class="eyebrow">Pipeline terakhir</p>
-            <strong id="pipeline-status">—</strong>
-            <small id="pipeline-run">Memeriksa run terakhir…</small>
-            <small id="pipeline-volume" class="pipeline-volume">—</small>
-          </div>
-          <div>
-            <span>Success rate</span>
-            <strong id="pipeline-success-rate">—</strong>
-          </div>
-          <div>
-            <span>Durasi terakhir</span>
-            <strong id="pipeline-duration">—</strong>
-          </div>
-          <div>
-            <span>Data ditolak</span>
-            <strong id="pipeline-rejected-rate">—</strong>
-          </div>
-          <div class="freshness">
-            <span>Freshness source</span>
-            <div id="source-freshness">—</div>
-          </div>
-        </section>
+
 
         <section class="card filter-card">
-          <div class="section-heading">
-            <div>
-              <p class="eyebrow">Explore sales data</p>
-              <h2>Periode Analisis</h2>
-              <p class="helper-text">Gunakan filter tambahan bila diperlukan</p>
-            </div>
-            <button id="reset-button" class="text-button" type="button">Reset</button>
-          </div>
-
+          <details class="filter-disclosure" open>
+            <summary>
+              <span>
+                <strong>Periode &amp; Filter</strong>
+                <small id="filter-summary">Memuat periode data…</small>
+              </span>
+            </summary>
+            <div class="filter-body">
           <div class="filter-grid">
             <div class="quick-ranges" aria-label="Rentang tanggal cepat">
               <button data-preset="today" type="button">Hari ini</button>
@@ -114,7 +44,7 @@
           </div>
 
           <details class="advanced-filters">
-            <summary>More filters: kategori, brand, dan produk</summary>
+            <summary>Filter kategori, brand, dan produk</summary>
             <div class="advanced-grid">
               <label>
                 Kategori
@@ -136,15 +66,27 @@
               </label>
             </div>
           </details>
+              <div class="filter-footer">
+                <button id="reset-button" class="text-button" type="button">Reset filter</button>
+              </div>
+            </div>
+          </details>
         </section>
 
+        <nav class="analysis-tabs" role="tablist" aria-label="Kelompok analisis">
+          <button id="tab-summary" role="tab" aria-controls="analysis-summary" aria-selected="true" tabindex="0" data-overview-tab="summary">Ringkasan</button>
+          <button id="tab-sales" role="tab" aria-controls="analysis-sales" aria-selected="false" tabindex="-1" data-overview-tab="sales">Penjualan</button>
+          <button id="tab-products" role="tab" aria-controls="analysis-products" aria-selected="false" tabindex="-1" data-overview-tab="products">Produk</button>
+          <button id="tab-operations" role="tab" aria-controls="analysis-operations" aria-selected="false" tabindex="-1" data-overview-tab="operations">Pipeline</button>
+        </nav>
+        <section id="analysis-summary" class="analysis-panel" role="tabpanel" aria-labelledby="tab-summary" data-overview-panel="summary">
         <section class="overview-section">
           <div class="section-heading overview-heading">
             <div>
               <p class="eyebrow">Performance</p>
               <h2>Ringkasan Performa</h2>
             </div>
-            <span class="badge">LIVE WAREHOUSE</span>
+            <span class="badge">DATA WAREHOUSE</span>
           </div>
 
           <div class="kpi-grid">
@@ -180,229 +122,130 @@
             </article>
           </div>
 
-          <div class="chart-grid chart-grid-primary">
+          <div class="summary-chart">
             <article class="panel">
               <div class="panel-title">
                 <div>
                   <p class="eyebrow">Trend</p>
                   <h3>Gross vs Net Sales</h3>
                 </div>
+                <span>Per bulan</span>
               </div>
-              <div class="chart-container">
+              <div class="chart-container" aria-live="polite">
                 <canvas id="month-chart"></canvas>
               </div>
             </article>
+          </div>
+        </section>
+        </section>
+        <section id="analysis-sales" class="analysis-panel" role="tabpanel" aria-labelledby="tab-sales" data-overview-panel="sales" hidden>
+          <div class="chart-grid">
             <article class="panel">
               <div class="panel-title">
                 <div>
                   <p class="eyebrow">Channels</p>
                   <h3>Kontribusi Penjualan</h3>
                 </div>
+                <span>Top 7 · Net sales</span>
               </div>
-              <div class="chart-container">
+              <div class="chart-container" aria-live="polite">
                 <canvas id="channel-chart"></canvas>
               </div>
             </article>
-          </div>
-
-          <div class="chart-grid chart-grid-three">
             <article class="panel">
-              <h3>Top Brands</h3>
-              <div class="chart-container chart-small">
+              <div class="panel-title compact-title">
+                <div><p class="eyebrow">Order health</p><h3>Status Pesanan</h3></div>
+                <span>Order count</span>
+              </div>
+              <div class="chart-container chart-small" aria-live="polite">
+                <canvas id="status-chart"></canvas>
+              </div>
+            </article>
+            <article class="panel">
+              <div class="panel-title">
+                <div>
+                  <p class="eyebrow">Geography</p>
+                  <h3>Top 6 Cities</h3>
+                </div>
+                <span id="city-coverage">Lokasi diketahui</span>
+              </div>
+              <div id="city-list" class="rank-list"></div>
+            </article>
+          </div>
+        </section>
+        <section id="analysis-products" class="analysis-panel" role="tabpanel" aria-labelledby="tab-products" data-overview-panel="products" hidden>
+          <div class="chart-grid">
+            <article class="panel">
+              <div class="panel-title compact-title">
+                <div><p class="eyebrow">Brand</p><h3>Top Brands</h3></div>
+                <span>Top 7 · Net sales</span>
+              </div>
+              <div class="chart-container chart-small" aria-live="polite">
                 <canvas id="brand-chart"></canvas>
               </div>
             </article>
             <article class="panel">
-              <h3>Top Categories</h3>
-              <div class="chart-container chart-small">
+              <div class="panel-title compact-title">
+                <div><p class="eyebrow">Category</p><h3>Top Categories</h3></div>
+                <span>Top 7 · Net sales</span>
+              </div>
+              <div class="chart-container chart-small" aria-live="polite">
                 <canvas id="category-chart"></canvas>
               </div>
             </article>
             <article class="panel">
-              <h3>Top SKUs</h3>
-              <div class="chart-container chart-small">
+              <div class="panel-title compact-title">
+                <div><p class="eyebrow">Product</p><h3>Top SKUs</h3></div>
+                <span>Net sales</span>
+              </div>
+              <div class="chart-container chart-small" aria-live="polite">
                 <canvas id="sku-chart"></canvas>
               </div>
             </article>
-          </div>
-
-          <div class="detail-grid">
             <article class="panel">
               <div class="panel-title">
                 <div>
                   <p class="eyebrow">Merchandising</p>
-                  <h3>Top Products</h3>
+                  <h3>Top 6 Products</h3>
                 </div>
                 <span>By units</span>
               </div>
               <div id="product-list" class="rank-list"></div>
             </article>
-            <article class="panel">
-              <div class="panel-title">
-                <div>
-                  <p class="eyebrow">Order Health</p>
-                  <h3>Status Breakdown</h3>
-                </div>
-              </div>
-              <div id="status-list" class="rank-list"></div>
-            </article>
           </div>
+        </section>
+        <section id="analysis-operations" class="analysis-panel" role="tabpanel" aria-labelledby="tab-operations" data-overview-panel="operations" hidden>
+          <h2>Status Pipeline</h2>
+          <p class="helper-text">Status seluruh proses, tidak dibatasi filter penjualan.</p>
+                  <section class="pipeline-status card" aria-label="Status Pipeline">
+          <div>
+            <p class="eyebrow">Pipeline terakhir</p>
+            <strong id="pipeline-status">—</strong>
+            <small id="pipeline-run">Memeriksa run terakhir…</small>
+            <small id="pipeline-volume" class="pipeline-volume">—</small>
+          </div>
+          <div>
+            <span>Success rate</span>
+            <strong id="pipeline-success-rate">—</strong>
+          </div>
+          <div>
+            <span>Durasi terakhir</span>
+            <strong id="pipeline-duration">—</strong>
+          </div>
+          <div>
+            <span>Data ditolak</span>
+            <strong id="pipeline-rejected-rate">—</strong>
+          </div>
+          <div class="freshness">
+            <span>Freshness source</span>
+            <div id="source-freshness">—</div>
+          </div>
+        </section>
+          <a href="#settings" class="button button-secondary inline-button">Buka riwayat eksekusi</a>
         </section>
       </section>
 
-      <section id="transactions" class="dashboard-page" data-page="transactions">
-        <section class="panel transactions">
-          <div class="panel-title">
-            <div>
-              <p class="eyebrow">Warehouse records</p>
-              <h2>Transaction Detail</h2>
-              <p class="helper-text">Filter data dihalaman Overview untuk mempersempit hasil transaksi</p>
-            </div>
-            <div class="transaction-actions">
-              <span id="row-count">0 rows</span>
-              <button id="download-transactions" class="button button-secondary" type="button">
-                Download CSV
-              </button>
-            </div>
-          </div>
-          <div class="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Order</th>
-                  <th>Channel</th>
-                  <th>Product</th>
-                  <th>Category</th>
-                  <th>Status</th>
-                  <th>Units</th>
-                  <th>Net sales</th>
-                </tr>
-              </thead>
-              <tbody id="transaction-rows"></tbody>
-            </table>
-          </div>
-          <div class="pagination">
-            <button id="prev-page" class="button button-secondary" type="button">Previous</button>
-            <span id="page-info">Page 1 / 1</span>
-            <button id="next-page" class="button button-secondary" type="button">Next</button>
-          </div>
-        </section>
-      </section>
+      {% include "transactions.html" %}
 
-      <section id="settings" class="dashboard-page" data-page="settings">
-        <div class="settings-intro">
-          <p class="eyebrow">Administrator area</p>
-          <h2>Pengaturan data dan Pipeline</h2>
-          <p>Halaman untuk unggah data baru, menjalankan pipeline, dan melihat status proses terakhir</p>
-        </div>
-
-        <div class="settings-grid">
-          <section class="card settings-card upload-card">
-            <div class="settings-card-header">
-              <span class="step-number">01</span>
-              <p class="eyebrow">Step 1 · Data intake</p>
-            </div>
-            <h3>Tambahkan Batch</h3>
-            <p class="helper-text">
-              Pilih sumber data dan unggah CSV dengan header yang sesuai. Data belum dianalisis sampai pipeline dijalankan
-            </p>
-            <div class="settings-form">
-              <label>
-                Source
-                <select id="upload-source">
-                  <option value="shopee">Shopee</option>
-                  <option value="tokopedia">Tokopedia</option>
-                  <option value="website">Website</option>
-                  <option value="offline">Offline Store</option>
-                  <option value="product">Product Master</option>
-                </select>
-              </label>
-              <label class="file-upload-label">
-                CSV file
-                <span class="file-picker">
-                  <input id="upload-file" class="file-input" type="file" accept=".csv,text/csv">
-                  <span class="file-picker-button">Choose File</span>
-                  <span id="upload-file-name" class="file-picker-name">Belum ada file</span>
-                </span>
-              </label>
-              <label>
-                Admin token
-                <input id="admin-token" type="password" autocomplete="off" placeholder="Token Administrator">
-              </label>
-              <button id="upload-button" class="button button-secondary" type="button">Upload CSV</button>
-            </div>
-            <p class="settings-footnote">CSV akan divalidasi sebelum dimuat ke warehouse</p>
-          </section>
-
-          <section class="card settings-card pipeline-action-card">
-            <div class="settings-card-header">
-              <span class="step-number">02</span>
-              <p class="eyebrow">Step 2 · Process data</p>
-            </div>
-            <h3>Jalankan Pipeline</h3>
-            <p class="pipeline-summary" aria-label="Alur pipeline: validasi, warehouse, dashboard">
-              <span>Validasi</span>
-              <b>→</b>
-              <span>Warehouse</span>
-              <b>→</b>
-              <span>Dashboard</span>
-            </p>
-            <p id="pipeline-progress" class="pipeline-progress" aria-live="polite">Siap dijalankan</p>
-            <button id="run-pipeline" class="button button-primary" type="button">Jalankan sekarang</button>
-          </section>
-        </div>
-
-        <section class="card operations-card">
-          <div class="section-heading">
-            <div>
-              <p class="eyebrow">Pipeline Monitoring</p>
-              <h3>Riwayat Eksekusi</h3>
-              <p class="helper-text">Masukkan admin token di atas, kemudian muat status proses</p>
-            </div>
-            <button id="operations-button" class="button button-secondary" type="button">Check Status</button>
-          </div>
-          <p id="operations-empty" class="empty-state">
-            Masukkan admin token pada Step 1, lalu klik <strong>Check Status</strong> untuk melihat riwayat eksekusi
-          </p>
-          <div id="operations-content" class="hidden">
-            <div class="operation-kpis">
-              <div>
-                <span>Latest pipeline</span>
-                <strong id="operation-latest-status">—</strong>
-              </div>
-              <div>
-                <span>Facts loaded</span>
-                <strong id="operation-latest-facts">—</strong>
-              </div>
-              <div>
-                <span>Failed runs / 7 days</span>
-                <strong id="failed-runs">—</strong>
-              </div>
-            </div>
-            <div class="table-container">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Run ID</th>
-                    <th>Status</th>
-                    <th>Started</th>
-                    <th>Duration</th>
-                    <th>Extracted</th>
-                    <th>Valid</th>
-                    <th>Rejected</th>
-                    <th>Duplicate</th>
-                    <th>New</th>
-                    <th>Facts</th>
-                  </tr>
-                </thead>
-                <tbody id="operation-run-rows"></tbody>
-              </table>
-            </div>
-          </div>
-        </section>
-      </section>
-    </main>
-  </div>
-</body>
-</html>
+      {% include "settings.html" %}
+{% endblock %}

@@ -22,10 +22,15 @@ from flask import Flask, Response, jsonify, render_template, request
 from sqlalchemy import create_engine, text
 
 from pipeline.config import settings
+from pipeline.execution import PipelineBusyError, reserve_run
 from pipeline.logger import get_logger
 from pipeline.validation.contracts import RAW_COLUMNS
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
+# The dashboard is maintained from mounted local templates.  Reload templates
+# and version static files by their modification time so the UI cannot serve
+# an old CSS/JS file after the source has changed.
+app.config["TEMPLATES_AUTO_RELOAD"] = True
 LOGGER = get_logger("dashboard")
 engine = create_engine(
     settings.sqlalchemy_url,
@@ -45,6 +50,23 @@ SOURCE_FILES = {
     "offline": "offline.csv",
     "product": "product.csv",
 }
+
+
+@app.context_processor
+def template_helpers():
+    """Expose a safe cache-busting version for local dashboard assets."""
+
+    static_root = Path(app.static_folder).resolve()
+
+    def asset_version(filename: str) -> str:
+        candidate = (static_root / filename).resolve()
+        try:
+            candidate.relative_to(static_root)
+            return str(candidate.stat().st_mtime_ns)
+        except (OSError, ValueError):
+            return "1"
+
+    return {"asset_version": asset_version}
 
 
 @app.after_request
@@ -275,6 +297,14 @@ def serializable(rows):
     return result
 
 
+def display_label(value, fallback: str) -> str:
+    """Return a safe analytics label; never expose source null markers to users."""
+    if value is None:
+        return fallback
+    label = str(value).strip()
+    return fallback if label.casefold() in {"", "nan", "none", "null", "n/a", "na"} else label
+
+
 @app.get("/")
 def index():
     return render_template("dashboard.html")
@@ -297,20 +327,31 @@ def run_pipeline():
     authorization_error = require_admin_token()
     if authorization_error:
         return authorization_error
+    run_id = None
     try:
         with engine.begin() as connection:
-            recover_stale_pipeline_runs(connection)
-            active = connection.execute(
-                text("SELECT run_id FROM audit.pipeline_runs WHERE status = 'RUNNING' ORDER BY started_at DESC LIMIT 1")
-            ).scalar_one_or_none()
-        if active:
-            return jsonify({"status": "already_running", "run_id": str(active)}), 409
+            run_id = reserve_run(connection, settings.pipeline_name)
         root = Path(__file__).resolve().parents[1]
         process = subprocess.Popen(
-            [sys.executable, "-m", "pipeline.runner"], cwd=root, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+            [sys.executable, "-m", "pipeline.runner", "--run-id", str(run_id)],
+            cwd=root,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
         )
-        return jsonify({"status": "started", "process_id": process.pid}), 202
+        return jsonify({"status": "started", "process_id": process.pid, "run_id": str(run_id)}), 202
+    except PipelineBusyError:
+        return jsonify({"status": "already_running", "error": "Pipeline sedang menunggu atau berjalan."}), 409
     except Exception as error:
+        if run_id:
+            with engine.begin() as connection:
+                connection.execute(
+                    text("""
+                    UPDATE audit.pipeline_runs SET status='FAILED', ended_at=CURRENT_TIMESTAMP,
+                        current_stage='failed', error_message='Unable to start pipeline worker'
+                    WHERE run_id=:run_id AND status='RUNNING' AND current_stage='queued'
+                """),
+                    {"run_id": run_id},
+                )
         payload = {"status": "failed", "error": "Pipeline tidak dapat dijalankan."}
         if settings.flask_debug:
             payload["detail"] = str(error)
@@ -328,7 +369,7 @@ def pipeline_progress():
             connection.execute(
                 text("""
                 SELECT run_id, status, current_stage, current_stage_started_at,
-                       started_at, ended_at, duration_seconds, error_message
+                       started_at, ended_at, duration_seconds, error_message, outcome_message
                 FROM audit.pipeline_runs
                 ORDER BY (status = 'RUNNING') DESC, started_at DESC
                 LIMIT 1
@@ -398,7 +439,8 @@ def operations_status():
                 SELECT run_id, status, started_at, ended_at, duration_seconds,
                        extracted_records, validated_records, rejected_records,
                        duplicate_records, incremental_records, fact_inserted_records,
-                       fact_skipped_records, error_message
+                       fact_skipped_records, loaded_records, error_message,
+                       source_records, skipped_unchanged_records, source_metrics, outcome_message
                 FROM audit.pipeline_runs
                 ORDER BY started_at DESC
                 LIMIT 10
@@ -416,7 +458,7 @@ def operations_status():
     return jsonify(
         {
             "dag_id": "ecommerce_sales_pipeline",
-            "schedule": "@daily",
+            "schedule": "0 13 * * * (13:00 WIB)",
             "airflow": airflow_health(),
             "failed_runs_last_7_days": failed_runs_7d,
             "recent_runs": serializable(runs),
@@ -441,6 +483,7 @@ def dashboard_data():
             {},
             {},
         )
+        unresolved_city_records = 0
         for row in data:
             by_channel[row["channel_name"]] = by_channel.get(row["channel_name"], 0) + row["net_amount"]
             month = row["order_date"][:7]
@@ -454,13 +497,16 @@ def dashboard_data():
             by_status.setdefault(row["status"], {"orders": 0, "net_sales": 0})
             by_status[row["status"]]["orders"] += 1
             by_status[row["status"]]["net_sales"] += row["net_amount"]
-            category = row["category"] or "Uncategorized"
+            category = display_label(row["category"], "Uncategorized")
             by_category[category] = by_category.get(category, 0) + row["net_amount"]
-            city = row.get("city") or "Unknown city"
-            by_city[city] = by_city.get(city, 0) + row["net_amount"]
-            brand = row["brand"] or "Unknown brand"
+            city = display_label(row.get("city"), "")
+            if city:
+                by_city[city] = by_city.get(city, 0) + row["net_amount"]
+            else:
+                unresolved_city_records += 1
+            brand = display_label(row["brand"], "Unknown brand")
             by_brand[brand] = by_brand.get(brand, 0) + row["net_amount"]
-            sku = row["product_id"] or "Unknown SKU"
+            sku = display_label(row["product_id"], "Unknown SKU")
             by_sku[sku] = by_sku.get(sku, 0) + row["net_amount"]
         order_count = len({(row["source_name"], row["order_id"]) for row in data})
         completed_count = len({(row["source_name"], row["order_id"]) for row in completed})
@@ -514,6 +560,10 @@ def dashboard_data():
                     "latest_run": latest_dict,
                     "source_freshness": serializable(observability["freshness"]),
                     "stages": serializable(observability["stages"]),
+                    "known_city_coverage_rate": (
+                        (len(data) - unresolved_city_records) / len(data) * 100 if data else 0
+                    ),
+                    "unresolved_city_records": unresolved_city_records,
                 },
                 "charts": {
                     "channel": [
@@ -537,15 +587,15 @@ def dashboard_data():
                     ],
                     "city": [
                         {"label": key, "value": value}
-                        for key, value in sorted(by_city.items(), key=lambda item: item[1], reverse=True)[:10]
+                        for key, value in sorted(by_city.items(), key=lambda item: item[1], reverse=True)[:6]
                     ],
                     "brand": [
                         {"label": key, "value": value}
-                        for key, value in sorted(by_brand.items(), key=lambda item: item[1], reverse=True)[:10]
+                        for key, value in sorted(by_brand.items(), key=lambda item: item[1], reverse=True)[:7]
                     ],
                     "sku": [
                         {"label": key, "value": value}
-                        for key, value in sorted(by_sku.items(), key=lambda item: item[1], reverse=True)[:10]
+                        for key, value in sorted(by_sku.items(), key=lambda item: item[1], reverse=True)[:7]
                     ],
                 },
                 "rows": data,
@@ -580,8 +630,8 @@ def export_dashboard():
 
 
 if __name__ == "__main__":
-    app.run(
-        host="0.0.0.0",
-        port=8501,
-        debug=True,
-        use_reloader=True,)
+    if settings.flask_debug:
+        app.run(host="127.0.0.1", port=8501, debug=True, use_reloader=False)
+    else:
+        from waitress import serve
+        serve(app, host="0.0.0.0", port=8501, expose_tracebacks=False)

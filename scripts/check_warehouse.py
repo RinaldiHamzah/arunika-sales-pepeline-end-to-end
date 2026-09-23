@@ -13,7 +13,7 @@ from sqlalchemy import text
 from pipeline.database import get_engine
 
 
-def validate_warehouse() -> None:
+def validate_warehouse(run_id=None) -> None:
     """Validate the latest successful run and core warehouse invariants."""
     with get_engine().begin() as connection:
         run = (
@@ -21,10 +21,11 @@ def validate_warehouse() -> None:
                 text("""
             SELECT status, valid_records, invalid_records, loaded_records
             FROM audit.pipeline_runs
-            WHERE status = 'SUCCESS'
+            WHERE status = 'SUCCESS' AND (CAST(:run_id AS UUID) IS NULL OR run_id=CAST(:run_id AS UUID))
             ORDER BY started_at DESC
             LIMIT 1
-        """)
+        """),
+                {"run_id": run_id},
             )
             .mappings()
             .one_or_none()

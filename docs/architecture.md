@@ -1,69 +1,58 @@
-# Architecture
+# Arsitektur Pipeline
 
-## End-to-end flow
+## Alur data
 
 ```mermaid
 flowchart LR
-	A[CSV sources] --> B[Extractors]
-	B --> C[raw.*]
-	C --> D[Validation and profiling]
-	D --> E[Canonical transform]
-	E --> F[staging.stg_sales]
-	F --> G[warehouse dimensions]
-	G --> H[warehouse.fact_sales]
-	H --> I[Analytics views]
-	I --> J[Flask dashboard]
-	D --> K[audit quality and rejected records]
-	H --> L[audit watermarks]
-	M[Airflow] --> B
-	M --> H
-	M --> N[Warehouse health check]
+    A[CSV: marketplace, website, offline, product master] --> B[Extractor]
+    B --> C[raw]
+    C --> D[Validasi kualitas data]
+    D --> E[Transformasi canonical]
+    E --> F[staging.stg_sales]
+    F --> G[Dimensi warehouse]
+    G --> H[warehouse.fact_sales]
+    H --> I[View analitik]
+    I --> J[Dashboard Flask]
+    D --> K[audit: kualitas dan record ditolak]
+    H --> L[audit: snapshot dan metrik]
+    M[Airflow] --> B
+    M --> H
 ```
 
-## Layers
+## Fungsi setiap layer
 
-| Layer | Owner | Responsibility |
+| Layer | Lokasi | Fungsi |
 | --- | --- | --- |
-| Source | `data/source` | CSV snapshots with intentionally imperfect data |
-| Extract | `pipeline/extract` | Read source-specific files and capture checksum/lineage |
-| Raw | PostgreSQL `raw` | Preserve source fields and payload before transformation |
-| Validation | `pipeline/validation` | Detect missing, duplicate, invalid, date, type, and product issues |
-| Transform | `pipeline/transform` | Produce canonical rows and filter existing business keys |
-| Staging | PostgreSQL `staging.stg_sales` | Hold validated rows before dimension key resolution |
-| Warehouse | PostgreSQL `warehouse` | Star schema for analytical workloads |
-| Audit | PostgreSQL `audit` | Run status, quality evidence, rejected records, and watermarks |
-| Presentation | `dashboard` | Flask API and browser dashboard over analytics views |
+| Source | `data/source/` | CSV asli dari setiap channel. |
+| Extract | `pipeline/extract/` | Membaca source, checksum, dan nomor baris. |
+| Raw | `raw` | Menyimpan payload source baru atau berubah. |
+| Validation | `pipeline/validation/` | Memeriksa missing value, duplikat, nilai, tanggal, tipe, dan produk. |
+| Transform | `pipeline/transform/` | Menyamakan kolom dan memetakan produk ke SKU. |
+| Staging | `staging.stg_sales` | Menyimpan record valid sebelum key warehouse diisi. |
+| Warehouse | `warehouse` | Star schema untuk analitik. |
+| Audit | `audit` | Menyimpan run, stage, kualitas, snapshot, dan lineage. |
+| Dashboard | `dashboard/` | Menyajikan analitik dan operasi admin terbatas. |
 
-## Incremental strategy
+## Incremental loading
 
-The source snapshot is validated on every run so quality metrics remain current.
-At the raw boundary, rows already stored for the same source file and source row
-number are skipped. This makes append-only source snapshots incremental before
-clean rows are filtered by the warehouse business key
-`(source_name, source_order_id, source_line_number)`. Keys already present in
-`warehouse.fact_sales` are skipped. New rows only are inserted into staging and
-fact; the unique fact constraint is the final duplicate guard.
+Setiap run membaca fingerprint source. Baris yang sama dengan snapshot sebelumnya dilewati sebelum validasi. Hanya baris baru atau yang berubah masuk ke raw, staging, dan warehouse.
 
-This provides both incremental processing and idempotency. A source correction
-using an existing business key is intentionally not silently overwritten; it
-requires a correction policy or a new line/version key.
+Business key fact:
 
-## Warehouse design
+```text
+(source_name, source_order_id, source_line_number)
+```
 
-`warehouse.fact_sales` has one row per source order line. Product, date, customer,
-channel, and payment are dimensions. Surrogate keys are used for joins, while
-source identifiers remain in the fact for traceability. `gross_amount` is
-`quantity * unit_price`; discount is currently zero because source contracts do
-not provide a validated discount field.
+`source_record_hash` membedakan transaksi yang benar-benar berubah. Constraint unik pada fact menjadi perlindungan terakhir terhadap duplikat. Transaksi yang hilang dari snapshot tidak dihapus otomatis.
 
-## Operational commands
+## Warehouse dan operasional
+
+Grain `warehouse.fact_sales` adalah satu produk dalam satu transaksi source. Fact terhubung ke dimensi tanggal, produk, pelanggan, channel, dan pembayaran. `gross_amount` dihitung dari `quantity × unit_price`.
+
+Airflow menjalankan pipeline dan health check setiap hari pukul 13.00 WIB. Pada Windows, gunakan Docker atau WSL2 untuk Airflow.
 
 ```powershell
 docker compose up -d
 .\env\Scripts\python.exe -m pipeline.runner
 .\env\Scripts\python.exe .\scripts\check_warehouse.py
-.\env\Scripts\python.exe dashboard\flask.py
 ```
-
-Airflow runs the same runner and then the warehouse health check. On Windows,
-Airflow should run through Docker or WSL2 rather than the native Python runtime.

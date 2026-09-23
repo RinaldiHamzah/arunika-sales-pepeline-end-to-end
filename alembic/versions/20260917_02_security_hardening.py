@@ -10,8 +10,12 @@ depends_on = None
 
 def upgrade() -> None:
     op.execute("REVOKE CREATE ON SCHEMA public FROM PUBLIC")
-    op.execute("REVOKE CONNECT ON DATABASE ecommerce_sales FROM PUBLIC")
-    op.execute("GRANT CONNECT ON DATABASE ecommerce_sales TO CURRENT_USER")
+    op.execute("""
+        DO $$ BEGIN
+            EXECUTE format('REVOKE CONNECT ON DATABASE %I FROM PUBLIC', current_database());
+            EXECUTE format('GRANT CONNECT ON DATABASE %I TO %I', current_database(), current_user);
+        END $$;
+    """)
     # Role privilege changes require a separate cluster administrator. The
     # application role is intentionally managed outside transactional Alembic.
 

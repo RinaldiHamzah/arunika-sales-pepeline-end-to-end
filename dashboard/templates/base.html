@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Arunika Beauty Indonesia</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css', v=asset_version('dashboard.css')) }}">
+  <script defer src="{{ url_for('static', filename='vendor/chart.umd.min.js', v=asset_version('vendor/chart.umd.min.js')) }}"></script>
+  <script type="module" src="{{ url_for('static', filename='dashboard.js', v=asset_version('dashboard.js')) }}"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Lewati navigasi</a>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Navigasi utama">
+      <div class="brand">
+        <span class="brand-mark">A</span>
+        <div>
+          <strong>ARUNIKA</strong>
+          <small>Beauty Indonesia</small>
+        </div>
+      </div>
+
+      <nav class="navigation">
+        <a class="navigation-link active" data-page-link="overview" href="#overview">Overview</a>
+        <a class="navigation-link" data-page-link="transactions" href="#transactions">Transactions</a>
+        <a class="navigation-link" data-page-link="settings" href="#settings">Settings</a>
+      </nav>
+
+      <div class="sidebar-status">
+        <span class="status-dot"></span>
+        <span id="connection-status">Memeriksa koneksi…</span>
+      </div>
+    </aside>
+
+    <main id="main-content" class="main-content" tabindex="-1">
+      <header class="page-header">
+        <div>
+          <p class="eyebrow">Arunika Beauty · Commercial data</p>
+          <h1 id="page-title">Sales Dashboard</h1>
+          <p id="page-subtitle" class="subtitle">
+            Analytic penjualan dari marketplace, website, dan offline store
+          </p>
+        </div>
+        <div class="header-actions">
+          <span id="updated-at" class="last-updated">Load data warehouse…</span>
+          <button id="refresh-button" class="button button-secondary" type="button">Refresh Data</button>
+        </div>
+      </header>
+
+      <div id="message" class="alert hidden" role="alert"></div>
+
+      {% block page_content %}{% endblock %}    </main>
+  </div>
+</body>
+</html>

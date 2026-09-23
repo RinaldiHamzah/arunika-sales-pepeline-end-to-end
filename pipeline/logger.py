@@ -18,6 +18,10 @@ LOG_FIELDS = (
     "start_time",
     "end_time",
     "extracted_records",
+    "source_records",
+    "skipped_unchanged_records",
+    "source_metrics",
+    "outcome_message",
     "valid_records",
     "duplicate_records",
     "invalid_records",
@@ -79,8 +83,10 @@ def _configure_logging() -> None:
     log_dir = Path(os.getenv("LOG_DIR", "logs"))
     log_dir.mkdir(parents=True, exist_ok=True)
     json_format = os.getenv("LOG_FORMAT", "text").lower() == "json"
-    formatter = _JsonFormatter() if json_format else _ApplicationTimeFormatter(
-        "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
+    formatter = (
+        _JsonFormatter()
+        if json_format
+        else _ApplicationTimeFormatter("%(asctime)s | %(levelname)s | %(name)s | %(message)s")
     )
 
     console = logging.StreamHandler()
@@ -89,7 +95,8 @@ def _configure_logging() -> None:
 
     for prefix, filename in (("pipeline", "pipeline.log"), ("dashboard", "dashboard.log")):
         file_handler = logging.FileHandler(log_dir / filename, encoding="utf-8")
-        file_handler.setFormatter(formatter)
+        # File reports always retain all audit fields, even with text console logs.
+        file_handler.setFormatter(_JsonFormatter())
         file_handler.addFilter(_LoggerNameFilter(prefix))
         root.addHandler(file_handler)
     root._arunika_configured = True

@@ -43,6 +43,7 @@ def collect_performance(run_id: str | None = None) -> dict:
     with get_engine().connect() as connection:
         run_query = """
                 SELECT run_id, pipeline_name, started_at, ended_at, status,
+                       source_records, skipped_unchanged_records, source_metrics, outcome_message,
                        extracted_records, valid_records, duplicate_records,
                        invalid_records, loaded_records, validated_records,
                        rejected_records, incremental_records, staged_records,

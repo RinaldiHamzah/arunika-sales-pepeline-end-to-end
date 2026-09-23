@@ -35,15 +35,17 @@ jobs:
         run: ruff check .
       - name: SQL validation
         run: python scripts/validate_sql.py
+      - name: Generate clean exports from canonical sources
+        run: python -m pipeline.validation.analysis
       - name: Clean data contract
         run: python scripts/check_clean_contract.py
-      - name: Initialize database schema
-        env:
-          PGPASSWORD: ci_password
+      - name: Validate schema on PostgreSQL
+        run: python scripts/validate_sql.py --database
+      - name: Test migration chain and repeatability
         run: |
-          for file in database/schema/*.sql; do
-            psql -h localhost -p 5433 -U ecommerce_user -d ecommerce_sales_test -f "$file"
-          done
+          alembic upgrade head
+          alembic upgrade head
+          alembic current
       - name: Run tests with coverage
         run: python -m pytest --cov=pipeline --cov=dashboard --cov-report=term-missing --cov-report=xml -q
       - name: Upload coverage

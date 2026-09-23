@@ -1,0 +1,39 @@
+      <section id="transactions" class="dashboard-page" data-page="transactions">
+        <section class="panel transactions">
+          <div class="panel-title">
+            <div>
+              <p class="eyebrow">Warehouse records</p>
+              <h2>Transaction Detail</h2>
+              <p class="helper-text">Gunakan <a href="#overview">filter Overview</a> untuk mempersempit transaksi.</p>
+            </div>
+            <div class="transaction-actions">
+              <span id="row-count">0 rows</span>
+              <button id="download-transactions" class="button button-secondary" type="button">
+                Download CSV
+              </button>
+            </div>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Order</th>
+                  <th>Channel</th>
+                  <th>Product</th>
+                  <th>Category</th>
+                  <th>Status</th>
+                  <th>Units</th>
+                  <th>Net sales</th>
+                </tr>
+              </thead>
+              <tbody id="transaction-rows"></tbody>
+            </table>
+          </div>
+          <div class="pagination">
+            <button id="prev-page" class="button button-secondary" type="button">Previous</button>
+            <span id="page-info">Page 1 / 1</span>
+            <button id="next-page" class="button button-secondary" type="button">Next</button>
+          </div>
+        </section>
+      </section>

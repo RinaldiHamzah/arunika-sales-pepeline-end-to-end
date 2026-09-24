@@ -230,11 +230,12 @@ try {
   blockChart = false;
   await send('Page.navigate', { url: origin + '/?case=screenshots' });
   await until("document.getElementById('metric-orders')?.textContent==='241'");
-  for (const width of [375, 1440]) {
-    await send('Emulation.setDeviceMetricsOverride', { width, height: 1000, deviceScaleFactor: 1, mobile: false });
+  await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1000, deviceScaleFactor: 1, mobile: false });
+  for (const [page, name] of [['overview', 'dashboard-overview'], ['transactions', 'dashboard-transactions'], ['settings', 'dashboard-settings']]) {
+    await evaluate(`location.hash='${page}'`);
     await wait(200);
     const screenshot = await send('Page.captureScreenshot', { format: 'png' });
-    const target = path.join(tmpdir(), 'arunika-dashboard-' + width + '.png');
+    const target = path.join(tmpdir(), 'arunika-' + name + '.png');
     await writeFile(target, Buffer.from(screenshot.data, 'base64'));
     console.log('SCREENSHOT ' + target);
   }

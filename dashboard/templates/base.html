@@ -15,35 +15,35 @@
       <div class="brand">
         <span class="brand-mark">A</span>
         <div>
-          <strong>ARUNIKA</strong>
+          <strong>Arunika</strong>
           <small>Beauty Indonesia</small>
         </div>
       </div>
 
       <nav class="navigation">
-        <a class="navigation-link active" data-page-link="overview" href="#overview">Overview</a>
-        <a class="navigation-link" data-page-link="transactions" href="#transactions">Transactions</a>
-        <a class="navigation-link" data-page-link="settings" href="#settings">Settings</a>
+        <a class="navigation-link active" data-page-link="overview" href="#overview">Ringkasan</a>
+        <a class="navigation-link" data-page-link="transactions" href="#transactions">Transaksi</a>
+        <a class="navigation-link" data-page-link="settings" href="#settings">Pengaturan</a>
       </nav>
 
-      <div class="sidebar-status">
-        <span class="status-dot"></span>
-        <span id="connection-status">Memeriksa koneksi…</span>
+      <div class="sidebar-status" data-state="checking" aria-label="Status koneksi gudang">
+        <span class="status-dot" aria-hidden="true"></span>
+        <span id="connection-status" class="sr-only">Memeriksa koneksi…</span>
+        <div class="utility-actions">
+          <span id="updated-at" class="last-updated">Memuat data gudang…</span>
+          <button id="refresh-button" class="button button-secondary" type="button">Refresh</button>
+        </div>
       </div>
     </aside>
 
     <main id="main-content" class="main-content" tabindex="-1">
       <header class="page-header">
         <div>
-          <p class="eyebrow">Arunika Beauty · Commercial data</p>
-          <h1 id="page-title">Sales Dashboard</h1>
+          <p class="eyebrow">Arunika Beauty Indonesia · Data penjualan</p>
+          <h1 id="page-title">Dashboard Penjualan</h1>
           <p id="page-subtitle" class="subtitle">
-            Analytic penjualan dari marketplace, website, dan offline store
+            Analitik penjualan dari marketplace, website, dan toko offline
           </p>
-        </div>
-        <div class="header-actions">
-          <span id="updated-at" class="last-updated">Load data warehouse…</span>
-          <button id="refresh-button" class="button button-secondary" type="button">Refresh Data</button>
         </div>
       </header>
 

@@ -1,28 +1,29 @@
 /* Page shell and navigation; component internals live in components.css. */
 .app-shell {
-  display: grid;
-  grid-template-columns: 212px minmax(0, 1fr);
+  display: block;
   min-height: 100vh;
 }
 .sidebar {
-  position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column;
-  padding: 28px 18px; background: var(--sidebar); color: #d7e9e2;
+  position: sticky; top: 0; z-index: 20; display: flex; align-items: center;
+  gap: 28px; min-height: 70px; padding: 12px clamp(20px, 4vw, 56px);
+  background: var(--sidebar); color: #d7e9e2;
+  border-bottom: 1px solid #ffffff18;
 }
 .brand {
   display: flex;
   gap: 10px;
   align-items: center;
-  padding: 0 4px 25px;
-  border-bottom: 1px solid #ffffff20;
+  flex-shrink: 0;
+  padding: 0 4px;
 }
 .brand-mark {
   display: grid;
   place-items: center;
-  flex: 0 0 36px;
-  height: 36px;
+  flex: 0 0 34px;
+  height: 34px;
   background: var(--orange);
   color: var(--sidebar);
-  border-radius: 10px;
+  border-radius: 9px;
   font-weight: 800;
 }
 .brand strong, .brand small {
@@ -30,23 +31,26 @@
 }
 .brand strong {
   color: white;
-  letter-spacing: .08em;
+  font-size: 17px;
+  letter-spacing: .02em;
 }
 .brand small {
-  font-size: 11px;
+  font-size: 10px;
+  letter-spacing: .02em;
   color: #b6d6c9;
 }
 .navigation {
-  display: grid;
+  display: flex;
+  align-items: center;
   gap: 6px;
-  margin-top: 26px;
+  margin: 0;
 }
 .navigation-link {
   display: flex;
   align-items: center;
-  min-height: 44px;
-  padding: 10px 12px;
-  border-radius: 9px;
+  min-height: 46px;
+  padding: 11px 13px;
+  border-radius: 7px;
   color: #d7e9e2;
   text-decoration: none;
   font-weight: 600;
@@ -55,32 +59,51 @@
   color: white;
   background: var(--sidebar-active);
 }
+.navigation-link.active::before {
+  width: 3px;
+  height: 18px;
+  margin-right: 9px;
+  border-radius: 3px;
+  background: var(--orange);
+  content: "";
+}
 .sidebar-status {
   display: flex;
   gap: 8px;
   align-items: center;
-  margin-top: auto;
-  padding-top: 20px;
+  margin-left: auto;
+  min-width: 0;
   font-size: 11px;
+}
+.utility-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: 10px;
+  padding-left: 18px;
+  border-left: 1px solid #ffffff20;
 }
 .status-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #bdc7c3;
+  background: #e5b84b;
   flex-shrink: 0;
 }
 [data-state="connected"] .status-dot {
   background: #78d7b8;
 }
+[data-state="checking"] .status-dot {
+  background: #e5b84b;
+}
 [data-state="error"] .status-dot {
-  background: #ed8b65;
+  background: #dd6257;
 }
 .main-content {
-  width: min(100%, 1440px);
+  width: min(1320px, calc(100% - 48px));
   min-width: 0;
   margin-inline: auto;
-  padding: 32px clamp(20px, 2.5vw, 40px) 56px;
+  padding: 38px 0 64px;
 }
 .page-header, .section-heading, .panel-title {
   display: flex;
@@ -89,7 +112,14 @@
   gap: 16px;
 }
 .page-header {
-  margin-bottom: 28px;
+  position: relative;
+  padding: 24px 28px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--orange);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: none;
+  margin-bottom: 32px;
 }
 .header-actions {
   display: flex;
@@ -102,6 +132,21 @@
   font-size: 12px;
   color: var(--muted);
 }
+.sidebar .last-updated {
+  color: #b6d6c9;
+  white-space: nowrap;
+}
+.sidebar .button-secondary {
+  min-height: 38px;
+  padding-block: 7px;
+  background: transparent;
+  border-color: #ffffff40;
+  color: #ffffff;
+}
+.sidebar .button-secondary:hover {
+  background: var(--sidebar-active);
+  border-color: #ffffff60;
+}
 .dashboard-page {
   display: none;
 }
@@ -111,13 +156,13 @@
 .analysis-tabs {
   display: flex;
   gap: 6px;
-  margin: 24px 0;
+  margin: 28px 0;
   padding: 5px;
   width: fit-content;
   max-width: 100%;
   border: 1px solid var(--line);
-  border-radius: 12px;
-  background: white;
+  border-radius: 9px;
+  background: #f8faf9;
 }
 .analysis-tabs button {
   min-height: 44px;
@@ -150,6 +195,23 @@
   gap: 24px;
   margin-block: 24px;
 }
-.settings-intro p {
+.settings-intro {
+  display: flex;
+  align-items: baseline;
+  gap: 8px 16px;
+  flex-wrap: wrap;
+}
+.settings-intro .eyebrow,
+.settings-intro h2,
+.settings-intro .settings-description {
+  margin: 0;
+}
+.settings-intro .settings-description {
   color: var(--muted);
+}
+.settings-pipeline-status {
+  margin: 18px 0 24px;
+}
+.settings-pipeline-status .section-heading {
+  margin-bottom: 12px;
 }

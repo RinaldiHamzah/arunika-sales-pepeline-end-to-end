@@ -1,91 +1,127 @@
       <section id="settings" class="dashboard-page" data-page="settings">
-        <div class="settings-intro">
-          <p class="eyebrow">Administrator area</p>
-          <h2>Pengaturan data dan Pipeline</h2>
-          <p>Halaman untuk unggah data baru, menjalankan pipeline, dan melihat status proses terakhir</p>
-        </div>
+        <section class="settings-pipeline-status" aria-labelledby="settings-pipeline-title">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Pemantauan pipeline</p>
+              <h3 id="settings-pipeline-title">Status Pipeline</h3>
+              <p class="helper-text">Ringkasan operasional seluruh proses data.</p>
+            </div>
+          </div>
+          <section class="pipeline-status card" aria-label="Status Pipeline">
+            <div>
+              <p class="eyebrow">Pipeline terakhir</p>
+              <strong id="pipeline-status">—</strong>
+              <small id="pipeline-run">Memeriksa run terakhir…</small>
+              <small id="pipeline-volume" class="pipeline-volume">—</small>
+            </div>
+            <div>
+              <span>Tingkat keberhasilan</span>
+              <strong id="pipeline-success-rate">—</strong>
+            </div>
+            <div>
+              <span>Durasi terakhir</span>
+              <strong id="pipeline-duration">—</strong>
+            </div>
+            <div>
+              <span>Data ditolak</span>
+              <strong id="pipeline-rejected-rate">—</strong>
+            </div>
+            <div class="freshness">
+              <span>Kebaruan Sumber</span>
+              <div id="source-freshness">—</div>
+            </div>
+          </section>
+        </section>
+
+        <section class="admin-access-card" aria-labelledby="admin-access-title">
+          <div class="admin-access-copy">
+            <p class="eyebrow">Akses administrator</p>
+            <h3 id="admin-access-title">Token Administrator</h3>
+            <p class="helper-text">Digunakan untuk upload, menjalankan pipeline, dan Check Status.</p>
+          </div>
+          <label>
+            Token Administrator
+            <input id="admin-token" type="password" autocomplete="off" placeholder="Token Administrator">
+          </label>
+        </section>
 
         <div class="settings-grid">
           <section class="card settings-card upload-card">
             <div class="settings-card-header">
               <span class="step-number">01</span>
-              <p class="eyebrow">Step 1 · Data intake</p>
+              <p class="eyebrow">Langkah 1 · Masukkan data</p>
             </div>
             <h3>Tambahkan Batch</h3>
             <p class="helper-text">
-              Pilih sumber data dan unggah CSV dengan header yang sesuai. Data belum dianalisis sampai pipeline dijalankan
+              Pilih sumber data dan unggah CSV dengan header yang sesuai dan jalankan pipeline untuk menganalisis data
             </p>
             <div class="settings-form">
               <label>
-                Source
+                Sumber data
                 <select id="upload-source">
                   <option value="shopee">Shopee</option>
                   <option value="tokopedia">Tokopedia</option>
                   <option value="website">Website</option>
                   <option value="offline">Offline Store</option>
-                  <option value="product">Product Master</option>
+                  <option value="product">Master produk</option>
                 </select>
               </label>
               <label class="file-upload-label">
-                CSV file
+                Berkas CSV
                 <span class="file-picker">
                   <input id="upload-file" class="file-input" type="file" accept=".csv,text/csv">
-                  <span class="file-picker-button">Choose File</span>
+                  <span class="file-picker-button">Pilih File</span>
                   <span id="upload-file-name" class="file-picker-name">Belum ada file</span>
                 </span>
               </label>
-              <label>
-                Admin token
-                <input id="admin-token" type="password" autocomplete="off" placeholder="Token Administrator">
-              </label>
               <button id="upload-button" class="button button-secondary" type="button">Upload CSV</button>
             </div>
-            <p class="settings-footnote">CSV akan divalidasi sebelum dimuat ke warehouse</p>
+            <p class="settings-footnote">CSV akan divalidasi sebelum dimuat ke gudang data</p>
           </section>
 
           <section class="card settings-card pipeline-action-card">
             <div class="settings-card-header">
               <span class="step-number">02</span>
-              <p class="eyebrow">Step 2 · Process data</p>
+              <p class="eyebrow">Langkah 2 · Proses data</p>
             </div>
             <h3>Jalankan Pipeline</h3>
-            <p class="pipeline-summary" aria-label="Alur pipeline: validasi, warehouse, dashboard">
+            <p class="pipeline-summary" aria-label="Alur pipeline: validasi, gudang data, dashboard">
               <span>Validasi</span>
               <b>→</b>
-              <span>Warehouse</span>
+              <span>Data Warehouse</span>
               <b>→</b>
               <span>Dashboard</span>
             </p>
-            <p id="pipeline-progress" class="pipeline-progress" aria-live="polite">Siap dijalankan</p>
-            <button id="run-pipeline" class="button button-primary" type="button">Jalankan sekarang</button>
+            <p id="pipeline-progress" class="pipeline-progress" aria-live="polite">Siap Dijalankan</p>
+            <button id="run-pipeline" class="button button-primary" type="button">Jalankan</button>
           </section>
         </div>
 
         <section class="card operations-card">
           <div class="section-heading">
             <div>
-              <p class="eyebrow">Pipeline Monitoring</p>
-              <h3>Riwayat Eksekusi</h3>
-              <p class="helper-text">Masukkan admin token di atas, kemudian muat status proses</p>
+              <p class="eyebrow">Audit pipeline</p>
+              <h3>Riwayat Pipeline</h3>
+              <p class="helper-text"></p>
             </div>
             <button id="operations-button" class="button button-secondary" type="button">Check Status</button>
           </div>
           <p id="operations-empty" class="empty-state">
-            Masukkan admin token pada Step 1, lalu klik <strong>Check Status</strong> untuk melihat riwayat eksekusi
+            Masukkan Token Administrator pada Langkah 1, lalu klik <strong>Check Status</strong> untuk melihat riwayat pipeline
           </p>
           <div id="operations-content" class="hidden">
             <p id="operation-outcome" class="helper-text" role="status"></p>
             <div class="operation-kpis">
               <div>
-                <span>Latest pipeline</span>
+                <span>Pipeline Terakhir</span>
                 <strong id="operation-latest-status">—</strong>
               </div>
               <div>
-                <span>Facts loaded</span>
+                <span>Fakta Dimuat</span>
                 <strong id="operation-latest-facts">—</strong>
               </div>
               <div>
-                <span>Failed runs / 7 days</span>
+                <span>Run Gagal / 7 Hari</span>
                 <strong id="failed-runs">—</strong>
               </div>
             </div>
@@ -97,13 +133,13 @@
                     <th>Status</th>
                     <th>Mulai</th>
                     <th>Selesai</th>
-                    <th>Duration</th>
+                    <th>Durasi</th>
                     <th title="Baris yang masuk validasi setelah data identik disaring">Kandidat</th>
                     <th>Valid</th>
-                    <th>Rejected</th>
-                    <th>Duplikat validasi</th>
-                    <th>Kandidat tulis</th>
-                    <th>Fact ditulis</th>
+                    <th>Ditolak</th>
+                    <th>Duplikat Validasi</th>
+                    <th>Kandidat Tertulis</th>
+                    <th>Fact Ditulis</th>
                   </tr>
                 </thead>
                 <tbody id="operation-run-rows"></tbody>

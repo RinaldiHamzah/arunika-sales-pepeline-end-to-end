@@ -92,7 +92,7 @@ export function renderDashboard(data) {
   const updated = new Date().toLocaleTimeString('id-ID', {
     hour: '2-digit', minute: '2-digit', timeZone: JAKARTA_TIME_ZONE,
   });
-  $('updated-at').textContent = `Diperbarui ${updated} WIB`;
+  $('updated-at').textContent = `Update ${updated} WIB`;
 }
 
 function renderRunExplanation(run) {

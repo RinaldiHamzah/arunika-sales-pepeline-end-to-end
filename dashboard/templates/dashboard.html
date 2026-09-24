@@ -40,7 +40,7 @@
                 <option value="">Semua status</option>
               </select>
             </label>
-            <button id="apply-button" class="button button-primary" type="button">Terapkan</button>
+              <button id="apply-button" class="button button-primary" type="button">Terapkan</button>
           </div>
 
           <details class="advanced-filters">
@@ -67,7 +67,7 @@
             </div>
           </details>
               <div class="filter-footer">
-                <button id="reset-button" class="text-button" type="button">Reset filter</button>
+                <button id="reset-button" class="text-button" type="button">Reset</button>
               </div>
             </div>
           </details>
@@ -77,46 +77,44 @@
           <button id="tab-summary" role="tab" aria-controls="analysis-summary" aria-selected="true" tabindex="0" data-overview-tab="summary">Ringkasan</button>
           <button id="tab-sales" role="tab" aria-controls="analysis-sales" aria-selected="false" tabindex="-1" data-overview-tab="sales">Penjualan</button>
           <button id="tab-products" role="tab" aria-controls="analysis-products" aria-selected="false" tabindex="-1" data-overview-tab="products">Produk</button>
-          <button id="tab-operations" role="tab" aria-controls="analysis-operations" aria-selected="false" tabindex="-1" data-overview-tab="operations">Pipeline</button>
         </nav>
         <section id="analysis-summary" class="analysis-panel" role="tabpanel" aria-labelledby="tab-summary" data-overview-panel="summary">
         <section class="overview-section">
           <div class="section-heading overview-heading">
             <div>
-              <p class="eyebrow">Performance</p>
-              <h2>Ringkasan Performa</h2>
+              <p class="eyebrow">Performa penjualan</p>
+              <h2>Ringkasan performa</h2>
             </div>
-            <span class="badge">DATA WAREHOUSE</span>
           </div>
 
           <div class="kpi-grid">
             <article class="kpi-card featured">
-              <span>Net sales</span>
+              <span>Penjualan bersih</span>
               <strong id="metric-sales">—</strong>
               <small id="metric-sales-change">Dibanding periode sebelumnya</small>
             </article>
             <article class="kpi-card">
-              <span>Gross sales</span>
+              <span>Penjualan kotor</span>
               <strong id="metric-gross">—</strong>
-              <small>Sebelum diskon</small>
+              <small>Sebelum potongan</small>
             </article>
             <article class="kpi-card">
-              <span>Orders</span>
+              <span>Pesanan</span>
               <strong id="metric-orders">—</strong>
               <small>Transaksi unik</small>
             </article>
             <article class="kpi-card">
-              <span>Units sold</span>
+              <span>Unit terjual</span>
               <strong id="metric-units">—</strong>
               <small>Total unit</small>
             </article>
             <article class="kpi-card">
-              <span>Average order value</span>
+              <span>Nilai pesanan rata-rata</span>
               <strong id="metric-aov">—</strong>
-              <small>Net sales per order</small>
+                <small>Penjualan bersih per pesanan</small>
             </article>
             <article class="kpi-card">
-              <span>Return rate</span>
+              <span>Tingkat retur</span>
               <strong id="metric-return-rate">—</strong>
               <small>Order returned</small>
             </article>
@@ -126,8 +124,8 @@
             <article class="panel">
               <div class="panel-title">
                 <div>
-                  <p class="eyebrow">Trend</p>
-                  <h3>Gross vs Net Sales</h3>
+                  <p class="eyebrow">Tren</p>
+                  <h3>Penjualan kotor dan bersih</h3>
                 </div>
                 <span>Per bulan</span>
               </div>
@@ -143,10 +141,10 @@
             <article class="panel">
               <div class="panel-title">
                 <div>
-                  <p class="eyebrow">Channels</p>
+                  <p class="eyebrow">Kanal penjualan</p>
                   <h3>Kontribusi Penjualan</h3>
                 </div>
-                <span>Top 7 · Net sales</span>
+                <span>7 teratas · Penjualan bersih</span>
               </div>
               <div class="chart-container" aria-live="polite">
                 <canvas id="channel-chart"></canvas>
@@ -154,8 +152,8 @@
             </article>
             <article class="panel">
               <div class="panel-title compact-title">
-                <div><p class="eyebrow">Order health</p><h3>Status Pesanan</h3></div>
-                <span>Order count</span>
+                <div><p class="eyebrow">Status pesanan</p><h3>Status Pesanan</h3></div>
+                <span>Jumlah pesanan</span>
               </div>
               <div class="chart-container chart-small" aria-live="polite">
                 <canvas id="status-chart"></canvas>
@@ -164,8 +162,8 @@
             <article class="panel">
               <div class="panel-title">
                 <div>
-                  <p class="eyebrow">Geography</p>
-                  <h3>Top 6 Cities</h3>
+                  <p class="eyebrow">Wilayah</p>
+                  <h3>6 kota teratas</h3>
                 </div>
                 <span id="city-coverage">Lokasi diketahui</span>
               </div>
@@ -177,8 +175,8 @@
           <div class="chart-grid">
             <article class="panel">
               <div class="panel-title compact-title">
-                <div><p class="eyebrow">Brand</p><h3>Top Brands</h3></div>
-                <span>Top 7 · Net sales</span>
+                <div><p class="eyebrow">Merek</p><h3>7 merek teratas</h3></div>
+                <span>Penjualan bersih</span>
               </div>
               <div class="chart-container chart-small" aria-live="polite">
                 <canvas id="brand-chart"></canvas>
@@ -186,8 +184,8 @@
             </article>
             <article class="panel">
               <div class="panel-title compact-title">
-                <div><p class="eyebrow">Category</p><h3>Top Categories</h3></div>
-                <span>Top 7 · Net sales</span>
+                <div><p class="eyebrow">Kategori</p><h3>7 kategori teratas</h3></div>
+                <span>Penjualan bersih</span>
               </div>
               <div class="chart-container chart-small" aria-live="polite">
                 <canvas id="category-chart"></canvas>
@@ -195,8 +193,8 @@
             </article>
             <article class="panel">
               <div class="panel-title compact-title">
-                <div><p class="eyebrow">Product</p><h3>Top SKUs</h3></div>
-                <span>Net sales</span>
+                <div><p class="eyebrow">Produk</p><h3>SKU teratas</h3></div>
+                <span>Penjualan bersih</span>
               </div>
               <div class="chart-container chart-small" aria-live="polite">
                 <canvas id="sku-chart"></canvas>
@@ -205,43 +203,14 @@
             <article class="panel">
               <div class="panel-title">
                 <div>
-                  <p class="eyebrow">Merchandising</p>
-                  <h3>Top 6 Products</h3>
+                  <p class="eyebrow">Produk terlaris</p>
+                  <h3>6 produk teratas</h3>
                 </div>
-                <span>By units</span>
+                <span>Berdasarkan unit</span>
               </div>
               <div id="product-list" class="rank-list"></div>
             </article>
           </div>
-        </section>
-        <section id="analysis-operations" class="analysis-panel" role="tabpanel" aria-labelledby="tab-operations" data-overview-panel="operations" hidden>
-          <h2>Status Pipeline</h2>
-          <p class="helper-text">Status seluruh proses, tidak dibatasi filter penjualan.</p>
-                  <section class="pipeline-status card" aria-label="Status Pipeline">
-          <div>
-            <p class="eyebrow">Pipeline terakhir</p>
-            <strong id="pipeline-status">—</strong>
-            <small id="pipeline-run">Memeriksa run terakhir…</small>
-            <small id="pipeline-volume" class="pipeline-volume">—</small>
-          </div>
-          <div>
-            <span>Success rate</span>
-            <strong id="pipeline-success-rate">—</strong>
-          </div>
-          <div>
-            <span>Durasi terakhir</span>
-            <strong id="pipeline-duration">—</strong>
-          </div>
-          <div>
-            <span>Data ditolak</span>
-            <strong id="pipeline-rejected-rate">—</strong>
-          </div>
-          <div class="freshness">
-            <span>Freshness source</span>
-            <div id="source-freshness">—</div>
-          </div>
-        </section>
-          <a href="#settings" class="button button-secondary inline-button">Buka riwayat eksekusi</a>
         </section>
       </section>
 

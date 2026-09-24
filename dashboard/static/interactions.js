@@ -38,6 +38,7 @@ export async function loadDashboard({ apply = false, background = false } = {}) 
   const sequence = ++state.requestSequence;
   state.loading = true;
   const button = $('refresh-button');
+  button.closest('.sidebar-status').dataset.state = 'checking';
   button.disabled = true;
   button.textContent = 'Memuat…';
   try {
@@ -70,11 +71,11 @@ export async function loadDashboard({ apply = false, background = false } = {}) 
     if (apply && window.matchMedia('(max-width: 640px)').matches) {
       document.querySelector('.filter-disclosure').open = false;
     }
-    $('connection-status').textContent = 'Warehouse terhubung';
+    $('connection-status').textContent = 'Gudang terhubung';
     $('connection-status').parentElement.dataset.state = 'connected';
   } catch (error) {
     if (sequence !== state.requestSequence) return;
-    showError(error.message + (state.dashboardData ? ' Data terakhir tetap ditampilkan.' : ' Gunakan Muat ulang untuk mencoba lagi.'));
+    showError(error.message + (state.dashboardData ? ' Data terakhir tetap ditampilkan.' : ' Gunakan Refresh untuk mencoba lagi.'));
     $('message').dataset.kind = 'connection';
     $('connection-status').textContent = 'Koneksi perlu diperiksa';
     $('connection-status').parentElement.dataset.state = 'error';
@@ -83,7 +84,7 @@ export async function loadDashboard({ apply = false, background = false } = {}) 
     if (sequence === state.requestSequence) {
       state.loading = false;
       button.disabled = false;
-      button.textContent = 'Muat ulang';
+      button.textContent = 'Refresh';
     }
   }
 }
@@ -193,7 +194,7 @@ async function pollPipelineProgress() {
     stopPipelinePolling();
     loadOperations();
     button.disabled = false;
-    button.textContent = 'Jalankan sekarang';
+    button.textContent = 'Jalankan';
     if (run.status === 'SUCCESS') {
       setPipelineProgress(`Selesai · ${formatJakartaDateTime(run.ended_at)} WIB. ${run.outcome_message || 'Lihat rincian proses untuk hasilnya.'}`, 'success');
       loadDashboard();
@@ -203,7 +204,7 @@ async function pollPipelineProgress() {
   } catch (error) {
     stopPipelinePolling();
     $('run-pipeline').disabled = false;
-    $('run-pipeline').textContent = 'Jalankan sekarang';
+    $('run-pipeline').textContent = 'Jalankan';
     setPipelineProgress('Status pipeline tidak dapat dimuat.', 'failed');
     showError(error.message);
   }
@@ -227,7 +228,7 @@ async function runPipeline() {
     state.pipelineProgressTimer = window.setTimeout(pollPipelineProgress, 500);
   } catch (error) {
     button.disabled = false;
-    button.textContent = 'Jalankan sekarang';
+    button.textContent = 'Jalankan';
     setPipelineProgress('Pipeline belum dijalankan.', 'failed');
     showError(error.message);
   }
@@ -260,7 +261,7 @@ async function uploadBatch() {
     showError(error.message);
   } finally {
     button.disabled = false;
-    button.textContent = 'Upload CSV';
+    button.textContent = 'Unggah CSV';
   }
 }
 
@@ -285,7 +286,7 @@ async function loadOperations() {
     showError(error.message);
   } finally {
     button.disabled = false;
-    button.textContent = 'Check status';
+    button.textContent = 'Check Status';
   }
 }
 

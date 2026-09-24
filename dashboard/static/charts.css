@@ -1,11 +1,11 @@
 /* Fixed chart viewport prevents layout jumps; tables are the accessible alternative. */
 .chart-container {
   position: relative;
-  height: 300px;
+  height: 310px;
   min-width: 0;
 }
 .chart-small {
-  height: 280px;
+  height: 286px;
 }
 .chart-container canvas {
   max-width: 100%;

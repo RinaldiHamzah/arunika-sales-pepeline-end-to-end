@@ -170,7 +170,7 @@ try {
   assert.equal(await evaluate("document.querySelectorAll('.chart-data').length"), 6);
   for (const width of [320, 375, 640, 768, 1024, 1440]) {
     await send('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: false });
-    for (const tab of ['summary', 'sales', 'products', 'operations']) {
+    for (const tab of ['summary', 'sales', 'products']) {
       await evaluate("location.hash='overview'; document.querySelector('[data-overview-tab=" + tab + "]').click()");
       await wait(100);
       assert.equal(await evaluate('document.documentElement.scrollWidth <= innerWidth'), true, 'Overflow at ' + width + '/' + tab);
@@ -183,7 +183,7 @@ try {
     }
     if (width <= 640) {
       assert.equal(await evaluate("getComputedStyle(document.querySelector('#transaction-rows tr')).display"), 'block');
-      assert.equal(await evaluate("document.querySelector('#transaction-rows td').dataset.label"), 'Date');
+      assert.equal(await evaluate("document.querySelector('#transaction-rows td').dataset.label"), 'Tanggal');
     }
   }
   await evaluate("location.hash='overview'; document.getElementById('tab-summary').focus(); document.getElementById('tab-summary').dispatchEvent(new KeyboardEvent('keydown', {key:'ArrowRight', bubbles:true}))");

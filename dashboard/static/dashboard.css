@@ -1,6 +1,6 @@
 /* Stable entry point. Edit the owning stylesheet instead of adding overrides here. */
-@import url("./tokens.css?v=ux1");
-@import url("./layout.css?v=ux1");
-@import url("./components.css?v=ux1");
-@import url("./charts.css?v=ux1");
-@import url("./responsive.css?v=ux1");
+@import url("./tokens.css?v=ux2");
+@import url("./layout.css?v=ux2");
+@import url("./components.css?v=ux2");
+@import url("./charts.css?v=ux2");
+@import url("./responsive.css?v=ux2");

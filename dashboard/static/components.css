@@ -1,11 +1,11 @@
 /* Shared controls, KPI cards, tables, and pipeline operations. */
 .card, .panel, .kpi-card {
   min-width: 0;
-  padding: 24px;
+  padding: 26px;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  box-shadow: var(--shadow);
+  box-shadow: none;
 }
 .section-heading, .panel-title {
   margin-bottom: 20px;
@@ -29,7 +29,7 @@
   text-align: right;
 }
 .button, .text-button, .quick-ranges button {
-  min-height: 44px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 8px;
+  min-height: 42px; padding: 9px 14px; border: 1px solid var(--line); border-radius: 7px;
   font-size: 13px; font-weight: 650; line-height: 1.3;
 }
 .button-primary {
@@ -42,10 +42,26 @@
 }
 .button-secondary {
   color: var(--teal);
-  background: white;
+  background: var(--surface);
 }
 .button-secondary:hover {
   background: var(--teal-soft);
+}
+.operations-card .button-secondary {
+  color: var(--teal-dark);
+  background: var(--teal-soft);
+  border-color: #b8d8cf;
+}
+.operations-card .button-secondary:hover {
+  color: white;
+  background: var(--teal);
+  border-color: var(--teal);
+}
+.button, .quick-ranges button, .analysis-tabs button, .navigation-link {
+  transition: background-color .18s ease, border-color .18s ease, color .18s ease, transform .18s ease;
+}
+.button:not(:disabled):hover, .quick-ranges button:not(:disabled):hover {
+  transform: translateY(-1px);
 }
 .text-button {
   border: none;
@@ -69,12 +85,15 @@ label {
 input, select {
   min-width: 0;
   width: 100%;
-  height: 44px;
+  height: 42px;
   padding: 8px 10px;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 7px;
   background: white;
   color: var(--ink);
+}
+input:hover, select:hover {
+  border-color: #b6c9c2;
 }
 .filter-grid {
   display: grid;
@@ -159,8 +178,9 @@ summary {
 .kpi-card {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 20px;
+  gap: 9px;
+  padding: 21px;
+  box-shadow: none;
 }
 .kpi-card.featured {
   border-top: 3px solid var(--orange);
@@ -176,6 +196,9 @@ summary {
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
 }
+.kpi-card:not(.featured) {
+  border-top-color: #e7eeeb;
+}
 .badge, .status {
   display: inline-block;
   padding: 4px 8px;
@@ -184,6 +207,14 @@ summary {
   border-radius: 6px;
   font-size: 11px;
   font-weight: 650;
+}
+.badge {
+  padding: 0;
+  color: var(--muted);
+  background: transparent;
+  font-size: 10px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
 }
 .status[data-status="FAILED"], .status[data-status="RETURNED"] {
   color: var(--danger);
@@ -195,20 +226,23 @@ summary {
 }
 .pipeline-status {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 24px;
-  margin-top: 20px;
+  grid-template-columns: minmax(210px, 1.45fr) repeat(3, minmax(110px, 0.8fr)) minmax(190px, 1.35fr);
+  gap: 0;
+  margin: 0;
+  padding-block: 14px;
 }
 .pipeline-status > div {
   display: flex;
   flex-direction: column;
   gap: 6px;
   min-width: 0;
+  padding: 8px 18px;
+  border-left: 1px solid var(--line);
 }
 .pipeline-status > div:first-child {
-  grid-column: 1 / -1;
-  padding-bottom: 20px;
-  border-bottom: 1px solid var(--line);
+  grid-column: auto;
+  padding-left: 0;
+  border-left: 0;
 }
 .pipeline-status span, .pipeline-status small {
   color: var(--muted);
@@ -217,6 +251,9 @@ summary {
 }
 .pipeline-status strong {
   font-size: 19px;
+}
+.pipeline-status .freshness {
+  justify-content: center;
 }
 #source-freshness {
   display: flex;
@@ -336,12 +373,34 @@ summary {
 .settings-card-header p {
   margin: 0;
 }
+.admin-access-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 430px);
+  align-items: end;
+  gap: 24px;
+  margin-bottom: 24px;
+  padding: 20px 24px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--teal);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.admin-access-copy h3 {
+  margin-bottom: 4px;
+}
+.admin-access-copy .eyebrow {
+  margin-bottom: 4px;
+}
+.admin-access-card label {
+  margin: 0;
+}
 .step-number {
-  padding: 6px 9px;
-  border-radius: 7px;
-  background: var(--teal-soft);
+  min-width: 24px;
+  padding: 0;
   color: var(--teal);
-  font-weight: 750;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .08em;
 }
 .upload-card {
   border-top: 3px solid var(--orange);

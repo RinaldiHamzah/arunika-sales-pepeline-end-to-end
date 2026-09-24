@@ -16,15 +16,15 @@ export const state = {
 export const JAKARTA_TIME_ZONE = 'Asia/Jakarta';
 export const pageMetadata = {
   overview: {
-    title: 'Sales intelligence',
+    title: 'Dashboard Penjualan',
     subtitle: 'Ringkasan penjualan terintegrasi dari marketplace, website, dan toko offline.',
   },
   transactions: {
-    title: 'Transactions',
-    subtitle: 'Telusuri transaksi warehouse yang telah melewati proses data quality.',
+    title: 'Transaksi',
+    subtitle: 'Data transaksi yang telah tervalidasi proses data quality.',
   },
   settings: {
-    title: 'Settings',
+    title: 'Pengaturan',
     subtitle: 'Kelola batch data, jalankan pipeline, dan pantau riwayat eksekusi.',
   },
 };

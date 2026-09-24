@@ -1,20 +1,20 @@
 /* Shared visual tokens and document defaults. */
 :root {
-  --canvas: #f4f7f5;
-  --surface: #fff;
-  --surface-soft: #f8fbf9;
-  --ink: #182823;
-  --muted: #596d65;
-  --line: #dce7e2;
+  --canvas: #eef1ef;
+  --surface: #ffffff;
+  --surface-soft: #f6f8f7;
+  --ink: #1d2926;
+  --muted: #64736e;
+  --line: #d9e2de;
   --teal: #176b61;
-  --teal-dark: #10564e;
-  --teal-soft: #e5f2ed;
-  --orange: #ed8b65;
+  --teal-dark: #0f514a;
+  --teal-soft: #e4f0ec;
+  --orange: #d97952;
   --danger: #a33529;
-  --sidebar: #153e38;
-  --sidebar-active: #285e54;
-  --radius: 14px;
-  --shadow: 0 5px 20px #163f3908;
+  --sidebar: #142e2a;
+  --sidebar-active: #214d45;
+  --radius: 10px;
+  --shadow: none;
 }
 * {
   box-sizing: border-box;
@@ -23,7 +23,8 @@ body {
   margin: 0;
   color: var(--ink);
   background: var(--canvas);
-  font: 14px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+  font: 14px/1.55 "Avenir Next", "Segoe UI", sans-serif;
+  letter-spacing: 0;
 }
 button, input, select {
   font: inherit;
@@ -42,9 +43,9 @@ h1, h2, h3, p {
   margin-top: 0;
 }
 h1 {
-  font-size: clamp(26px, 3vw, 36px);
+  font-size: clamp(28px, 3vw, 38px);
   line-height: 1.2;
-  letter-spacing: -.04em;
+  letter-spacing: -.025em;
   margin-bottom: 8px;
 }
 h2 {

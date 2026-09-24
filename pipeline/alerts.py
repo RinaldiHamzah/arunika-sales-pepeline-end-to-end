@@ -4,6 +4,7 @@ import json
 import os
 import smtplib
 import socket
+from datetime import datetime
 from email.message import EmailMessage
 from time import sleep
 from urllib.request import Request, urlopen
@@ -108,43 +109,77 @@ def format_pipeline_report(report):
         value = report.get(key)
         return "Belum direkam" if value is None else str(value)
 
+    def duration():
+        started = report.get("started_at")
+        ended = report.get("ended_at")
+        try:
+            start_time = datetime.fromisoformat(str(started).replace("Z", "+00:00"))
+            end_time = datetime.fromisoformat(str(ended).replace("Z", "+00:00"))
+            seconds = (end_time - start_time).total_seconds()
+            if seconds >= 0:
+                return f"{seconds:.3f} detik"
+        except (TypeError, ValueError):
+            pass
+        value = report.get("duration_seconds")
+        return "Belum direkam" if value is None else f"{value} detik"
+
+    status = str(report.get("status", "UNKNOWN")).upper()
+    status_label = {"SUCCESS": "BERHASIL", "FAILED": "GAGAL"}.get(status, status)
+    if status == "FAILED":
+        summary = "Pipeline gagal. Periksa alasan kegagalan di bagian akhir laporan."
+    elif report.get("extracted_records") == 0:
+        summary = "Pipeline berjalan normal. Tidak ada data baru atau perubahan yang perlu dimuat."
+    elif report.get("loaded_records", 0):
+        summary = "Pipeline berhasil. Data baru atau perubahan telah diproses ke warehouse."
+    else:
+        summary = "Pipeline selesai. Tidak ada fact baru yang ditulis ke warehouse."
+
     explanation = (
         outcome_message(report)
-        if report.get("status") == "FAILED"
+        if status == "FAILED"
         else (report.get("outcome_message") or outcome_message(report))
     )
     lines = [
-        "Arunika Beauty — Daily Pipeline Report",
-        f"Status: {report.get('status', 'UNKNOWN')}",
-        f"Pipeline run ID: {report.get('run_id', '—')}",
-        f"Mulai (WIB): {report.get('started_at', '—')}",
-        f"Selesai (WIB): {report.get('ended_at', '—')}",
-        f"Durasi: {report.get('duration_seconds', '—')} detik",
+        "Arunika Beauty Indonesia",
+        "Laporan Pipeline Harian",
         "",
-        f"Total baris source transaksi: {metric('source_records')}",
-        f"Identik sebelum validasi (dilewati): {metric('skipped_unchanged_records')}",
-        f"Kandidat baru/berubah (extracted): {metric('extracted_records')}",
-        f"Valid: {metric('validated_records')}",
-        f"Ditolak validasi: {metric('rejected_records')}",
+        f"Status: {status_label}",
+        f"Kesimpulan: {summary}",
+        "",
+        "WAKTU EKSEKUSI",
+        f"Run ID: {report.get('run_id', '—')}",
+        f"Mulai: {report.get('started_at', '—')}",
+        f"Selesai: {report.get('ended_at', '—')}",
+        f"Durasi: {duration()}",
+        "",
+        "RINGKASAN PEMROSESAN",
+        f"Total transaksi diperiksa: {metric('source_records')}",
+        f"Data identik dilewati: {metric('skipped_unchanged_records')}",
+        f"Data baru/berubah: {metric('extracted_records')}",
+        f"Data valid: {metric('validated_records')}",
+        f"Data ditolak: {metric('rejected_records')}",
         f"Duplikat saat validasi: {metric('duplicate_records')}",
-        f"Kandidat tulis warehouse: {metric('incremental_records')}",
-        f"Identik dengan warehouse (fact skipped): {metric('fact_skipped_records')}",
-        f"Fact ditulis (insert/koreksi): {metric('loaded_records')}",
+        f"Kandidat ke warehouse: {metric('incremental_records')}",
+        f"Data identik di warehouse: {metric('fact_skipped_records')}",
+        f"Data ditulis ke warehouse: {metric('loaded_records')}",
         f"Fact baru: {metric('fact_inserted_records')}",
         "",
-        f"Keterangan: {explanation}",
-        "Total source bukan jumlah upload terakhir. Identik tidak berarti sudah valid; hasil validasi terdahulu tetap berlaku.",
-        "Total transaksi di atas tidak termasuk Product Master.",
+        "CATATAN",
+        f"{explanation}",
+        "Total transaksi tidak termasuk Master Produk.",
+        "Baris identik dilewati sebelum validasi ulang; hasil validasi terdahulu tetap berlaku.",
         "",
-        "Per source (termasuk Product Master):",
+        "RINGKASAN PER SUMBER",
     ]
     for source in report.get("source_metrics") or []:
         lines.append(
-            f"- {source['source_name']}: total={source['source_records']}; "
-            f"identik={source['skipped_unchanged_records']}; kandidat={source['extracted_records']}; "
-            f"valid={source.get('validated_records', 'belum diperiksa')}; "
-            f"ditolak={source.get('rejected_records', 'belum diperiksa')}; "
-            f"duplikat={source.get('duplicate_records', 'belum diperiksa')}"
+            f"{source['source_name']}: total {source['source_records']}; "
+            f"identik {source['skipped_unchanged_records']}; "
+            f"kandidat {source['extracted_records']}; "
+            f"valid {source.get('validated_records', 'belum diperiksa')}; "
+            f"ditolak {source.get('rejected_records', 'belum diperiksa')}; "
+            f"duplikat {source.get('duplicate_records', 'belum diperiksa')}"
         )
-    lines.extend(["", f"Error: {report.get('error_message') or 'Tidak ada'}"])
+    if status == "FAILED":
+        lines.extend(["", "ERROR", f"Alasan: {report.get('error_message') or 'Tidak diketahui'}"])
     return "\n".join(lines)

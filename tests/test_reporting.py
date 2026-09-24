@@ -81,11 +81,28 @@ def test_email_distinguishes_skips_from_dq_duplicates():
         "fact_inserted_records": 15,
     }
     body = format_pipeline_report(report)
-    assert "Total baris source transaksi: 120" in body
-    assert "Identik sebelum validasi (dilewati): 100" in body
+    assert "Total transaksi diperiksa: 120" in body
+    assert "Data identik dilewati: 100" in body
     assert "Duplikat saat validasi: 3" in body
-    assert "Fact ditulis (insert/koreksi): 15" in body
-    assert "bukan jumlah upload terakhir" in body
+    assert "Data ditulis ke warehouse: 15" in body
+    assert "Baris identik dilewati sebelum validasi ulang" in body
+
+
+def test_success_report_uses_timestamps_and_has_no_error_section():
+    body = format_pipeline_report({
+        "status": "SUCCESS",
+        "started_at": "2026-09-24T14:47:38.680184+07:00",
+        "ended_at": "2026-09-24T14:47:53.153385+07:00",
+        "duration_seconds": 1.154,
+        "source_records": 984,
+        "extracted_records": 0,
+        "skipped_unchanged_records": 984,
+        "loaded_records": 0,
+    })
+    assert "Status: BERHASIL" in body
+    assert "Tidak ada data baru atau perubahan" in body
+    assert "Durasi: 14.473 detik" in body
+    assert "ERROR" not in body
 
 
 def test_legacy_and_failed_reports_do_not_claim_no_new_data():

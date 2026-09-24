@@ -1,5 +1,7 @@
 # Arsitektur Pipeline
 
+Dokumen ini menjelaskan perjalanan data dari file CSV sampai menjadi informasi yang dibaca dashboard. Gunakan diagram sebagai gambaran besar, lalu lihat tabel layer untuk mengetahui lokasi kode dan tanggung jawab tiap bagian.
+
 ## Alur data
 
 ```mermaid
@@ -35,6 +37,8 @@ flowchart LR
 
 ## Incremental loading
 
+Pipeline dirancang agar aman dijalankan berulang kali. Ia membandingkan fingerprint data dengan snapshot sebelumnya sehingga file yang tidak berubah tidak perlu diproses dari awal.
+
 Setiap run membaca fingerprint source. Baris yang sama dengan snapshot sebelumnya dilewati sebelum validasi. Hanya baris baru atau yang berubah masuk ke raw, staging, dan warehouse.
 
 Business key fact:
@@ -46,6 +50,8 @@ Business key fact:
 `source_record_hash` membedakan transaksi yang benar-benar berubah. Constraint unik pada fact menjadi perlindungan terakhir terhadap duplikat. Transaksi yang hilang dari snapshot tidak dihapus otomatis.
 
 ## Warehouse dan operasional
+
+Warehouse menyimpan data dalam bentuk yang stabil untuk analitik, sedangkan schema audit menyimpan bukti bagaimana data tersebut diproses.
 
 Grain `warehouse.fact_sales` adalah satu produk dalam satu transaksi source. Fact terhubung ke dimensi tanggal, produk, pelanggan, channel, dan pembayaran. `gross_amount` dihitung dari `quantity × unit_price`.
 

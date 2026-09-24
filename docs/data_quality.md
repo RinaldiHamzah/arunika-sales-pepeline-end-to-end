@@ -2,6 +2,8 @@
 
 Aturan `pipeline.validation` digunakan bersama oleh notebook analisis, export clean CSV, dan pipeline database.
 
+Tujuan kebijakan ini adalah menjaga agar angka di dashboard dapat ditelusuri kembali ke data sumber. Record yang tidak memenuhi aturan tidak diperbaiki dengan tebakan; record tersebut ditolak atau diberi peringatan sesuai jenis masalahnya.
+
 ## Kontrak data bersih
 
 Transaksi memakai kolom berikut:

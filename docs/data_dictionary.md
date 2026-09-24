@@ -1,5 +1,7 @@
 # Kamus Data Warehouse
 
+Kamus ini membantu pembaca memahami arti setiap tabel dan kolom utama di warehouse. Gunakan `docs/architecture.md` untuk alur proses dan `docs/data_quality.md` untuk aturan sebelum data masuk ke tabel-tabel berikut.
+
 ## `warehouse.fact_sales`
 
 Grain: satu produk dalam satu transaksi source. Primary key: `sales_key`. Business key: `(source_name, source_order_id, source_line_number)`.

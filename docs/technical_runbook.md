@@ -4,6 +4,8 @@
 
 Gunakan dokumen ini untuk menjalankan, memantau, dan memulihkan pipeline secara aman. Semua waktu menggunakan WIB (`Asia/Jakarta`).
 
+Runbook ditujukan untuk operator atau developer yang perlu menjalankan pipeline, membaca hasilnya, atau menangani kegagalan. Mulailah dari bagian Menyalakan service jika lingkungan belum berjalan.
+
 ## Menyalakan service
 
 Jalankan `docker compose up -d --build`, lalu periksa dengan `docker compose ps`.

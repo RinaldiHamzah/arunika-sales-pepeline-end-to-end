@@ -1,59 +1,84 @@
 # Dokumentasi Dashboard
 
-Dashboard memakai Flask, CSS biasa, JavaScript ES module, dan Chart.js lokal. Tidak ada framework frontend tambahan atau proses build terpisah.
+Dashboard Arunika adalah antarmuka untuk membaca hasil penjualan dan menjalankan operasi pipeline tertentu. Aplikasi ini memakai Flask, HTML, CSS biasa, JavaScript ES module, dan Chart.js lokal. Tidak ada framework frontend tambahan atau proses build terpisah.
 
-## Halaman utama
+Dashboard dirender sebagai satu halaman dengan beberapa tampilan. Hash URL dan JavaScript hanya mengatur bagian yang sedang terlihat, sehingga filter dan state tetap dapat dipakai lintas tampilan.
 
-| Halaman | Fungsi |
+## Tampilan yang tersedia
+
+| Tampilan | Isi |
 | --- | --- |
-| **Overview** | KPI, tren penjualan, channel, dan status transaksi. |
-| **Penjualan** | Kontribusi channel, status order, dan kota. |
-| **Produk** | Brand, kategori, SKU, dan produk terlaris. |
-| **Operasional** | Kesehatan pipeline dan freshness source. |
-| **Transactions** | Transaksi sesuai filter, pagination, dan unduh CSV. |
-| **Settings** | Upload batch, menjalankan pipeline, dan riwayat eksekusi. |
+| **Ringkasan** | KPI, filter periode, tren penjualan, dan tab analitik. |
+| **Tab Penjualan** | Kontribusi kanal, status pesanan, dan kota teratas. |
+| **Tab Produk** | Merek, kategori, SKU, dan produk terlaris. |
+| **Transaksi** | Rincian transaksi sesuai filter, pagination, dan unduh CSV. |
+| **Pengaturan** | Status pipeline, upload CSV, menjalankan pipeline, dan riwayat eksekusi. |
 
-Halaman **Settings** membutuhkan `DASHBOARD_ADMIN_TOKEN` untuk upload, menjalankan pipeline, dan melihat data operasional yang dilindungi.
+Pengaturan memakai `DASHBOARD_ADMIN_TOKEN` untuk upload, menjalankan pipeline, dan membaca informasi operasional yang dilindungi.
 
-## Penggunaan dasar
+## Cara menggunakan
 
-1. Pilih periode atau preset tanggal.
-2. Tambahkan filter channel, status, kategori, brand, atau produk bila diperlukan.
-3. Klik **Terapkan** untuk memuat data.
-4. Gunakan **Transactions** untuk melihat detail dan mengunduh hasil filter.
-5. Gunakan **Settings** untuk mengunggah CSV atau menjalankan pipeline.
+### Ringkasan dan analitik
+
+1. Pilih rentang tanggal cepat atau tanggal mulai dan selesai.
+2. Pilih filter kanal, status, kategori, merek, atau produk jika diperlukan.
+3. Klik **Terapkan** untuk memuat hasil.
+4. Gunakan tab **Penjualan** dan **Produk** untuk melihat rincian analitik.
+
+### Transaksi
+
+Transaksi mengikuti filter terakhir yang diterapkan pada Ringkasan. Gunakan pagination untuk berpindah halaman atau **Unduh CSV** untuk menyimpan hasil filter.
+
+### Pengaturan dan token administrator
+
+1. Masukkan token pada area **Token Administrator**.
+2. Pilih sumber data dan unggah CSV pada Langkah 1.
+3. Jalankan pipeline pada Langkah 2.
+4. Klik **Check Status** untuk memuat riwayat pipeline.
+
+Token hanya digunakan untuk request admin selama halaman aktif dan tidak disimpan ke `localStorage`.
+
+## Status koneksi dan refresh
+
+Di navbar, indikator titik menunjukkan status gudang:
+
+- Hijau berarti terhubung.
+- Kuning berarti sedang memuat atau memproses.
+- Merah berarti koneksi perlu diperiksa.
+
+Tombol **Refresh** memuat ulang data menggunakan filter terakhir yang sudah diterapkan. Refresh otomatis ditunda ketika pengguna sedang mengubah filter atau membaca tabel.
 
 ## Perilaku responsif dan aksesibilitas
 
-- Pada layar kecil, panel filter dapat ditutup agar KPI cepat terlihat.
+- Pada layar kecil, panel filter dapat ditutup agar KPI lebih cepat terlihat.
 - Tabel transaksi dan riwayat berubah menjadi kartu pada mobile.
 - Tab analitik dapat dioperasikan dengan panah kiri/kanan, `Home`, dan `End`.
-- Setiap grafik memiliki opsi **Lihat data tabel**.
-- Bila Chart.js gagal dimuat, tabel alternatif tetap tersedia.
-- Refresh otomatis memakai filter terakhir yang sudah diterapkan dan ditunda saat pengguna sedang mengubah filter atau membaca tabel.
+- Setiap grafik memiliki opsi untuk melihat data dalam bentuk tabel.
+- Jika Chart.js gagal dimuat, tabel alternatif tetap tersedia.
+- Kontrol memiliki focus state, label form, dan teks alternatif untuk pembaca layar.
 
 ## Struktur file
 
 | File | Tanggung jawab |
 | --- | --- |
-| `templates/base.html` | Template utama: HTML shell, navigasi, header, pesan, dan block halaman. |
-| `templates/dashboard.html` | Child template: filter dan halaman Overview. |
-| `templates/transactions.html` | Halaman Transactions yang di-include oleh `dashboard.html`. |
-| `templates/settings.html` | Halaman Settings yang di-include oleh `dashboard.html`. |
+| `templates/base.html` | Shell HTML, navbar, header, status koneksi, dan pesan. |
+| `templates/dashboard.html` | Filter, KPI, tab analitik, dan Ringkasan. |
+| `templates/transactions.html` | Tampilan Transaksi yang di-include oleh `dashboard.html`. |
+| `templates/settings.html` | Pengaturan pipeline dan riwayat eksekusi. |
 | `static/dashboard.css` | Entry point stylesheet. |
-| `static/tokens.css` | Warna, tipografi, dan aksesibilitas. |
-| `static/layout.css` | Shell, navigasi, dan layout. |
-| `static/components.css` | Form, KPI, tabel, dan panel operasi. |
+| `static/tokens.css` | Warna, tipografi, focus state, dan default dokumen. |
+| `static/layout.css` | Navbar, header, grid, dan struktur halaman. |
+| `static/components.css` | Form, KPI, tabel, tombol, dan panel operasi. |
 | `static/charts.css` | Canvas dan tabel alternatif grafik. |
-| `static/responsive.css` | Breakpoint dan reduced motion. |
+| `static/responsive.css` | Breakpoint mobile dan reduced motion. |
 | `static/dashboard.js` | Bootstrap aplikasi. |
 | `static/core.js` | State, format WIB, filter, dan helper DOM. |
 | `static/api.js` | Request API, timeout, dan error. |
-| `static/charts.js` | Pembuatan serta pembaruan Chart.js. |
+| `static/charts.js` | Pembuatan dan pembaruan Chart.js. |
 | `static/renderers.js` | Render KPI, tabel, peringkat, dan riwayat. |
 | `static/interactions.js` | Navigasi, filter, upload, polling, dan refresh. |
 
-`dashboard.html` mewarisi `base.html`; Transactions dan Settings di-include dari child tersebut. Keempat template dirender sebagai satu halaman agar state JavaScript tetap sama. Pertahankan ID kontrol ketika mengubah template. Jangan memindahkan logika API ke HTML atau menambahkan override layout acak ke `dashboard.css`.
+`dashboard.html` mewarisi `base.html`; `transactions.html` dan `settings.html` di-include dari template tersebut. Pertahankan ID kontrol ketika mengubah tampilan karena JavaScript mengambil elemen berdasarkan ID. Jangan memindahkan logika API ke HTML atau menambahkan override layout acak ke `dashboard.css`.
 
 ## Pengujian tampilan
 
@@ -63,4 +88,4 @@ Jalankan dari root repository:
 node dashboard/tests/browser_smoke.mjs
 ```
 
-Test membutuhkan Node.js 22+ serta Chrome atau Edge. Test memakai server sementara dan data simulasi; tidak membaca `.env`, tidak mengirim email, dan tidak menjalankan pipeline sungguhan. Test mencakup viewport 320 sampai 1440 piksel, navigasi, keyboard, kartu mobile, filter, pagination, upload, polling, dan fallback grafik.
+Test membutuhkan Node.js 22+ serta Chrome atau Edge. Test memakai server sementara dan data simulasi; tidak membaca `.env`, tidak mengirim email, dan tidak menjalankan pipeline sungguhan. Test mencakup viewport 320 sampai 1440 piksel, navigasi, keyboard, kartu mobile, filter, pagination, upload, polling, pemulihan API, dan fallback grafik.

@@ -1,5 +1,7 @@
 # Diagram Relasi Entitas
 
+Diagram berikut menunjukkan hubungan antara fact penjualan, dimensi analitik, dan tabel audit pipeline. Diagram ini membantu menjawab dari mana sebuah angka dashboard berasal dan ke tabel mana proses pipeline dicatat.
+
 ```mermaid
 erDiagram
     DIM_DATE ||--o{ FACT_SALES : tanggal

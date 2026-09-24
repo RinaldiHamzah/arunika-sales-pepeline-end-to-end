@@ -1,8 +1,10 @@
 # Arunika Beauty - E-Commerce Sales Data Pipeline
 
-Arunika Beauty adalah proyek data engineering dan analitik penjualan untuk menggabungkan data dari Shopee, Tokopedia, Website, Toko Offline, dan Product Master. Data diproses secara bertahap sampai menjadi warehouse berbentuk star schema, diaudit, lalu disajikan melalui dashboard penjualan dan Airflow.
+Arunika Beauty adalah proyek data engineering dan analitik penjualan untuk menggabungkan data dari Shopee, Tokopedia, Website, Toko Offline, dan Master Produk. Data diproses secara bertahap sampai menjadi warehouse berbentuk star schema, diaudit, lalu disajikan melalui dashboard penjualan dan Airflow.
 
 Proyek ini dibuat untuk menjawab kebutuhan yang sederhana tetapi penting: **berapa penjualan yang terjadi, dari kanal mana, produk apa yang paling berkontribusi, bagaimana kualitas datanya, dan apakah pipeline berjalan dengan sehat?**
+
+Dokumen ini adalah pintu masuk proyek. Gunakan bagian Quick Start untuk menjalankan sistem, bagian Penggunaan Dashboard untuk memahami alur kerja, dan dokumentasi lanjutan untuk detail teknis.
 
 ```text
 CSV source -> raw -> validasi -> staging -> warehouse -> analytics -> dashboard
@@ -27,15 +29,15 @@ Dashboard Arunika memakai layout yang ringkas: navbar global, ringkasan KPI, fil
 
 ## Fitur Utama
 
-- Mengambil data penjualan dari lima jenis source CSV.
+- Mengambil data penjualan dari lima jenis sumber CSV.
 - Memvalidasi struktur dan isi data sebelum masuk ke warehouse.
 - Menyimpan metadata ingestion, hasil validasi, lineage, dan audit pipeline.
 - Memuat dimensi dan fact sales ke PostgreSQL star schema.
 - Menghindari pemuatan ulang baris yang identik melalui fingerprint/hash.
-- Menampilkan KPI penjualan, tren bulanan, channel, status pesanan, kota, brand, kategori, SKU, dan produk terlaris.
-- Menyediakan filter tanggal, channel, status, kategori, brand, dan produk.
+- Menampilkan KPI penjualan, tren bulanan, kanal, status pesanan, kota, merek, kategori, SKU, dan produk terlaris.
+- Menyediakan filter tanggal, kanal, status, kategori, merek, dan produk.
 - Menyediakan tabel transaksi dengan pagination dan export CSV.
-- Menyediakan halaman Settings untuk upload CSV, menjalankan pipeline, dan melihat riwayat eksekusi.
+- Menyediakan halaman Pengaturan untuk upload CSV, menjalankan pipeline, dan melihat riwayat eksekusi.
 - Menjalankan pipeline terjadwal melalui Apache Airflow.
 - Mengirim laporan pipeline melalui email jika SMTP dikonfigurasi.
 
@@ -57,6 +59,45 @@ Dashboard Arunika memakai layout yang ringkas: navbar global, ringkasan KPI, fil
 | Quality tools | Ruff dan pre-commit |
 | Zona waktu | `Asia/Jakarta` / WIB |
 
+### Visual Stack
+
+#### Runtime dan Web
+
+<p>
+   <img src="https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white" alt="Python 3.12 or newer">
+   <img src="https://img.shields.io/badge/Flask-3.1%2B-000000?logo=flask&logoColor=white" alt="Flask">
+   <img src="https://img.shields.io/badge/JavaScript-ES%20Modules-F7DF1E?logo=javascript&logoColor=111111" alt="JavaScript ES modules">
+   <img src="https://img.shields.io/badge/Waitress-Web%20Server-4B8BBE" alt="Waitress web server">
+</p>
+
+#### Data dan Database
+
+<p>
+   <img src="https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL 16">
+   <img src="https://img.shields.io/badge/pandas-3.0.5-150458?logo=pandas&logoColor=white" alt="pandas">
+   <img src="https://img.shields.io/badge/SQLAlchemy-2.0-D71F00?logo=sqlalchemy&logoColor=white" alt="SQLAlchemy">
+   <img src="https://img.shields.io/badge/Alembic-Migrations-6BA81E" alt="Alembic">
+</p>
+
+#### Orkestrasi dan Infrastruktur
+
+<p>
+   <img src="https://img.shields.io/badge/Apache%20Airflow-3.3-017CEE?logo=apacheairflow&logoColor=white" alt="Apache Airflow 3.3">
+   <img src="https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white" alt="Docker Compose">
+   <img src="https://img.shields.io/badge/Chart.js-Local-FF6384?logo=chartdotjs&logoColor=white" alt="Chart.js">
+</p>
+
+#### Quality dan Pengujian
+
+<p>
+   <img src="https://img.shields.io/badge/pytest-9%2B-0A9EDC?logo=pytest&logoColor=white" alt="pytest">
+   <img src="https://img.shields.io/badge/Ruff-Linting-D7FF64?logo=ruff&logoColor=111111" alt="Ruff">
+   <img src="https://img.shields.io/badge/pre--commit-Hooks-FAB040?logo=precommit&logoColor=111111" alt="pre-commit">
+   <img src="https://img.shields.io/badge/Chromium-Browser%20Smoke-4285F4?logo=googlechrome&logoColor=white" alt="Chromium browser smoke test">
+</p>
+
+> Badge di atas berfungsi sebagai ringkasan visual. Tabel sebelumnya menjelaskan peran setiap teknologi di dalam proyek.
+
 ## Arsitektur Proyek
 
 ```text
@@ -65,7 +106,7 @@ Ecommerce Sales/
 |- alembic/                 Migration database
 |- analisis/                Notebook analisis eksploratif
 |- dashboard/               Flask app, template, CSS, JavaScript, dan smoke test
-|- data/source/             CSV source penjualan dan product master
+|- data/source/             CSV sumber penjualan dan master produk
 |- data/processed/clean/    Hasil export data bersih
 |- database/schema/         SQL bootstrap schema PostgreSQL
 |- docs/                    Dokumentasi arsitektur, kualitas, ERD, dan runbook
@@ -174,7 +215,7 @@ Untuk Gmail, gunakan App Password, bukan password akun Gmail biasa.
 Gunakan halaman Ringkasan untuk melihat KPI, tren penjualan, kontribusi channel, status pesanan, kota, brand, kategori, SKU, dan produk terlaris.
 
 1. Pilih periode cepat atau tanggal mulai dan selesai.
-2. Pilih filter channel, status, kategori, brand, atau produk bila diperlukan.
+2. Pilih filter kanal, status, kategori, merek, atau produk bila diperlukan.
 3. Klik **Terapkan**.
 4. Buka tab **Penjualan** atau **Produk** untuk analitik yang lebih spesifik.
 
@@ -187,8 +228,8 @@ Halaman Transaksi menampilkan baris transaksi sesuai filter terakhir dari Ringka
 Token Administrator digunakan bersama untuk operasi yang membutuhkan hak admin:
 
 1. Masukkan token pada area **Token Administrator**.
-2. Pilih source dan unggah CSV pada Langkah 1.
-3. Jalankan pipeline pada Langkah 2.
+2. Pilih sumber data dan unggah CSV pada Langkah 1.
+3. Klik **Jalankan** pada Langkah 2.
 4. Gunakan **Check Status** untuk membaca riwayat pipeline.
 
 Token tidak disimpan ke localStorage. Ia hanya dipakai untuk request admin selama halaman aktif.
@@ -210,11 +251,11 @@ Periksa freshness source bila diperlukan:
 
 Hasil run tersimpan di `audit.pipeline_runs` dan `logs/pipeline.log`. Jika SMTP aktif, laporan juga dikirim ke penerima yang dikonfigurasi.
 
-Baris source yang fingerprint-nya identik akan dilaporkan sebagai `skipped_unchanged_records`. Ini berarti baris tersebut dikenali sebagai data yang sama dan tidak dimuat ulang.
+Baris sumber yang fingerprint-nya identik akan dilaporkan sebagai `skipped_unchanged_records`. Ini berarti baris tersebut dikenali sebagai data yang sama dan tidak dimuat ulang.
 
 ## Menambahkan Data Baru
 
-Source berada di folder `data/source/`:
+Sumber data berada di folder `data/source/`:
 
 ```text
 data/source/product.csv
@@ -224,7 +265,7 @@ data/source/website.csv
 data/source/offline.csv
 ```
 
-CSV dapat ditambahkan melalui dashboard atau langsung ke file source. Header harus tetap sesuai dengan kontrak extractor masing-masing source. Jangan mengubah header tanpa memperbarui contract dan test terkait.
+CSV dapat ditambahkan melalui dashboard atau langsung ke file sumber. Header harus tetap sesuai dengan kontrak extractor masing-masing sumber. Jangan mengubah header tanpa memperbarui kontrak dan test terkait.
 
 Data di repository adalah sample untuk simulasi, bukan katalog atau harga resmi Arunika.
 

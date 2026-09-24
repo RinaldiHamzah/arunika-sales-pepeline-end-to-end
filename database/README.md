@@ -2,6 +2,8 @@
 
 Database utama proyek bernama `ecommerce_sales`. Metadata Airflow disimpan pada database terpisah bernama `airflow`.
 
+Dokumen ini menjelaskan struktur schema, urutan bootstrap, serta perbedaan koneksi dari komputer lokal dan antar-container. Detail arti tabel dan kolom ada di [kamus data](../docs/data_dictionary.md).
+
 ## Schema PostgreSQL
 
 | Schema | Isi |

@@ -75,7 +75,7 @@ def send_pipeline_report(report: dict) -> bool:
 
     status = str(report.get("status", "UNKNOWN")).upper()
     message = EmailMessage()
-    message["Subject"] = f"PT Arunika Beauty Indonesia — PIPELINE {status} — {report.get('started_at', 'WIB')}"
+    message["Subject"] = f"PT Arunika Beauty Indonesia [PIPELINE {status}] {report.get('started_at', 'WIB')}"
     message["From"] = sender
     message["To"] = ", ".join(recipients)
     message.set_content(format_pipeline_report(report))
@@ -141,7 +141,7 @@ def format_pipeline_report(report):
     )
     lines = [
         "PT Arunika Beauty Indonesia",
-        f"{status} — {report.get('started_at', 'WIB')}",
+        f"Pipeline {status} — {report.get('started_at', 'WIB')}",
         "Laporan Pipeline Harian",
         "",
         f"Status: {status_label}",

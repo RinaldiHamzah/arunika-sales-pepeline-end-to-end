@@ -2,7 +2,7 @@
 
 Arunika Beauty adalah proyek data engineering dan analitik penjualan untuk menggabungkan data dari Shopee, Tokopedia, Website, Toko Offline, dan Master Produk. Data diproses secara bertahap sampai menjadi warehouse berbentuk star schema, diaudit, lalu disajikan melalui dashboard penjualan dan Airflow.
 
-Proyek ini dibuat untuk menjawab kebutuhan yang sederhana tetapi penting: **berapa penjualan yang terjadi, dari kanal mana, produk apa yang paling berkontribusi, bagaimana kualitas datanya, dan apakah pipeline berjalan dengan sehat?**
+Proyek ini dibuat untuk menjawab kebutuhan yang sederhana tetapi penting: **Berapa penjualan yang terjadi, dari berbagai kanal, produk apa yang paling berkontribusi, bagaimana kualitas datanya, dan apakah pipeline berjalan dengan sehat?**
 
 Dokumen ini adalah pintu masuk proyek. Gunakan bagian Quick Start untuk menjalankan sistem, bagian Penggunaan Dashboard untuk memahami alur kerja, dan dokumentasi lanjutan untuk detail teknis.
 
@@ -96,7 +96,6 @@ Dashboard Arunika memakai layout yang ringkas: navbar global, ringkasan KPI, fil
    <img src="https://img.shields.io/badge/Chromium-Browser%20Smoke-4285F4?logo=googlechrome&logoColor=white" alt="Chromium browser smoke test">
 </p>
 
-> Badge di atas berfungsi sebagai ringkasan visual. Tabel sebelumnya menjelaskan peran setiap teknologi di dalam proyek.
 
 ## Arsitektur Proyek
 
@@ -351,13 +350,13 @@ Hasil export tersedia di `data/processed/clean/`. Notebook eksplorasi berada di 
 
 ## Dokumentasi Lanjutan
 
-- [Arsitektur sistem](docs/architecture.md)
-- [Kualitas data](docs/data_quality.md)
-- [Kamus data](docs/data_dictionary.md)
+- [Arsitektur Sistem](docs/architecture.md)
+- [Kualitas Data](docs/data_quality.md)
+- [Kamus Data](docs/data_dictionary.md)
 - [ERD](docs/erd.md)
-- [Technical runbook](docs/technical_runbook.md)
-- [Database schema](database/README.md)
-- [Dashboard dan perilaku UI](dashboard/README.md)
+- [Technical Runbook](docs/technical_runbook.md)
+- [Database Schema](database/README.md)
+- [Dashboard dan UI/UX](dashboard/README.md)
 
 ## Catatan Proyek
 

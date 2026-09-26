@@ -5,9 +5,28 @@ from __future__ import annotations
 from sqlalchemy import text
 from sqlalchemy.engine import Connection
 
+# These are reference members of the analytical model, not source data.  They
+# must be present even after an operator clears warehouse tables manually.
+CHANNELS = (
+    {"channel_code": "SHOPEE", "channel_name": "Shopee", "channel_type": "MARKETPLACE"},
+    {"channel_code": "TOKOPEDIA", "channel_name": "Tokopedia", "channel_type": "MARKETPLACE"},
+    {"channel_code": "WEBSITE", "channel_name": "Arunika Beauty Website", "channel_type": "DIRECT"},
+    {"channel_code": "OFFLINE_STORE", "channel_name": "Arunika Beauty Store", "channel_type": "OFFLINE"},
+)
+
 
 def load_dimensions(connection: Connection, product_rows, staging_rows) -> dict[str, int]:
     """Upsert dimensions from validated product and staging rows."""
+    connection.execute(
+        text("""
+            INSERT INTO warehouse.dim_channel (channel_code, channel_name, channel_type)
+            VALUES (:channel_code, :channel_name, :channel_type)
+            ON CONFLICT (channel_code) DO UPDATE SET
+                channel_name = EXCLUDED.channel_name,
+                channel_type = EXCLUDED.channel_type
+        """),
+        CHANNELS,
+    )
     products = product_rows.to_dict("records")
     if products:
         connection.execute(
@@ -95,6 +114,7 @@ def load_dimensions(connection: Connection, product_rows, staging_rows) -> dict[
             [{"payment_method": value} for value in payments],
         )
     return {
+        "channels": len(CHANNELS),
         "products": len(products),
         "dates": len(dates),
         "customers": len(customers),

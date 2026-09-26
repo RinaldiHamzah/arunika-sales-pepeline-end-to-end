@@ -34,6 +34,32 @@ Script init Docker hanya berjalan saat volume pertama kali dibuat. Untuk schema 
 .\env\Scripts\python.exe -m alembic upgrade head
 ```
 
+## View analitik dan quality report
+
+View SQL berikut adalah sumber analitik yang dapat dipakai dashboard, query reviewer, atau tool BI:
+
+```text
+warehouse.v_sales_detail
+warehouse.v_sales_kpi
+warehouse.v_sales_monthly_kpi
+warehouse.v_sales_channel_kpi
+warehouse.v_top_product_kpi
+warehouse.v_sales_status_kpi
+audit.v_data_quality_by_rule
+audit.v_data_quality_report
+```
+
+Contoh:
+
+```sql
+SELECT * FROM warehouse.v_sales_kpi;
+SELECT * FROM warehouse.v_sales_monthly_kpi ORDER BY month_start;
+SELECT * FROM audit.v_data_quality_by_rule ORDER BY started_at DESC, source_name, rule_name;
+SELECT * FROM audit.v_data_quality_report ORDER BY started_at DESC, source_name;
+```
+
+`raw.*` adalah landing layer dan dipersist sebelum validasi. Hanya record valid yang boleh diteruskan ke `staging.stg_sales` dan warehouse.
+
 ## Keamanan dan koneksi
 
 - Password dibaca dari `.env`.

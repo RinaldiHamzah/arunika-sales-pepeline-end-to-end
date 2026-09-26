@@ -85,10 +85,20 @@
               <p class="eyebrow">Langkah 2 · Proses data</p>
             </div>
             <h3>Jalankan Pipeline</h3>
-            <p class="pipeline-summary" aria-label="Alur pipeline: validasi, gudang data, dashboard">
-              <span>Validasi</span>
+            <p class="pipeline-summary" aria-label="Alur pipeline: CSV Source, Raw Layer, Data Quality , Transformasi, Staging, Data Warehouse, SQL Analytics, Dashboard">
+              <span>CSV Source</span>
+              <b>→</b>
+              <span>Raw Layer</span>
+              <b>→</b>
+              <span> Data Quality</span>
+              <b>→</b>
+              <span>Transformasi</span>
+              <b>→</b>
+              <span>Staging</span>
               <b>→</b>
               <span>Data Warehouse</span>
+              <b>→</b>
+              <span>SQL Analytics</span>
               <b>→</b>
               <span>Dashboard</span>
             </p>
@@ -134,11 +144,11 @@
                     <th>Mulai</th>
                     <th>Selesai</th>
                     <th>Durasi</th>
-                    <th title="Baris yang masuk validasi setelah data identik disaring">Kandidat</th>
+                    <th title="Baris baru atau berubah yang diproses pada run ini">Diproses</th>
                     <th>Valid</th>
                     <th>Ditolak</th>
-                    <th>Duplikat Validasi</th>
-                    <th>Kandidat Tertulis</th>
+                    <th>Duplikat</th>
+                    <th title="Data valid yang dilanjutkan ke staging">Load Kestaging</th>
                     <th>Fact Ditulis</th>
                   </tr>
                 </thead>

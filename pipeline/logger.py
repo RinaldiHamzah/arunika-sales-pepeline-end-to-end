@@ -21,6 +21,7 @@ LOG_FIELDS = (
     "source_records",
     "skipped_unchanged_records",
     "source_metrics",
+    "report_summary",
     "outcome_message",
     "valid_records",
     "duplicate_records",

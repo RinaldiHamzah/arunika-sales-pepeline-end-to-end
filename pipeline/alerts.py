@@ -10,7 +10,7 @@ from time import sleep
 from urllib.request import Request, urlopen
 
 from pipeline.logger import get_logger
-from pipeline.reporting import outcome_message
+from pipeline.reporting import QUALITY_SECTIONS, outcome_message, run_report_summary
 
 LOGGER = get_logger("pipeline.alerts")
 
@@ -135,17 +135,20 @@ def format_pipeline_report(report):
         summary = "Pipeline selesai. Tidak ada fact baru yang ditulis ke warehouse."
 
     explanation = (
-        outcome_message(report)
-        if status == "FAILED"
-        else (report.get("outcome_message") or outcome_message(report))
+        outcome_message(report) if status == "FAILED" else (report.get("outcome_message") or outcome_message(report))
     )
+    run_summary = report.get("report_summary")
+    if not isinstance(run_summary, dict):
+        run_summary = run_report_summary(report)
+    raw = run_summary.get("raw") or {}
+    product_master = raw.get("product_master") or {}
+    quality_staging = run_summary.get("quality_staging")
+    warehouse = run_summary.get("warehouse") or {}
+
     lines = [
         "PT Arunika Beauty Indonesia",
-        f"Pipeline {status} — {report.get('started_at', 'WIB')}",
+        f"PIPELINE {status} — {report.get('started_at', 'WIB')}",
         "Laporan Pipeline Harian",
-        "",
-        f"Status: {status_label}",
-        f"Kesimpulan: {summary}",
         "",
         "WAKTU EKSEKUSI",
         f"Run ID: {report.get('run_id', '—')}",
@@ -153,34 +156,53 @@ def format_pipeline_report(report):
         f"Selesai: {report.get('ended_at', '—')}",
         f"Durasi: {duration()}",
         "",
-        "RINGKASAN PEMROSESAN",
-        f"Total transaksi diperiksa: {metric('source_records')}",
-        f"Data identik dilewati: {metric('skipped_unchanged_records')}",
-        f"Data baru/berubah: {metric('extracted_records')}",
-        f"Data valid: {metric('validated_records')}",
-        f"Data ditolak: {metric('rejected_records')}",
-        f"Duplikat saat validasi: {metric('duplicate_records')}",
-        f"Kandidat ke warehouse: {metric('incremental_records')}",
-        f"Data identik di warehouse: {metric('fact_skipped_records')}",
-        f"Data ditulis ke warehouse: {metric('loaded_records')}",
-        f"Fact baru: {metric('fact_inserted_records')}",
+        "RAW LAYER",
+        f"Total transaksi Raw Layer: {raw.get('total_transactions_in_raw', '—')}",
+        f"Transaksi baru atau berubah: {raw.get('new_or_changed', metric('extracted_records'))}",
+        f"Transaksi dimuat ke Raw Layer: {raw.get('inserted_to_raw', '—')}",
+        f"Total Master Produk Raw Layer: {product_master.get('total_in_raw', '—')}",
+        f"Master Produk diproses: {product_master.get('new_or_changed', 0)}",
+        f"Master Produk dimuat ke Raw Layer: {product_master.get('inserted_to_raw', 0)}",
         "",
-        "CATATAN",
-        f"{explanation}",
-        "Total transaksi tidak termasuk Master Produk.",
-        "Baris identik dilewati sebelum validasi ulang; hasil validasi terdahulu tetap berlaku.",
-        "",
-        "RINGKASAN PER SUMBER",
     ]
-    for source in report.get("source_metrics") or []:
-        lines.append(
-            f"{source['source_name']}: total {source['source_records']}; "
-            f"identik {source['skipped_unchanged_records']}; "
-            f"kandidat {source['extracted_records']}; "
-            f"valid {source.get('validated_records', 'belum diperiksa')}; "
-            f"ditolak {source.get('rejected_records', 'belum diperiksa')}; "
-            f"duplikat {source.get('duplicate_records', 'belum diperiksa')}"
+    if quality_staging and raw.get("new_or_changed", report.get("extracted_records", 0)):
+        lines.extend(["", "DATA QUALITY CHECK"])
+        findings = []
+        for key, label in QUALITY_SECTIONS:
+            finding = quality_staging.get(key) or {}
+            if finding.get("total"):
+                fields = ", ".join(f"{field}: {count}" for field, count in finding.get("by_field", {}).items())
+                findings.append(f"{label}: {finding['total']}" + (f" ({fields})" if fields else ""))
+        lines.extend(findings or ["Tidak ada temuan quality check yang memblokir data."])
+        lines.extend(
+            [
+                "",
+                "STAGING LAYER",
+                f"Lolos ke staging: {quality_staging.get('passed_to_staging', 0)}",
+                f"Diload ke staging: {quality_staging.get('written_to_staging', 0)}",
+                "",
+                "WAREHOUSE",
+                f"Fact siap dimuat: {warehouse.get('eligible_facts', 0)}",
+                f"Fact baru: {warehouse.get('inserted_facts', 0)}",
+                f"Total fact ditulis: {warehouse.get('facts_written', 0)}",
+                "",
+                "CATATAN AUDIT",
+                f"{explanation}",
+            ]
         )
+    elif status != "FAILED" and not raw.get("new_or_changed", report.get("extracted_records", 0)):
+        lines.extend(
+            [
+                "",
+                "CATATAN AUDIT",
+                f"{explanation}",
+                "",
+                "TAHAP BERIKUTNYA",
+                "Data quality check, staging, dan warehouse tidak dijalankan karena tidak ada data baru.",
+            ]
+        )
+    elif status != "FAILED":
+        lines.extend(["", "QUALITY CHECK & STAGING", "Rincian quality run lama tidak tersedia di audit."])
     if status == "FAILED":
         lines.extend(["", "ERROR", f"Alasan: {report.get('error_message') or 'Tidak diketahui'}"])
     return "\n".join(lines)

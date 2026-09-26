@@ -19,11 +19,25 @@ function renderRankList(id, items = [], mode) {
   `).join('') : '<p class="empty">Tidak ada data untuk filter ini.</p>';
 }
 
+export function filteredTransactionRows() {
+  const query = state.transactionSearch.trim().toLocaleLowerCase('id-ID');
+  if (!query) return state.rows;
+  return state.rows.filter(row => [
+    row.order_id,
+    row.product_name,
+    row.product_id,
+    row.channel_name,
+    row.category,
+    row.status,
+  ].some(value => String(value ?? '').toLocaleLowerCase('id-ID').includes(query)));
+}
+
 export function renderTransactions() {
-  const totalPages = Math.max(1, Math.ceil(state.rows.length / state.pageSize));
+  const filteredRows = filteredTransactionRows();
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / state.pageSize));
   state.page = Math.max(1, Math.min(state.page, totalPages));
   const start = (state.page - 1) * state.pageSize;
-  const rows = state.rows.slice(start, start + state.pageSize);
+  const rows = filteredRows.slice(start, start + state.pageSize);
   $('transaction-rows').innerHTML = rows.length ? rows.map(row => `
     <tr>
       <td>${escapeHtml(row.order_date)}</td>
@@ -35,9 +49,11 @@ export function renderTransactions() {
       <td>${number(row.quantity)}</td>
       <td>${money(row.net_amount)}</td>
     </tr>
-  `).join('') : '<tr><td colspan="8" class="empty">Tidak ada transaksi. Coba ubah periode atau reset filter di Overview.</td></tr>';
+  `).join('') : `<tr><td colspan="8" class="empty">${state.transactionSearch ? 'Tidak ada transaksi yang sesuai pencarian.' : 'Tidak ada transaksi. Coba ubah periode atau reset filter di Overview.'}</td></tr>`;
   labelTableCells();
-  $('row-count').textContent = `${number(state.rows.length)} transaksi`;
+  $('row-count').textContent = state.transactionSearch
+    ? `${number(filteredRows.length)} dari ${number(state.rows.length)} Transaksi`
+    : `${number(filteredRows.length)} Transaksi`;
   $('page-info').textContent = `Halaman ${state.page} / ${totalPages}`;
   $('prev-page').disabled = state.page === 1;
   $('next-page').disabled = state.page === totalPages;
@@ -53,6 +69,7 @@ function renderMetrics(metrics) {
     'metric-return-rate': percent(metrics.return_rate),
   };
   Object.entries(values).forEach(([id, value]) => { $(id).textContent = value; });
+  $('metric-sales-note').textContent = 'Total order COMPLETED';
   const change = metrics.net_change_percent;
   $('metric-sales-change').textContent = change == null
     ? 'Belum ada periode pembanding'
@@ -83,6 +100,10 @@ export function renderDashboard(data) {
   const nextRows = data.rows || [];
   const rowsChanged = JSON.stringify(state.rows) !== JSON.stringify(nextRows);
   state.rows = nextRows;
+  if (rowsChanged) {
+    state.transactionSearch = '';
+    if ($('transaction-search')) $('transaction-search').value = '';
+  }
   renderMetrics(data.metrics || {});
   renderObservability(data.observability || {});
   renderCharts(data);
@@ -96,26 +117,86 @@ export function renderDashboard(data) {
 }
 
 function renderRunExplanation(run) {
-  const metric = value => value == null ? 'Belum direkam' : number(value);
+  const metric = value => value == null ? '—' : number(value);
   const message = run.status === 'FAILED'
     ? 'Pipeline gagal. Lihat alasan di bawah.'
     : (run.outcome_message || 'Run lama: metrik sebelum validasi belum direkam.');
+  const summary = run.report_summary;
+  const raw = summary?.raw || {};
+  const productMaster = raw.product_master || {};
+  const quality = summary?.quality_staging;
+  const warehouse = summary?.warehouse || {};
+  const newOrChanged = raw.new_or_changed ?? run.extracted_records ?? 0;
+  const hasWork = Number(newOrChanged) > 0;
+  const issueLabels = {
+    missing_value: 'Nilai kosong',
+    duplicate_business_key: 'Duplikat unique key',
+    invalid_quantity: 'Kuantitas tidak valid',
+    invalid_price: 'Harga transaksi tidak valid',
+    invalid_status: 'Status tidak valid',
+    invalid_date: 'Tanggal tidak valid',
+    unmapped_product: 'Produk tidak termapping',
+    type_cast_failure: 'Konversi tipe gagal',
+  };
+  const sourceLabels = {
+    SHOPEE: 'Shopee', TOKOPEDIA: 'Tokopedia', WEBSITE: 'Website', OFFLINE_STORE: 'Offline Store', PRODUCT_MASTER: 'Master Produk',
+  };
+  const findingsFor = sections => Object.entries(issueLabels).flatMap(([key, label]) => {
+    const finding = sections?.[key] || {};
+    if (!finding.total) return [];
+    const fields = Object.entries(finding.by_field || {}).map(([field, count]) => `${escapeHtml(field)}: ${number(count)}`).join(' · ');
+    return [`<li><strong>${label}</strong>: ${number(finding.total)}${fields ? `<br><small>${fields}</small>` : ''}</li>`];
+  }).join('');
+  const findings = quality ? findingsFor(quality) : '';
+  const sourceQualityFor = target => (target?.by_source || []).map(source => {
+    const sourceFindings = findingsFor(source.issues);
+    return `<details class="quality-source-detail">
+      <summary><strong>${escapeHtml(sourceLabels[source.source_name] || source.source_name)}</strong><span>${number(source.processed)} diproses · ${number(source.valid)} valid</span></summary>
+      <dl class="quality-source-stats">
+        <dt>Data diproses</dt><dd>${number(source.processed)}</dd>
+        <dt>Data valid</dt><dd>${number(source.valid)}</dd>
+        <dt>Data ditolak</dt><dd>${number(source.rejected)}</dd>
+        <dt>Duplikat validasi</dt><dd>${number(source.duplicate)}</dd>
+      </dl>
+      ${sourceFindings ? `<ul class="run-findings">${sourceFindings}</ul>` : '<p>Tidak ada masalah kualitas data pada sumber ini.</p>'}
+    </details>`;
+  }).join('');
+  const sourceQuality = sourceQualityFor(quality);
+  const detail = !summary ? `
+    <dl>
+      <dt>Data diproses</dt><dd>${metric(run.extracted_records)}</dd>
+      <dt>Data valid</dt><dd>${metric(run.validated_records)}</dd>
+      <dt>Data ditolak</dt><dd>${metric(run.rejected_records)}</dd>
+      <dt>Duplikat validasi</dt><dd>${metric(run.duplicate_records)}</dd>
+      <dt>Fact ditulis</dt><dd>${metric(run.loaded_records)}</dd>
+    </dl>` : `
+    <h4>Raw Layer</h4>
+    <dl>
+      <dt>Total transaksi Raw Layer</dt><dd>${metric(raw.total_transactions_in_raw)}</dd>
+      <dt>Transaksi baru atau berubah</dt><dd>${metric(newOrChanged)}</dd>
+      <dt>Transaksi dimuat ke Raw Layer</dt><dd>${metric(raw.inserted_to_raw)}</dd>
+      <dt>Total Master Produk Raw Layer</dt><dd>${metric(productMaster.total_in_raw)}</dd>
+      <dt>Master Produk diproses</dt><dd>${metric(productMaster.new_or_changed)}</dd>
+      <dt>Master Produk dimuat ke Raw Layer</dt><dd>${metric(productMaster.inserted_to_raw)}</dd>
+    </dl>
+    ${!hasWork ? '<p>Tidak ada data baru dan perubahan pada ini sehingga tahap Data Quality Check, Transformasi, Staging, dan Warehouse tidak dijalankan pada run ini.</p>' : `
+      <h4>Data Quality Check &amp; Staging</h4>
+      ${findings ? `<ul class="run-findings">${findings}</ul>` : '<p>Tidak ada temuan data quality check yang memblokir data.</p>'}
+      <dl>
+        <dt>Data lolos ke Staging</dt><dd>${metric(quality?.passed_to_staging)}</dd>
+        <dt>Data diload ke Staging</dt><dd>${metric(quality?.written_to_staging)}</dd>
+      </dl>
+      ${sourceQuality ? `<h4>Rincian per sumber</h4><div class="quality-source-list">${sourceQuality}</div>` : ''}
+      <h4>Warehouse</h4>
+      <dl>
+        <dt>Fact siap dimuat</dt><dd>${metric(warehouse.eligible_facts)}</dd>
+        <dt>Fact baru</dt><dd>${metric(warehouse.inserted_facts)}</dd>
+        <dt>Total fact ditulis</dt><dd>${metric(warehouse.facts_written)}</dd>
+      </dl>`}`;
   return `<details class="run-explanation">
     <summary>Rincian proses</summary>
     <p>${escapeHtml(message)}</p>
-    <dl>
-      <dt>Total baris source transaksi</dt><dd>${metric(run.source_records)}</dd>
-      <dt>Identik sebelum validasi</dt><dd>${metric(run.skipped_unchanged_records)}</dd>
-      <dt>Kandidat baru/berubah</dt><dd>${metric(run.extracted_records)}</dd>
-      <dt>Identik dengan warehouse</dt><dd>${metric(run.fact_skipped_records)}</dd>
-      <dt>Fact baru</dt><dd>${metric(run.fact_inserted_records)}</dd>
-      <dt>Fact ditulis (insert/koreksi)</dt><dd>${metric(run.loaded_records)}</dd>
-    </dl>
-    <p>Total source bukan jumlah upload terakhir; tidak termasuk Product Master. Identik dilewati, bukan divalidasi ulang.</p>
-    ${(run.source_metrics || []).map(source => `<p><strong>${escapeHtml(source.source_name)}</strong><br>
-      Total ${metric(source.source_records)} · Identik ${metric(source.skipped_unchanged_records)} · Kandidat ${metric(source.extracted_records)}
-      <br>Valid ${metric(source.validated_records)} · Ditolak ${metric(source.rejected_records)} · Duplikat validasi ${metric(source.duplicate_records)}
-    </p>`).join('')}
+    ${detail}
     ${run.error_message ? `<p class="run-error">Alasan gagal: ${escapeHtml(run.error_message)}</p>` : ''}
   </details>`;
 }

@@ -1,6 +1,6 @@
 import { $, state, pageMetadata, JAKARTA_TIME_ZONE, addOptions, buildQuery, adminHeaders, number, showError, clearError, formatJakartaDateTime } from './core.js';
 import { requestJson } from './api.js';
-import { renderDashboard, renderTransactions, renderOperationRows, labelTableCells } from './renderers.js';
+import { filteredTransactionRows, renderDashboard, renderTransactions, renderOperationRows, labelTableCells } from './renderers.js';
 import { renderCharts } from './charts.js';
 
 function setPage(pageName) {
@@ -157,7 +157,17 @@ function resetFilters() {
 }
 
 function downloadTransactions() {
-  window.location = `/api/dashboard/export?${state.appliedQuery}`;
+  const rows = filteredTransactionRows();
+  if (!rows.length) return showError('Tidak ada transaksi untuk diunduh.');
+  const headers = Object.keys(rows[0]);
+  const escapeCsv = value => `"${String(value ?? '').replaceAll('"', '""')}"`;
+  const csv = [headers.join(','), ...rows.map(row => headers.map(header => escapeCsv(row[header])).join(','))].join('\n');
+  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'transaksi-terfilter.csv';
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 function stopPipelinePolling() {
@@ -300,6 +310,11 @@ export function bindEvents() {
   $('refresh-button').onclick = () => loadDashboard();
   $('reset-button').onclick = resetFilters;
   $('download-transactions').onclick = downloadTransactions;
+  $('transaction-search').oninput = event => {
+    state.transactionSearch = event.target.value;
+    state.page = 1;
+    renderTransactions();
+  };
   $('run-pipeline').onclick = runPipeline;
   $('upload-button').onclick = uploadBatch;
   $('upload-file').onchange = updateFileName;

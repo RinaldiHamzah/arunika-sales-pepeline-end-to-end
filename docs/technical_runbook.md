@@ -41,6 +41,8 @@ Tabel utama adalah `audit.pipeline_runs`.
 
 `SUCCESS` dengan `extracted_records = 0` berarti source tidak berubah. Ini bukan kegagalan dan data lama tidak diproses ulang.
 
+Dalam kondisi tersebut, runner berhenti setelah pemeriksaan snapshot dan tidak mengakses staging atau warehouse. Audit tetap disimpan sebagai `SUCCESS` dengan jumlah data identik yang dilewati dan alasan run tidak memproses transaksi lama.
+
 Lihat tahap detail pada `audit.pipeline_stage_runs`. Log lokal berada di `logs/pipeline.log` dan `logs/dashboard.log`.
 
 ## Jika pipeline gagal
@@ -64,6 +66,8 @@ Periksa Airflow di `http://127.0.0.1:8080` dan health endpoint di `http://127.0.
 ## Email dan alert
 
 Laporan email memakai konfigurasi SMTP di `.env`. Bila Gmail menolak dengan kode `534 5.7.9`, buat App Password baru dan isi `SMTP_PASSWORD` dengan nilai tersebut. Email gagal tidak membatalkan pipeline; detailnya dicatat sebagai `pipeline_email_failed` di log.
+
+Setiap laporan sukses menjelaskan hasil run saat itu. Jika ada data baru atau perubahan, laporan memuat jumlah transaksi yang masuk Raw Layer, hasil quality check, data yang lolos staging, dan fact yang ditulis. Jika tidak ada data baru atau perubahan, seluruh metrik pemrosesan bernilai `0`; quality check, staging, dan warehouse tidak dijalankan ulang atau disalin dari run lama.
 
 `ALERT_WEBHOOK_URL` bersifat opsional untuk notifikasi kegagalan melalui webhook.
 

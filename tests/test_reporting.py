@@ -2,12 +2,13 @@
 
 from dataclasses import replace
 from pathlib import Path
+from types import SimpleNamespace
 
 import pandas as pd
 
 from pipeline.alerts import format_pipeline_report
 from pipeline.extract.base import ExtractedSource, extract_delimited, filter_unseen_rows, raw_payload_hash
-from pipeline.reporting import outcome_message, summarize_sources
+from pipeline.reporting import outcome_message, quality_staging_summary, run_report_summary, summarize_sources
 
 
 def source(rows, name="SHOPEE"):
@@ -68,7 +69,7 @@ def test_product_master_excluded_from_transaction_totals():
     assert len(result["source_metrics"]) == 2
 
 
-def test_email_distinguishes_skips_from_dq_duplicates():
+def test_email_shows_processing_results_without_snapshot_metrics():
     report = {
         "status": "SUCCESS",
         "source_records": 120,
@@ -79,28 +80,58 @@ def test_email_distinguishes_skips_from_dq_duplicates():
         "validated_records": 15,
         "loaded_records": 15,
         "fact_inserted_records": 15,
+        "report_summary": {
+                "raw": {
+                    "source_total": 120,
+                    "new_or_changed": 20,
+                    "inserted_to_raw": 20,
+                    "total_transactions_in_raw": 470,
+                    "product_master": {
+                        "source_total": 20,
+                        "new_or_changed": 20,
+                        "inserted_to_raw": 20,
+                        "total_in_raw": 20,
+                    },
+                },
+            "quality_staging": {
+                "checked": True,
+                "missing_value": {"total": 0, "by_field": {}},
+                "duplicate_business_key": {"total": 3, "by_field": {"order_id": 3}},
+                "invalid_quantity": {"total": 0, "by_field": {}},
+                "invalid_price": {"total": 0, "by_field": {}},
+                "invalid_status": {"total": 0, "by_field": {}},
+                "invalid_date": {"total": 0, "by_field": {}},
+                "unmapped_product": {"total": 0, "by_field": {}},
+                "type_cast_failure": {"total": 0, "by_field": {}},
+                "passed_to_staging": 15,
+                "written_to_staging": 15,
+            },
+            "warehouse": {"eligible_facts": 15, "inserted_facts": 15, "updated_facts": 0, "facts_written": 15},
+        },
     }
     body = format_pipeline_report(report)
-    assert "Total transaksi diperiksa: 120" in body
-    assert "Data identik dilewati: 100" in body
-    assert "Duplikat saat validasi: 3" in body
-    assert "Data ditulis ke warehouse: 15" in body
-    assert "Baris identik dilewati sebelum validasi ulang" in body
+    assert "Transaksi baru atau berubah: 20" in body
+    assert "Master Produk diproses: 20" in body
+    assert "Duplikat business key: 3" in body
+    assert "Total fact ditulis: 15" in body
+    assert "identik" not in body.lower()
 
 
 def test_success_report_uses_timestamps_and_has_no_error_section():
-    body = format_pipeline_report({
-        "status": "SUCCESS",
-        "started_at": "2026-09-24T14:47:38.680184+07:00",
-        "ended_at": "2026-09-24T14:47:53.153385+07:00",
-        "duration_seconds": 1.154,
-        "source_records": 984,
-        "extracted_records": 0,
-        "skipped_unchanged_records": 984,
-        "loaded_records": 0,
-    })
+    body = format_pipeline_report(
+        {
+            "status": "SUCCESS",
+            "started_at": "2026-09-24T14:47:38.680184+07:00",
+            "ended_at": "2026-09-24T14:47:53.153385+07:00",
+            "duration_seconds": 1.154,
+            "source_records": 984,
+            "extracted_records": 0,
+            "skipped_unchanged_records": 984,
+            "loaded_records": 0,
+        }
+    )
     assert "Status: BERHASIL" in body
-    assert "Tidak ada data baru atau perubahan" in body
+    assert "tanpa data baru atau perubahan" in body
     assert "Durasi: 14.473 detik" in body
     assert "ERROR" not in body
 
@@ -124,4 +155,56 @@ def test_noop_is_success_with_explicit_explanation():
         "skipped_unchanged_records": 120,
         "loaded_records": 0,
     }
-    assert "Tidak ada kandidat" in outcome_message(report)
+    assert "tanpa data baru atau perubahan" in outcome_message(report)
+
+
+def test_run_summary_separates_run_metrics_from_table_inventory():
+    summary = run_report_summary(
+        {"source_records": 120, "extracted_records": 20},
+        raw_inserted_records=20,
+        raw_transaction_total=470,
+        raw_product_master_total=20,
+        raw_inserted_product_master_records=2,
+        eligible_facts=15,
+        inserted_facts=12,
+        facts_written=15,
+    )
+    assert summary["raw"] == {
+        "source_total": 120,
+        "new_or_changed": 20,
+        "inserted_to_raw": 20,
+        "total_transactions_in_raw": 470,
+        "product_master": {
+            "source_total": 0,
+            "new_or_changed": 0,
+            "inserted_to_raw": 2,
+            "total_in_raw": 20,
+        },
+    }
+    assert summary["warehouse"] == {
+        "eligible_facts": 15,
+        "inserted_facts": 12,
+        "updated_facts": 3,
+        "facts_written": 15,
+    }
+
+
+def test_quality_summary_keeps_detailed_sources_but_excludes_product_from_transaction_total():
+    sales = SimpleNamespace(
+        issues=pd.DataFrame(
+            [
+                {"rule": "INVALID_DATE", "field": "order_date"},
+                {"rule": "DUPLICATE_BUSINESS_KEY", "field": "business_key"},
+            ]
+        ),
+        summary={"extracted_records": 4, "valid_records": 2, "invalid_records": 1, "duplicate_records": 1},
+    )
+    product = SimpleNamespace(
+        issues=pd.DataFrame([{"rule": "MISSING_REQUIRED", "field": "sku"}]),
+        summary={"extracted_records": 2, "valid_records": 1, "invalid_records": 1, "duplicate_records": 0},
+    )
+    summary = quality_staging_summary({"shopee": sales, "product": product}, passed_to_staging=2, written_to_staging=2)
+    assert summary["invalid_date"]["total"] == 1
+    assert summary["duplicate_business_key"]["total"] == 1
+    assert summary["missing_value"]["total"] == 0
+    assert [item["source_name"] for item in summary["by_source"]] == ["SHOPEE", "PRODUCT_MASTER"]

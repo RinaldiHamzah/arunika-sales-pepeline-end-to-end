@@ -246,6 +246,12 @@
     width: 100%;
     justify-content: space-between;
   }
+  .transaction-search {
+    flex: 1 1 100%;
+  }
+  .transaction-search input {
+    min-width: 0;
+  }
   .table-container {
     overflow: visible;
   }

@@ -2,12 +2,16 @@
         <section class="panel transactions">
           <div class="panel-title">
             <div>
-              <p class="eyebrow">Catatan data gudang</p>
-              <h2>Rincian transaksi</h2>
-              <p class="helper-text">Gunakan <a href="#overview">Overview</a> untuk memfilter transaksi.</p>
+              <p class="eyebrow">Catatan data Warehouse</p>
+              <h2>Rincian Transaksi</h2>
+              <p class="helper-text">Menampilkan transaksi warehouse yang telah lolos quality check. Gunakan <a href="#overview">Overview</a> untuk memfilter data.</p>
             </div>
             <div class="transaction-actions">
-              <span id="row-count">0 rows</span>
+              <label class="transaction-search" for="transaction-search">
+                <span class="visually-hidden">Cari transaksi</span>
+                <input id="transaction-search" type="search" placeholder="Cari pesanan, produk, SKU…" autocomplete="off">
+              </label>
+              <span id="row-count">0 Transaksi</span>
               <button id="download-transactions" class="button button-secondary" type="button">
                 Unduh CSV
               </button>

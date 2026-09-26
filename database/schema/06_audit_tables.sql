@@ -120,6 +120,7 @@ ALTER TABLE audit.pipeline_runs
     ADD COLUMN IF NOT EXISTS source_records BIGINT CHECK (source_records >= 0),
     ADD COLUMN IF NOT EXISTS skipped_unchanged_records BIGINT CHECK (skipped_unchanged_records >= 0),
     ADD COLUMN IF NOT EXISTS source_metrics JSONB,
+    ADD COLUMN IF NOT EXISTS report_summary JSONB,
     ADD COLUMN IF NOT EXISTS outcome_message TEXT;
 
 -- Raw and staging run IDs reference the audit table only after it exists.

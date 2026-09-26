@@ -24,7 +24,7 @@ from pipeline.load.fact_loader import load_facts
 from pipeline.load.raw_loader import load_raw, load_source_snapshots, save_source_snapshots
 from pipeline.load.staging_loader import load_staging
 from pipeline.logger import get_logger
-from pipeline.reporting import outcome_message, summarize_sources
+from pipeline.reporting import outcome_message, quality_staging_summary, run_report_summary, summarize_sources
 from pipeline.transform.standardize import clean_results_to_staging, filter_incremental_results
 from pipeline.validation.data_quality import run_quality
 
@@ -34,6 +34,25 @@ from pipeline.validation.data_quality import run_quality
 LOGGER = get_logger("pipeline.runner")
 SOURCE_DIR = Path(__file__).resolve().parents[1] / "data" / "source"
 APP_TIMEZONE = ZoneInfo(settings.app_timezone)
+
+RAW_TRANSACTION_COUNT = text("""
+    SELECT
+        (SELECT COUNT(*) FROM raw.shopee_orders)
+      + (SELECT COUNT(*) FROM raw.tokopedia_transactions)
+      + (SELECT COUNT(*) FROM raw.website_transactions)
+      + (SELECT COUNT(*) FROM raw.offline_store_sales)
+""")
+RAW_PRODUCT_MASTER_COUNT = text("SELECT COUNT(*) FROM raw.product_master")
+
+
+def raw_transaction_total(connection) -> int:
+    """Return the current transaction inventory in the Raw Layer."""
+    return int(connection.execute(RAW_TRANSACTION_COUNT).scalar_one())
+
+
+def raw_product_master_total(connection) -> int:
+    """Return the current Product Master inventory in the Raw Layer."""
+    return int(connection.execute(RAW_PRODUCT_MASTER_COUNT).scalar_one())
 
 
 def _send_direct_run_report(engine, run_id, orchestration_run_id) -> bool:
@@ -56,7 +75,8 @@ def _send_direct_run_report(engine, run_id, orchestration_run_id) -> bool:
                                extracted_records, validated_records, rejected_records,
                                duplicate_records, incremental_records, fact_inserted_records,
                                fact_skipped_records, loaded_records, error_message,
-                               source_records, skipped_unchanged_records, source_metrics, outcome_message
+                               source_records, skipped_unchanged_records, source_metrics, report_summary,
+                               outcome_message
                         FROM audit.pipeline_runs
                         WHERE run_id = :run_id
                     """),
@@ -137,6 +157,77 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
         )
         return result
 
+    def finish_incremental_noop():
+        """Complete an all-identical run without touching quality, staging, or facts."""
+        message = outcome_message(
+            {
+                **report_metrics,
+                "status": "SUCCESS",
+                "extracted_records": 0,
+                "loaded_records": 0,
+            }
+        )
+        duration_seconds = round(perf_counter() - started, 3)
+        with engine.begin() as connection:
+            report_metrics["report_summary"] = run_report_summary(
+                report_metrics,
+                raw_transaction_total=raw_transaction_total(connection),
+                raw_product_master_total=raw_product_master_total(connection),
+            )
+            # A reordered-but-identical CSV receives its latest checksum here.
+            # No row enters raw because every payload was already known.
+            save_source_snapshots(connection, run_id, scanned_sources, snapshots)
+            load_stage_runs(connection, run_id, stages)
+            connection.execute(
+                text("""
+                    UPDATE audit.pipeline_runs
+                    SET status = 'SUCCESS', ended_at = CURRENT_TIMESTAMP,
+                        current_stage = 'completed', outcome_message = :outcome_message,
+                        report_summary = CAST(:report_summary AS JSONB),
+                        valid_records = 0, duplicate_records = 0, invalid_records = 0,
+                        loaded_records = 0, validated_records = 0, rejected_records = 0,
+                        incremental_records = 0, staged_records = 0, dimension_records = 0,
+                        fact_inserted_records = 0, fact_skipped_records = 0,
+                        duration_seconds = :duration_seconds
+                    WHERE run_id = :run_id
+                """),
+                {
+                    "run_id": run_id,
+                    "outcome_message": message,
+                    "report_summary": json.dumps(report_metrics["report_summary"]),
+                    "duration_seconds": duration_seconds,
+                },
+            )
+        run_ended_at = datetime.now(APP_TIMEZONE)
+        LOGGER.info(
+            "pipeline_run_completed",
+            extra={
+                **report_metrics,
+                "outcome_message": message,
+                "run_id": str(run_id),
+                "pipeline_name": settings.pipeline_name,
+                "status": "SUCCESS",
+                "start_time": run_started_at.isoformat(),
+                "end_time": run_ended_at.isoformat(),
+                "extracted_records": 0,
+                "valid_records": 0,
+                "duplicate_records": 0,
+                "invalid_records": 0,
+                "loaded_records": 0,
+                "validated_records": 0,
+                "rejected_records": 0,
+                "incremental_records": 0,
+                "staged_records": 0,
+                "dimension_records": 0,
+                "fact_inserted_records": 0,
+                "fact_skipped_records": 0,
+                "duration_seconds": duration_seconds,
+                "error_message": None,
+            },
+        )
+        _send_direct_run_report(engine, run_id, orchestration_run_id)
+        return run_id
+
     try:
         with engine.connect() as connection:
             snapshots = stage("snapshot_lookup", lambda: load_source_snapshots(connection))
@@ -151,7 +242,10 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
         )
         stages[-1]["records_processed"] = sum(len(source.frame) for source in sources)
         extracted_count = sum(len(source.frame) for source in sources if source.source_name != "PRODUCT_MASTER")
-        report_metrics = summarize_sources(scanned_sources, sources)
+        report_metrics = {
+            **summarize_sources(scanned_sources, sources),
+            "extracted_records": extracted_count,
+        }
         with engine.begin() as connection:
             connection.execute(
                 text("""
@@ -168,6 +262,22 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
                     "source_metrics": json.dumps(report_metrics["source_metrics"]),
                 },
             )
+
+        # All five sources, including Product Master, are unchanged. The
+        # snapshot check is sufficient: do not run quality, staging, or any
+        # warehouse query merely to rediscover that no work is required.
+        if not any(len(source.frame) for source in sources):
+            return finish_incremental_noop()
+
+        # Raw is the immutable landing layer. Persist each new or changed
+        # source payload before any quality rule or transformation can alter
+        # its interpretation. Invalid records therefore remain traceable in
+        # raw and audit evidence, but are blocked from staging below.
+        with engine.begin() as connection:
+            loaded_count = stage("raw_load", lambda: sum(load_raw(connection, run_id, source) for source in sources))
+            stages[-1]["records_processed"] = loaded_count
+            raw_total_after = raw_transaction_total(connection)
+            raw_product_master_total_after = raw_product_master_total(connection)
 
         selected_rows = {
             source.source_name.lower().replace("_store", ""): source.row_numbers
@@ -225,8 +335,6 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
             if result.summary["source"] != "product"
         )
         with engine.begin() as connection:
-            loaded_count = stage("raw_load", lambda: sum(load_raw(connection, run_id, source) for source in sources))
-            stages[-1]["records_processed"] = loaded_count
             staged_count = stage("staging_load", lambda: load_staging(connection, run_id, staging_rows))
             stages[-1]["records_processed"] = staged_count
             dimension_counts = stage("dimension_load", lambda: load_dimensions(connection, product_delta, staging_rows))
@@ -258,6 +366,24 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
                     rejected_records=result["invalid_records"],
                     duplicate_records=result["duplicate_records"],
                 )
+            report_metrics["report_summary"] = run_report_summary(
+                report_metrics,
+                # The public report describes transaction flow. Product Master
+                # is loaded to raw too, but is reference data rather than a
+                # transaction and therefore is excluded from these totals.
+                raw_inserted_records=extracted_count,
+                raw_transaction_total=raw_total_after,
+                raw_product_master_total=raw_product_master_total_after,
+                raw_inserted_product_master_records=len(product_source.frame),
+                quality_staging=quality_staging_summary(
+                    quality_results,
+                    passed_to_staging=incremental_count,
+                    written_to_staging=staged_count,
+                ),
+                eligible_facts=incremental_count,
+                inserted_facts=fact_inserted_count,
+                facts_written=fact_count,
+            )
             save_source_snapshots(connection, run_id, scanned_sources, snapshots)
             load_quality_audit(connection, run_id, quality_results)
             update_watermarks(connection, run_id, quality_results)
@@ -268,6 +394,7 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
                 SET status = 'SUCCESS', ended_at = CURRENT_TIMESTAMP,
                     current_stage = 'completed', outcome_message=:outcome_message,
                     source_metrics=CAST(:source_metrics AS JSONB),
+                    report_summary=CAST(:report_summary AS JSONB),
                     valid_records = :valid_records, duplicate_records = :duplicate_records,
                     invalid_records = :invalid_records, loaded_records = :loaded_records,
                     validated_records = :validated_records, rejected_records = :rejected_records,
@@ -282,6 +409,7 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
                     "run_id": run_id,
                     "outcome_message": report_metrics["outcome_message"],
                     "source_metrics": json.dumps(report_metrics["source_metrics"]),
+                    "report_summary": json.dumps(report_metrics["report_summary"]),
                     "valid_records": valid_count,
                     "duplicate_records": duplicate_count,
                     "invalid_records": invalid_count,

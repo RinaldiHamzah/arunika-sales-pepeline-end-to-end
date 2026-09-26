@@ -54,12 +54,24 @@ const compactMoney = value => 'Rp ' + new Intl.NumberFormat('id-ID', {
   notation: 'compact', maximumFractionDigits: 1,
 }).format(value);
 
-function horizontalChart(items, color, formatter = money) {
+const BAR_PALETTE = ['#176b61', '#ed8b65', '#668aaa', '#d4ac50', '#99799d', '#75b9a7', '#c86b8c'];
+const STATUS_COLORS = { CANCELLED: '#8a9592', COMPLETED: '#176b61', RETURNED: '#ed8b65' };
+
+function colorForLabel(label) {
+  const hash = [...String(label)].reduce((total, character) => ((total * 31) + character.charCodeAt(0)) >>> 0, 0);
+  return BAR_PALETTE[hash % BAR_PALETTE.length];
+}
+
+function horizontalChart(items, colors, formatter = money) {
+  const backgroundColor = items.map((item, index) => {
+    if (typeof colors === 'function') return colors(item, index);
+    return Array.isArray(colors) ? colors[index % colors.length] : colors;
+  });
   return {
     type: 'bar',
     data: {
       labels: items.map(item => item.label),
-      datasets: [{ data: items.map(item => item.value), backgroundColor: color, borderRadius: 5 }],
+      datasets: [{ data: items.map(item => item.value), backgroundColor, borderRadius: 5 }],
     },
     options: {
       indexAxis: 'y', responsive: true, maintainAspectRatio: false,
@@ -87,8 +99,8 @@ export function renderCharts(data) {
     data: {
       labels: month.map(item => item.label),
       datasets: [
-        { label: 'Net sales', data: month.map(item => item.net), borderColor: '#176b61', backgroundColor: '#176b6115', fill: true, tension: .25 },
-        { label: 'Gross sales', data: month.map(item => item.gross), borderColor: '#ed8b65', tension: .25 },
+        { label: 'Penjualan bersih', data: month.map(item => item.net), borderColor: '#176b61', backgroundColor: '#176b6115', fill: true, tension: .25 },
+        { label: 'Penjualan kotor', data: month.map(item => item.gross), borderColor: '#ed8b65', tension: .25 },
       ],
     },
     options: {
@@ -118,8 +130,12 @@ export function renderCharts(data) {
       },
     },
   });
-  drawChart('brand', horizontalChart(charts.brand || [], '#176b61'));
-  drawChart('category', horizontalChart(charts.category || [], '#75b9a7'));
-  drawChart('sku', horizontalChart(charts.sku || [], '#ed8b65'));
-  drawChart('status', horizontalChart((charts.status || []).map(item => ({ ...item, value: item.orders })), '#6f8d84', number));
+  drawChart('brand', horizontalChart(charts.brand || [], item => colorForLabel(item.label)));
+  drawChart('category', horizontalChart(charts.category || [], item => colorForLabel(item.label)));
+  drawChart('sku', horizontalChart(charts.sku || [], item => colorForLabel(item.label)));
+  drawChart('status', horizontalChart(
+    (charts.status || []).map(item => ({ ...item, value: item.orders })),
+    item => STATUS_COLORS[item.label] || colorForLabel(item.label),
+    number,
+  ));
 }

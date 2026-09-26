@@ -48,6 +48,29 @@ def _counts(connection):
     }
 
 
+def _reset_isolated_database(engine) -> None:
+    """Clear only the explicitly marked acceptance-test database.
+
+    Docker may retain the test container between runs. Resetting every project
+    table makes the first run deterministic while Alembic keeps the schema and
+    migration version intact.
+    """
+    assert _enabled(), "The destructive test reset requires the isolated database markers."
+    with engine.begin() as connection:
+        tables = connection.execute(
+            text("""
+                SELECT table_schema, table_name
+                FROM information_schema.tables
+                WHERE table_type = 'BASE TABLE'
+                  AND table_schema IN ('raw', 'staging', 'warehouse', 'audit')
+                ORDER BY table_schema, table_name
+            """)
+        ).all()
+        targets = ", ".join(f'"{schema}"."{table}"' for schema, table in tables)
+        if targets:
+            connection.execute(text(f"TRUNCATE TABLE {targets} RESTART IDENTITY CASCADE"))
+
+
 def _append_valid_website_rows(source_dir, count=20):
     path = Path(source_dir) / "website.csv"
     with path.open(newline="", encoding="utf-8") as file:
@@ -88,6 +111,7 @@ def test_full_pipeline_and_incremental_acceptance():
     for name in ("product.csv", "shopee.csv", "tokopedia.csv", "website.csv", "offline.csv"):
         shutil.copy2(ROOT / "data" / "source" / name, source_dir / name)
     engine = get_engine()
+    _reset_isolated_database(engine)
     with engine.connect() as connection:
         before = _counts(connection)
         required = connection.execute(
@@ -108,6 +132,44 @@ def test_full_pipeline_and_incremental_acceptance():
         first_successes = connection.execute(
             text("SELECT COUNT(*) FROM audit.pipeline_runs WHERE status = 'SUCCESS'")
         ).scalar_one()
+        first_run_id = connection.execute(
+            text("SELECT run_id FROM audit.pipeline_runs WHERE status = 'SUCCESS' ORDER BY started_at DESC LIMIT 1")
+        ).scalar_one()
+        stage_names = [
+            row[0]
+            for row in connection.execute(
+                text("SELECT stage_name FROM audit.pipeline_stage_runs WHERE run_id = :run_id ORDER BY started_at"),
+                {"run_id": first_run_id},
+            )
+        ]
+        analytics_views = {
+            row[0]
+            for row in connection.execute(
+                text("""
+                    SELECT table_name
+                    FROM information_schema.views
+                    WHERE (table_schema, table_name) IN (
+                        ('warehouse', 'v_sales_kpi'),
+                        ('warehouse', 'v_sales_monthly_kpi'),
+                        ('warehouse', 'v_sales_channel_kpi'),
+                        ('warehouse', 'v_top_product_kpi'),
+                        ('warehouse', 'v_sales_status_kpi'),
+                        ('audit', 'v_data_quality_by_rule'),
+                        ('audit', 'v_data_quality_report')
+                    )
+                """)
+            )
+        }
+    assert stage_names.index("raw_load") < stage_names.index("validate")
+    assert {
+        "v_sales_kpi",
+        "v_sales_monthly_kpi",
+        "v_sales_channel_kpi",
+        "v_top_product_kpi",
+        "v_sales_status_kpi",
+        "v_data_quality_by_rule",
+        "v_data_quality_report",
+    } <= analytics_views
 
     run(source_dir)
     with engine.connect() as connection:
@@ -122,6 +184,20 @@ def test_full_pipeline_and_incremental_acceptance():
             ORDER BY started_at DESC LIMIT 1
         """)
         ).one()
+        second_stage_names = [
+            row[0]
+            for row in connection.execute(
+                text("""
+                    SELECT stage_name
+                    FROM audit.pipeline_stage_runs
+                    WHERE run_id = (
+                        SELECT run_id FROM audit.pipeline_runs WHERE status = 'SUCCESS'
+                        ORDER BY started_at DESC LIMIT 1
+                    )
+                    ORDER BY started_at
+                """)
+            )
+        ]
         duplicate_facts = connection.execute(
             text("""
             SELECT COUNT(*) FROM (
@@ -141,11 +217,14 @@ def test_full_pipeline_and_incremental_acceptance():
     assert second["facts"] == first["facts"]
     assert second_successes == first_successes + 1
     assert tuple(second_metrics) == (0, 0, 0)
+    assert "validate" not in second_stage_names
+    assert "staging_load" not in second_stage_names
+    assert "fact_load" not in second_stage_names
     with engine.connect() as connection:
         report = (
             connection.execute(
                 text("""
-            SELECT source_records, skipped_unchanged_records, extracted_records, outcome_message
+            SELECT source_records, skipped_unchanged_records, extracted_records, outcome_message, report_summary
             FROM audit.pipeline_runs WHERE status='SUCCESS' ORDER BY started_at DESC LIMIT 1
         """)
             )
@@ -154,7 +233,8 @@ def test_full_pipeline_and_incremental_acceptance():
         )
         assert report["source_records"] == report["skipped_unchanged_records"]
         assert report["extracted_records"] == 0
-        assert "Tidak ada kandidat" in report["outcome_message"]
+        assert "tanpa data baru atau perubahan" in report["outcome_message"]
+        assert report["report_summary"]["raw"]["product_master"]["new_or_changed"] == 0
     assert duplicate_facts == 0
 
     _append_valid_website_rows(source_dir, 20)
@@ -177,5 +257,23 @@ def test_full_pipeline_and_incremental_acceptance():
     response = client.get("/api/dashboard?start=2026-01-01&end=2026-12-31")
     assert response.status_code == 200
     payload = response.get_json()
+    with engine.connect() as connection:
+        expected_kpi = (
+            connection.execute(
+                text("""
+                    SELECT COALESCE(SUM(gross_amount), 0) AS gross_sales,
+                           COALESCE(SUM(net_amount) FILTER (WHERE status = 'COMPLETED'), 0) AS net_sales,
+                           COUNT(DISTINCT source_name || '|' || order_id)
+                               FILTER (WHERE status = 'COMPLETED') AS completed_orders
+                    FROM warehouse.v_sales_detail
+                    WHERE order_date BETWEEN '2026-01-01' AND '2026-12-31'
+                """)
+            )
+            .mappings()
+            .one()
+        )
     assert payload["metrics"]["orders"] >= 20
+    assert float(payload["metrics"]["gross_sales"]) == float(expected_kpi["gross_sales"])
+    assert float(payload["metrics"]["net_sales"]) == float(expected_kpi["net_sales"])
+    assert payload["metrics"]["orders"] == expected_kpi["completed_orders"]
     assert {"month", "channel", "category", "city", "product", "status"} <= set(payload["charts"])

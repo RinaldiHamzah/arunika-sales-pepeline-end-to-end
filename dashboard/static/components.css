@@ -220,6 +220,14 @@ summary {
   color: var(--danger);
   background: #fff2ef;
 }
+.status[data-status="CANCELLED"] {
+  color: #a64232;
+  background: #fff0eb;
+}
+.status[data-status="COMPLETED"] {
+  color: #176b61;
+  background: #e3f3ed;
+}
 .status[data-status="RUNNING"] {
   color: #73540d;
   background: #fff5d8;
@@ -306,6 +314,49 @@ summary {
 .run-explanation dl {
   margin: 12px 0;
 }
+.run-explanation h4 {
+  margin: 14px 0 6px;
+  color: var(--ink);
+  font-size: 11px;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+.run-findings {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0 12px;
+  padding-left: 18px;
+}
+.run-findings small { color: var(--muted); }
+.quality-source-list {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0 14px;
+}
+.quality-source-detail {
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface-soft);
+  padding: 8px 10px;
+}
+.quality-source-detail summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+}
+.quality-source-detail summary span {
+  color: var(--muted);
+  font-size: 11px;
+}
+.quality-source-stats {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 5px 12px;
+  margin: 10px 0 6px !important;
+}
+.quality-source-stats dd { margin: 0; }
 .run-explanation dt {
   color: var(--muted);
 }
@@ -351,6 +402,24 @@ summary {
   align-items: center;
   justify-content: flex-end;
   gap: 10px;
+}
+.transaction-search {
+  display: block;
+  min-width: min(100%, 260px);
+}
+.transaction-search input {
+  min-width: 220px;
+}
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 .pagination {
   display: flex;
@@ -407,11 +476,12 @@ summary {
 }
 .settings-form {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(155px, .8fr) minmax(220px, 1.35fr) auto;
   gap: 16px;
   align-items: end;
   margin-top: 24px;
 }
+.settings-form > .button { white-space: nowrap; }
 .settings-footnote {
   margin: 16px 0 0;
   font-size: 12px;

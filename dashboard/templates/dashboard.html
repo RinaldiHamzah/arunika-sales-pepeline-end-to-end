@@ -40,7 +40,7 @@
                 <option value="">Semua status</option>
               </select>
             </label>
-              <button id="apply-button" class="button button-primary" type="button">Terapkan</button>
+              <button id="apply-button" class="button button-primary" type="button">Apply</button>
           </div>
 
           <details class="advanced-filters">
@@ -83,40 +83,41 @@
           <div class="section-heading overview-heading">
             <div>
               <p class="eyebrow">Performa penjualan</p>
-              <h2>Ringkasan performa</h2>
+              <h2>Ringkasan Performa</h2>
             </div>
           </div>
 
           <div class="kpi-grid">
             <article class="kpi-card featured">
-              <span>Penjualan bersih</span>
+              <span>Penjualan Bersih (Net)</span>
               <strong id="metric-sales">—</strong>
+              <small id="metric-sales-note">Total order COMPLETED</small>
               <small id="metric-sales-change">Dibanding periode sebelumnya</small>
             </article>
             <article class="kpi-card">
-              <span>Penjualan kotor</span>
+              <span>Penjualan Kotor (Gross)</span>
               <strong id="metric-gross">—</strong>
-              <small>Sebelum potongan</small>
+              <small>Mencakup CANCELLED, COMPLETED, dan RETURNED</small>
             </article>
             <article class="kpi-card">
-              <span>Pesanan</span>
+              <span>Pesanan Selesai</span>
               <strong id="metric-orders">—</strong>
-              <small>Transaksi unik</small>
+              <small>Transaksi unik berstatus COMPLETED</small>
             </article>
             <article class="kpi-card">
-              <span>Unit terjual</span>
+              <span>Unit Terjual</span>
               <strong id="metric-units">—</strong>
-              <small>Total unit</small>
+              <small>Unit dari order COMPLETED</small>
             </article>
             <article class="kpi-card">
-              <span>Nilai pesanan rata-rata</span>
+              <span>Rata-rata Nilai Pesanan (AOV)</span>
               <strong id="metric-aov">—</strong>
-                <small>Penjualan bersih per pesanan</small>
+              <small>Penjualan bersih per pesanan COMPLETED</small>
             </article>
             <article class="kpi-card">
-              <span>Tingkat retur</span>
+              <span>Tingkat Retur</span>
               <strong id="metric-return-rate">—</strong>
-              <small>Order returned</small>
+              <small>Order RETURNED dari seluruh order</small>
             </article>
           </div>
 
@@ -125,9 +126,9 @@
               <div class="panel-title">
                 <div>
                   <p class="eyebrow">Tren</p>
-                  <h3>Penjualan kotor dan bersih</h3>
+                  <h3>Penjualan Kotor dan Bersih</h3>
                 </div>
-                <span>Per bulan</span>
+                <span>Setiap Bulan</span>
               </div>
               <div class="chart-container" aria-live="polite">
                 <canvas id="month-chart"></canvas>
@@ -144,7 +145,7 @@
                   <p class="eyebrow">Kanal penjualan</p>
                   <h3>Kontribusi Penjualan</h3>
                 </div>
-                <span>7 teratas · Penjualan bersih</span>
+                <span> Penjualan bersih</span>
               </div>
               <div class="chart-container" aria-live="polite">
                 <canvas id="channel-chart"></canvas>
@@ -163,7 +164,7 @@
               <div class="panel-title">
                 <div>
                   <p class="eyebrow">Wilayah</p>
-                  <h3>6 kota teratas</h3>
+                  <h3>Top Cities</h3>
                 </div>
                 <span id="city-coverage">Lokasi diketahui</span>
               </div>
@@ -175,7 +176,7 @@
           <div class="chart-grid">
             <article class="panel">
               <div class="panel-title compact-title">
-                <div><p class="eyebrow">Merek</p><h3>7 merek teratas</h3></div>
+                <div><p class="eyebrow">Merek</p><h3>Top Brands</h3></div>
                 <span>Penjualan bersih</span>
               </div>
               <div class="chart-container chart-small" aria-live="polite">
@@ -184,7 +185,7 @@
             </article>
             <article class="panel">
               <div class="panel-title compact-title">
-                <div><p class="eyebrow">Kategori</p><h3>7 kategori teratas</h3></div>
+                <div><p class="eyebrow">Kategori</p><h3> Top Categories</h3></div>
                 <span>Penjualan bersih</span>
               </div>
               <div class="chart-container chart-small" aria-live="polite">
@@ -193,7 +194,7 @@
             </article>
             <article class="panel">
               <div class="panel-title compact-title">
-                <div><p class="eyebrow">Produk</p><h3>SKU teratas</h3></div>
+                <div><p class="eyebrow">Produk</p><h3>Top SKU</h3></div>
                 <span>Penjualan bersih</span>
               </div>
               <div class="chart-container chart-small" aria-live="polite">
@@ -204,7 +205,7 @@
               <div class="panel-title">
                 <div>
                   <p class="eyebrow">Produk terlaris</p>
-                  <h3>6 produk teratas</h3>
+                  <h3>Top Products</h3>
                 </div>
                 <span>Berdasarkan unit</span>
               </div>

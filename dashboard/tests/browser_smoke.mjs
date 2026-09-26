@@ -52,7 +52,7 @@ const server = createServer(async (req, res) => {
         extracted_records: 20, validated_records: 18, rejected_records: 2,
         duplicate_records: 0, incremental_records: 18, loaded_records: 18,
         source_records: 120, skipped_unchanged_records: 100, fact_skipped_records: 0,
-        outcome_message: '18 fact ditulis; 100 baris identik dilewati.',
+        outcome_message: '18 fact ditulis ke warehouse.',
         source_metrics: [{ source_name: 'SHOPEE', source_records: 120, skipped_unchanged_records: 100,
           extracted_records: 20, validated_records: 18, rejected_records: 2, duplicate_records: 0 }],
       }] }));
@@ -102,6 +102,10 @@ try {
     process.env.BROWSER_PATH,
     'C:/Program Files/Google/Chrome/Application/chrome.exe',
     'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
+    '/usr/bin/google-chrome',
+    '/usr/bin/google-chrome-stable',
+    '/usr/bin/chromium',
+    '/usr/bin/chromium-browser',
   ].filter(Boolean);
   let executable;
   for (const candidate of candidates) {
@@ -109,7 +113,7 @@ try {
   }
   assert.ok(executable, 'Set BROWSER_PATH to a Chromium browser executable.');
   browser = spawn(executable, [
-    '--headless=new', '--disable-gpu', '--no-first-run', '--disable-extensions',
+    '--headless=new', '--disable-gpu', '--no-first-run', '--disable-extensions', '--remote-allow-origins=*',
     '--remote-debugging-address=127.0.0.1', '--remote-debugging-port=0',
     '--user-data-dir=' + profile, 'about:blank',
   ], { windowsHide: true, stdio: 'ignore' });
@@ -204,7 +208,7 @@ try {
   await until("document.querySelectorAll('#operation-run-rows td').length===11");
   assert.equal(await evaluate("document.querySelector('#operation-run-rows td:last-child').textContent"), '18');
   await evaluate("document.querySelector('.run-explanation').open=true");
-  assert.equal(await evaluate("document.querySelector('.run-explanation').textContent.includes('100')"), true);
+  assert.equal(await evaluate("document.querySelector('.run-explanation').textContent.includes('18 fact ditulis')"), true);
   for (const width of [320, 375, 640, 1440]) {
     await send('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: false });
     await wait(100);

@@ -7,12 +7,13 @@ import hmac
 import subprocess
 import sys
 import time
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from io import StringIO
 from pathlib import Path
 from urllib.error import URLError
 from urllib.request import urlopen
+from zoneinfo import ZoneInfo
 
 if __package__ is None:
     sys.path.pop(0)
@@ -153,11 +154,26 @@ def airflow_health() -> dict:
         return {"reachable": False, "detail": str(error)}
 
 
+def default_date_range() -> tuple[str, str]:
+    """Return the warehouse history through today's Jakarta business date."""
+    today = datetime.now(ZoneInfo(settings.app_timezone)).date()
+    try:
+        with engine.connect() as connection:
+            first_order_date = connection.execute(
+                text("SELECT MIN(order_date) FROM warehouse.v_sales_detail")
+            ).scalar_one()
+    except Exception:
+        # The dashboard request will report the database error in its normal
+        # response path. A safe fallback keeps this helper side-effect free.
+        first_order_date = None
+    return (first_order_date or today).isoformat(), today.isoformat()
+
+
 def parse_filters():
-    today = date.today()
+    default_start, default_end = default_date_range()
     return (
-        request.args.get("start", (today - timedelta(days=365)).isoformat()),
-        request.args.get("end", today.isoformat()),
+        request.args.get("start") or default_start,
+        request.args.get("end") or default_end,
         request.args.getlist("channel"),
         request.args.getlist("status"),
         request.args.getlist("category"),
@@ -166,7 +182,8 @@ def parse_filters():
     )
 
 
-def query_data(start, end, channels, statuses, categories, brands=None, products=None):
+def build_filter_clause(start, end, channels, statuses, categories, brands=None, products=None):
+    """Build the bound filter shared by detail, KPI, and chart SQL queries."""
     conditions = ["order_date BETWEEN :start AND :end"]
     params = {"start": start, "end": end}
     for name, values in (
@@ -183,7 +200,143 @@ def query_data(start, end, channels, statuses, categories, brands=None, products
                 keys.append(f":{key}")
                 params[key] = value
             conditions.append(f"{name} IN ({', '.join(keys)})")
-    where = " AND ".join(conditions)
+    return " AND ".join(conditions), params
+
+
+def query_dashboard_analytics(start, end, channels, statuses, categories, brands=None, products=None):
+    """Calculate dashboard KPIs and charts in PostgreSQL for the active filters."""
+    where, params = build_filter_clause(start, end, channels, statuses, categories, brands, products)
+    usable_city = "LOWER(TRIM(COALESCE(city, ''))) NOT IN ('', 'nan', 'none', 'null', 'n/a', 'na')"
+    source = f"FROM warehouse.v_sales_detail WHERE {where}"
+    completed_source = f"{source} AND status = 'COMPLETED'"
+    with engine.connect() as connection:
+        metrics = (
+            connection.execute(
+                text(f"""
+                    SELECT COALESCE(SUM(gross_amount), 0) AS gross_sales,
+                           COALESCE(SUM(net_amount) FILTER (WHERE status = 'COMPLETED'), 0) AS net_sales,
+                           COUNT(DISTINCT source_name || '|' || order_id)
+                               FILTER (WHERE status = 'COMPLETED') AS completed_orders,
+                           COALESCE(SUM(quantity) FILTER (WHERE status = 'COMPLETED'), 0) AS completed_units,
+                           COUNT(DISTINCT source_name || '|' || order_id) AS total_orders,
+                           COUNT(DISTINCT source_name || '|' || order_id)
+                               FILTER (WHERE status = 'RETURNED') AS returned_orders,
+                           COUNT(*) FILTER (WHERE NOT ({usable_city})) AS unresolved_city_records,
+                           COUNT(*) AS total_records
+                    {source}
+                """),
+                params,
+            )
+            .mappings()
+            .one()
+        )
+        charts = {
+            "month": connection.execute(
+                text(f"""
+                    SELECT TO_CHAR(order_date, 'YYYY-MM') AS label,
+                           COALESCE(SUM(net_amount) FILTER (WHERE status = 'COMPLETED'), 0) AS net,
+                           COALESCE(SUM(gross_amount), 0) AS gross
+                    {source}
+                    GROUP BY TO_CHAR(order_date, 'YYYY-MM')
+                    ORDER BY label
+                """),
+                params,
+            )
+            .mappings()
+            .all(),
+            "channel": connection.execute(
+                text(f"""
+                    SELECT channel_name AS label, COALESCE(SUM(net_amount), 0) AS value
+                    {completed_source}
+                    GROUP BY channel_name
+                    ORDER BY value DESC, label
+                """),
+                params,
+            )
+            .mappings()
+            .all(),
+            "product": connection.execute(
+                text(f"""
+                    SELECT product_name AS label, COALESCE(SUM(quantity), 0) AS quantity,
+                           COALESCE(SUM(net_amount), 0) AS net_sales
+                    {completed_source}
+                    GROUP BY product_name
+                    ORDER BY quantity DESC, label
+                    LIMIT 10
+                """),
+                params,
+            )
+            .mappings()
+            .all(),
+            "status": connection.execute(
+                text(f"""
+                    SELECT status AS label, COUNT(*) AS orders,
+                           COALESCE(SUM(net_amount), 0) AS net_sales
+                    {source}
+                    GROUP BY status
+                    ORDER BY label
+                """),
+                params,
+            )
+            .mappings()
+            .all(),
+            "category": connection.execute(
+                text(f"""
+                    SELECT COALESCE(NULLIF(TRIM(category), ''), 'Uncategorized') AS label,
+                           COALESCE(SUM(net_amount), 0) AS value
+                    {completed_source}
+                    GROUP BY COALESCE(NULLIF(TRIM(category), ''), 'Uncategorized')
+                    ORDER BY value DESC, label
+                """),
+                params,
+            )
+            .mappings()
+            .all(),
+            "city": connection.execute(
+                text(f"""
+                    SELECT city AS label, COALESCE(SUM(net_amount), 0) AS value
+                    {completed_source} AND {usable_city}
+                    GROUP BY city
+                    ORDER BY value DESC, label
+                    LIMIT 6
+                """),
+                params,
+            )
+            .mappings()
+            .all(),
+            "brand": connection.execute(
+                text(f"""
+                    SELECT COALESCE(NULLIF(TRIM(brand), ''), 'Unknown brand') AS label,
+                           COALESCE(SUM(net_amount), 0) AS value
+                    {completed_source}
+                    GROUP BY COALESCE(NULLIF(TRIM(brand), ''), 'Unknown brand')
+                    ORDER BY value DESC, label
+                    LIMIT 7
+                """),
+                params,
+            )
+            .mappings()
+            .all(),
+            "sku": connection.execute(
+                text(f"""
+                    SELECT COALESCE(NULLIF(TRIM(product_id), ''), 'Unknown SKU') AS label,
+                           COALESCE(SUM(net_amount), 0) AS value
+                    {completed_source}
+                    GROUP BY COALESCE(NULLIF(TRIM(product_id), ''), 'Unknown SKU')
+                    ORDER BY value DESC, label
+                    LIMIT 7
+                """),
+                params,
+            )
+            .mappings()
+            .all(),
+        }
+    return dict(metrics), {name: serializable(rows) for name, rows in charts.items()}
+
+
+def query_data(start, end, channels, statuses, categories, brands=None, products=None):
+    where, params = build_filter_clause(start, end, channels, statuses, categories, brands, products)
+    completed_where = " AND ".join([where, "status = 'COMPLETED'"])
     with engine.begin() as connection:
         detail = (
             connection.execute(
@@ -251,7 +404,7 @@ def query_data(start, end, channels, statuses, categories, brands=None, products
                 SELECT COALESCE(SUM(net_amount), 0) AS net_sales,
                        COALESCE(SUM(gross_amount), 0) AS gross_sales,
                        COUNT(DISTINCT source_name || '|' || order_id) AS orders
-                FROM warehouse.v_sales_detail WHERE {" AND ".join(conditions)}
+                FROM warehouse.v_sales_detail WHERE {completed_where}
             """),
                     previous_params,
                 )
@@ -295,6 +448,30 @@ def serializable(rows):
                 item[key] = value.isoformat() if isinstance(value, date) else float(value)
         result.append(item)
     return result
+
+
+def operation_runs_for_display(rows):
+    """Expose processing results to the UI without snapshot-only audit metrics."""
+    visible = []
+    for row in serializable(rows):
+        row.pop("source_records", None)
+        row.pop("skipped_unchanged_records", None)
+        row.pop("fact_skipped_records", None)
+        row["source_metrics"] = [
+            {
+                key: source.get(key)
+                for key in (
+                    "source_name",
+                    "extracted_records",
+                    "validated_records",
+                    "rejected_records",
+                    "duplicate_records",
+                )
+            }
+            for source in (row.get("source_metrics") or [])
+        ]
+        visible.append(row)
+    return visible
 
 
 def display_label(value, fallback: str) -> str:
@@ -440,7 +617,8 @@ def operations_status():
                        extracted_records, validated_records, rejected_records,
                        duplicate_records, incremental_records, fact_inserted_records,
                        fact_skipped_records, loaded_records, error_message,
-                       source_records, skipped_unchanged_records, source_metrics, outcome_message
+                       source_records, skipped_unchanged_records, source_metrics, report_summary,
+                       outcome_message
                 FROM audit.pipeline_runs
                 ORDER BY started_at DESC
                 LIMIT 10
@@ -461,7 +639,7 @@ def operations_status():
             "schedule": "0 13 * * * (13:00 WIB)",
             "airflow": airflow_health(),
             "failed_runs_last_7_days": failed_runs_7d,
-            "recent_runs": serializable(runs),
+            "recent_runs": operation_runs_for_display(runs),
         }
     )
 
@@ -472,46 +650,14 @@ def dashboard_data():
         start, end, channels, statuses, categories, brands, products = parse_filters()
         rows, options, observability = query_data(start, end, channels, statuses, categories, brands, products)
         data = serializable(rows)
-        completed = [row for row in data if row["status"] == "COMPLETED"]
-        by_channel, by_month, by_product, by_status, by_category, by_city, by_brand, by_sku = (
-            {},
-            {},
-            {},
-            {},
-            {},
-            {},
-            {},
-            {},
-        )
-        unresolved_city_records = 0
-        for row in data:
-            by_channel[row["channel_name"]] = by_channel.get(row["channel_name"], 0) + row["net_amount"]
-            month = row["order_date"][:7]
-            by_month.setdefault(month, {"net": 0, "gross": 0})
-            by_month[month]["net"] += row["net_amount"]
-            by_month[month]["gross"] += row["gross_amount"]
-            product = row["product_name"]
-            by_product.setdefault(product, {"quantity": 0, "net_sales": 0})
-            by_product[product]["quantity"] += row["quantity"]
-            by_product[product]["net_sales"] += row["net_amount"]
-            by_status.setdefault(row["status"], {"orders": 0, "net_sales": 0})
-            by_status[row["status"]]["orders"] += 1
-            by_status[row["status"]]["net_sales"] += row["net_amount"]
-            category = display_label(row["category"], "Uncategorized")
-            by_category[category] = by_category.get(category, 0) + row["net_amount"]
-            city = display_label(row.get("city"), "")
-            if city:
-                by_city[city] = by_city.get(city, 0) + row["net_amount"]
-            else:
-                unresolved_city_records += 1
-            brand = display_label(row["brand"], "Unknown brand")
-            by_brand[brand] = by_brand.get(brand, 0) + row["net_amount"]
-            sku = display_label(row["product_id"], "Unknown SKU")
-            by_sku[sku] = by_sku.get(sku, 0) + row["net_amount"]
-        order_count = len({(row["source_name"], row["order_id"]) for row in data})
-        completed_count = len({(row["source_name"], row["order_id"]) for row in completed})
-        net_sales = sum(row["net_amount"] for row in data)
-        returned_count = len({(row["source_name"], row["order_id"]) for row in data if row["status"] == "RETURNED"})
+        analytics, charts = query_dashboard_analytics(start, end, channels, statuses, categories, brands, products)
+        gross_sales = float(analytics["gross_sales"] or 0)
+        net_sales = float(analytics["net_sales"] or 0)
+        completed_count = int(analytics["completed_orders"] or 0)
+        order_count = int(analytics["total_orders"] or 0)
+        returned_count = int(analytics["returned_orders"] or 0)
+        unresolved_city_records = int(analytics["unresolved_city_records"] or 0)
+        total_records = int(analytics["total_records"] or 0)
         latest = observability["latest_run"]
         latest_dict = serializable([latest])[0] if latest else None
         latest_rejected = (latest["rejected_records"] or 0) if latest else 0
@@ -541,12 +687,12 @@ def dashboard_data():
                 },
                 "metrics": {
                     "net_sales": net_sales,
-                    "gross_sales": sum(row["gross_amount"] for row in data),
-                    "orders": order_count,
-                    "units": sum(row["quantity"] for row in data),
+                    "gross_sales": gross_sales,
+                    "orders": completed_count,
+                    "units": float(analytics["completed_units"] or 0),
                     "completed": completed_count,
                     "return_rate": (returned_count / order_count * 100) if order_count else 0,
-                    "average_order_value": (net_sales / order_count) if order_count else 0,
+                    "average_order_value": (net_sales / completed_count) if completed_count else 0,
                     "net_change_percent": net_change,
                 },
                 "observability": {
@@ -561,42 +707,12 @@ def dashboard_data():
                     "source_freshness": serializable(observability["freshness"]),
                     "stages": serializable(observability["stages"]),
                     "known_city_coverage_rate": (
-                        (len(data) - unresolved_city_records) / len(data) * 100 if data else 0
+                        (total_records - unresolved_city_records) / total_records * 100 if total_records else 0
                     ),
                     "unresolved_city_records": unresolved_city_records,
                 },
                 "charts": {
-                    "channel": [
-                        {"label": key, "value": value}
-                        for key, value in sorted(by_channel.items(), key=lambda item: item[1], reverse=True)
-                    ],
-                    "month": [
-                        {"label": key, "net": by_month[key]["net"], "gross": by_month[key]["gross"]}
-                        for key in sorted(by_month)
-                    ],
-                    "product": [
-                        {"label": key, **value}
-                        for key, value in sorted(
-                            by_product.items(), key=lambda item: item[1]["quantity"], reverse=True
-                        )[:10]
-                    ],
-                    "status": [{"label": key, **value} for key, value in sorted(by_status.items())],
-                    "category": [
-                        {"label": key, "value": value}
-                        for key, value in sorted(by_category.items(), key=lambda item: item[1], reverse=True)
-                    ],
-                    "city": [
-                        {"label": key, "value": value}
-                        for key, value in sorted(by_city.items(), key=lambda item: item[1], reverse=True)[:6]
-                    ],
-                    "brand": [
-                        {"label": key, "value": value}
-                        for key, value in sorted(by_brand.items(), key=lambda item: item[1], reverse=True)[:7]
-                    ],
-                    "sku": [
-                        {"label": key, "value": value}
-                        for key, value in sorted(by_sku.items(), key=lambda item: item[1], reverse=True)[:7]
-                    ],
+                    **charts,
                 },
                 "rows": data,
             }

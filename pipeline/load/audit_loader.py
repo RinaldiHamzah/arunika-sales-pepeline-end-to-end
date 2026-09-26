@@ -11,6 +11,27 @@ from sqlalchemy.engine import Connection
 from pipeline.transform.standardize import SOURCE_NAMES
 
 
+def _quality_category(rule: object, field: object) -> str:
+    """Classify a finding so the report can show business-relevant totals."""
+    rule_name = str(rule)
+    field_name = str(field).lower()
+    if rule_name in {"MISSING_REQUIRED", "MISSING_OPTIONAL"}:
+        return "missing_value"
+    if rule_name in {"DUPLICATE_BUSINESS_KEY", "CONFLICTING_DUPLICATE"}:
+        return "duplicate"
+    if rule_name == "INVALID_DATE":
+        return "invalid_date"
+    if rule_name == "INVALID_STATUS":
+        return "invalid_status"
+    if rule_name == "UNMAPPED_PRODUCT":
+        return "unmapped_product"
+    if field_name in {"qty", "quantity", "units"}:
+        return "invalid_quantity"
+    if field_name in {"price", "unit_price", "item_price", "total_amount"}:
+        return "invalid_price_or_amount"
+    return "other"
+
+
 def load_stage_runs(connection, run_id: UUID, stages) -> None:
     """Persist per-stage timings collected by the runner."""
     if not stages:
@@ -35,8 +56,11 @@ def load_quality_audit(connection: Connection, run_id: UUID, results) -> None:
         source_name = "PRODUCT_MASTER" if source == "product" else SOURCE_NAMES[source]
         issues = result.issues
         if not issues.empty:
-            grouped = issues.groupby(["rule", "severity"], dropna=False).size().reset_index(name="failed_records")
+            grouped = (
+                issues.groupby(["rule", "severity", "field"], dropna=False).size().reset_index(name="failed_records")
+            )
             for row in grouped.to_dict("records"):
+                field = str(row["field"])
                 quality_rows.append(
                     {
                         "run_id": str(run_id),
@@ -44,7 +68,13 @@ def load_quality_audit(connection: Connection, run_id: UUID, results) -> None:
                         "rule_name": str(row["rule"]),
                         "severity": str(row["severity"]),
                         "failed_records": int(row["failed_records"]),
-                        "details": json.dumps({"field_count": int(row["failed_records"])}),
+                        "details": json.dumps(
+                            {
+                                "field": field,
+                                "category": _quality_category(row["rule"], field),
+                                "field_count": int(row["failed_records"]),
+                            }
+                        ),
                     }
                 )
         for record in result.rejected.to_dict("records"):

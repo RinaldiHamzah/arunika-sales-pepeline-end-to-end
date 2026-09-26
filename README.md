@@ -215,7 +215,7 @@ Gunakan halaman Ringkasan untuk melihat KPI, tren penjualan, kontribusi channel,
 
 1. Pilih periode cepat atau tanggal mulai dan selesai.
 2. Pilih filter kanal, status, kategori, merek, atau produk bila diperlukan.
-3. Klik **Terapkan**.
+3. Klik **Apply**.
 4. Buka tab **Penjualan** atau **Produk** untuk analitik yang lebih spesifik.
 
 ### Transaksi
@@ -228,7 +228,7 @@ Token Administrator digunakan bersama untuk operasi yang membutuhkan hak admin:
 
 1. Masukkan token pada area **Token Administrator**.
 2. Pilih sumber data dan unggah CSV pada Langkah 1.
-3. Klik **Jalankan** pada Langkah 2.
+3. Klik **Runing** pada Langkah 2.
 4. Gunakan **Check Status** untuk membaca riwayat pipeline.
 
 Token tidak disimpan ke localStorage. Ia hanya dipakai untuk request admin selama halaman aktif.
@@ -294,6 +294,60 @@ SQL dalam `database/schema/` digunakan saat volume PostgreSQL baru dibuat. Untuk
 ```powershell
 .\env\Scripts\python.exe -m alembic upgrade head
 ```
+
+## Keputusan Teknis dan Asumsi Bisnis
+
+### Keputusan teknis
+
+- PostgreSQL memakai empat schema: `raw`, `staging`, `warehouse`, dan `audit`.
+- Raw adalah landing layer: payload source baru/berubah dipersist sebelum quality check atau transformasi.
+- Incremental loading memakai checksum file, payload hash per baris, business key, dan `source_record_hash`.
+- Warehouse menggunakan star schema dengan `fact_sales` sebagai fact utama dan dimensi tanggal, produk, customer, channel, serta pembayaran.
+- Migration memakai Alembic agar perubahan schema tidak bergantung pada penghapusan Docker volume.
+- Semua waktu aplikasi, audit, dashboard, dan Airflow memakai WIB (`Asia/Jakarta`).
+
+### Asumsi bisnis
+
+- Grain `fact_sales` adalah satu produk pada satu transaksi source. Source sample saat ini umumnya satu produk per order sehingga `source_line_number = 1`.
+- Penjualan bersih dashboard adalah `net_amount` dengan status `COMPLETED` saja.
+- Penjualan kotor dashboard adalah `gross_amount` seluruh status: `CANCELLED`, `COMPLETED`, dan `RETURNED`.
+- Source belum menyediakan diskon; `discount_amount` saat ini bernilai nol dan `net_amount` setara gross pada order yang sama.
+- Transaksi yang hilang dari file source tidak dihapus otomatis dari warehouse. Koreksi dengan business key sama dan hash berbeda di-upsert.
+- CSV dalam repository adalah data sample/simulasi, bukan data operasional atau harga resmi.
+
+## SQL Analytics dan Laporan Kualitas
+
+View SQL yang menjadi sumber analitik tersedia di PostgreSQL:
+
+```text
+warehouse.v_sales_detail
+warehouse.v_sales_kpi
+warehouse.v_sales_monthly_kpi
+warehouse.v_sales_channel_kpi
+warehouse.v_top_product_kpi
+warehouse.v_sales_status_kpi
+audit.v_data_quality_by_rule
+audit.v_data_quality_report
+```
+
+Endpoint Overview memakai agregasi SQL pada `warehouse.v_sales_detail` untuk KPI dan chart yang sudah difilter pengguna. Dengan demikian gross sales, net sales, return rate, AOV, tren bulanan, channel, produk, status, kategori, kota, brand, dan SKU dihitung di PostgreSQL; Python hanya meneruskan hasilnya ke UI dan menampilkan tabel detail.
+
+Contoh KPI utama:
+
+```sql
+SELECT * FROM warehouse.v_sales_kpi;
+SELECT * FROM warehouse.v_sales_monthly_kpi ORDER BY month_start;
+SELECT * FROM warehouse.v_sales_channel_kpi ORDER BY net_sales_completed DESC;
+SELECT * FROM warehouse.v_top_product_kpi ORDER BY net_sales_completed DESC LIMIT 10;
+```
+
+Laporan quality check per source dan rule untuk run terbaru:
+
+```powershell
+.\env\Scripts\python.exe .\scripts\report_data_quality.py
+```
+
+Dokumentasi rule dan perlakuannya ada di [Kualitas Data](docs/data_quality.md). ERD dan definisi field tersedia di [ERD](docs/erd.md) serta [Kamus Data](docs/data_dictionary.md).
 
 ## Pengujian dan Quality Check
 

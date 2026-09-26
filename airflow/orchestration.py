@@ -52,7 +52,8 @@ def email_pipeline_report_task(**context):
                            extracted_records, validated_records, rejected_records,
                            duplicate_records, incremental_records, fact_inserted_records,
                            fact_skipped_records, loaded_records, error_message,
-                           source_records, skipped_unchanged_records, source_metrics, outcome_message
+                           source_records, skipped_unchanged_records, source_metrics, report_summary,
+                           outcome_message
                     FROM audit.pipeline_runs
                     WHERE pipeline_name = :pipeline_name AND orchestration_run_id = :orchestration_run_id
                     ORDER BY started_at DESC

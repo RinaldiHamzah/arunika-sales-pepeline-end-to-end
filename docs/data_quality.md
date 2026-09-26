@@ -85,3 +85,77 @@ Output utama ada di `data/processed/clean/`: `product.csv`, `shopee.csv`, `tokop
 ```
 
 Record rejected dan duplicate menyimpan nomor baris, nama file, checksum, alasan, dan payload mentah sebagai evidence audit.
+
+## Laporan hasil quality check
+
+Laporan quality tersimpan di PostgreSQL untuk setiap `run_id`. Dengan demikian hasilnya tidak bergantung pada tampilan dashboard atau file CSV sementara. Ada dua tingkat laporan:
+
+| Tingkat | Sumber | Isi |
+| --- | --- | --- |
+| Ringkasan per source | `audit.v_data_quality_report` | Total source, kandidat baru/berubah, data identik yang dilewati, valid akhir, rejected, duplicate, missing, invalid quantity, invalid price/amount, invalid date, invalid status, produk tidak termapping, issue lain, dan warning. |
+| Bukti per rule dan field | `audit.v_data_quality_by_rule` | Source, nama rule, severity, jumlah temuan, nama kolom, dan kategori temuan. |
+
+Angka `valid_records`, `rejected_records`, dan `duplicate_records` adalah jumlah record. Kolom berakhiran `*_records` pada kategori issue adalah jumlah temuan rule, bukan selalu jumlah record unik: satu baris yang memiliki harga dan tanggal tidak valid memang dihitung pada dua kategori agar penyebabnya terlihat lengkap.
+
+Jalankan laporan untuk run terbaru:
+
+```powershell
+.\env\Scripts\python.exe .\scripts\report_data_quality.py
+```
+
+Atau pilih run tertentu:
+
+```powershell
+.\env\Scripts\ython.exe .\scripts\report_data_quality.py --run-id <UUID_RUN>
+```
+
+Contoh SQL untuk reviewer:
+
+```sql
+SELECT source_name,
+       source_records,
+       candidate_records,
+       skipped_unchanged_records,
+       valid_records,
+       rejected_records,
+       duplicate_records,
+       missing_value_records,
+       invalid_quantity_records,
+       invalid_price_or_amount_recordps,
+       invalid_date_records,
+       invalid_status_records,
+       unmapped_product_records,
+       warning_issue_records
+FROM audit.v_data_quality_report
+WHERE run_id = '<UUID_RUN>'
+ORDER BY source_name;
+```
+
+Untuk melihat penyebab sampai level kolom:
+
+```sql
+SELECT source_name,
+       rule_name,
+       severity,
+       details ->> 'field' AS field_name,
+       details ->> 'category' AS category,
+       failed_records
+FROM audit.v_data_quality_by_rule
+WHERE run_id = '<UUID_RUN>'
+ORDER BY source_name, severity DESC, rule_name, field_name;
+```
+
+Kategori laporan memiliki arti berikut:
+
+| Kategori | Rule/field yang masuk |
+| --- | --- |
+| `missing_value_records` | `MISSING_REQUIRED` atau `MISSING_OPTIONAL`. |
+| `duplicate_issue_records` | `DUPLICATE_BUSINESS_KEY` atau `CONFLICTING_DUPLICATE`. |
+| `invalid_quantity_records` | Kesalahan angka pada kolom `qty`, `quantity`, atau `units`. |
+| `invalid_price_or_amount_records` | Kesalahan angka/mismatch pada `price`, `unit_price`, `item_price`, atau `total_amount`; termasuk perbedaan harga terhadap master sebagai warning. |
+| `invalid_date_records` | `INVALID_DATE`. |
+| `invalid_status_records` | `INVALID_STATUS`. |
+| `unmapped_product_records` | `UNMAPPED_PRODUCT`. |
+| `other_issue_records` | Misalnya email atau metode pembayaran tidak valid yang tidak termasuk kategori di atas. |
+
+Run lama tetap dapat dilihat, tetapi detail kategori field mulai tersedia untuk run yang dibuat setelah migration ini aktif. Rule yang dapat muncul mencakup `MISSING_REQUIRED`, `MISSING_OPTIONAL`, `DUPLICATE_BUSINESS_KEY`, `CONFLICTING_DUPLICATE`, `INVALID_NUMBER`, `INVALID_INTEGER`, `INVALID_MONEY_PRECISION_OR_RANGE`, `INVALID_STATUS`, `INVALID_DATE`, `AMOUNT_MISMATCH`, `UNMAPPED_PRODUCT`, dan `INVALID_EMAIL`.

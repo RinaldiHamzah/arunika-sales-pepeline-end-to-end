@@ -9,6 +9,7 @@ export const state = {
   activeTab: 'summary',
   page: 1,
   pageSize: 25,
+  transactionSearch: '',
   defaultFilters: { start: '', end: '' },
   pipelineProgressTimer: null,
   pipelineProgressAttempts: 0,
@@ -16,7 +17,7 @@ export const state = {
 export const JAKARTA_TIME_ZONE = 'Asia/Jakarta';
 export const pageMetadata = {
   overview: {
-    title: 'Dashboard Penjualan',
+    title: 'Dashboard ',
     subtitle: 'Ringkasan penjualan terintegrasi dari marketplace, website, dan toko offline.',
   },
   transactions: {

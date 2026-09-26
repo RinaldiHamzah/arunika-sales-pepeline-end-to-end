@@ -31,6 +31,13 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Jakarta}
       TZ: ${APP_TIMEZONE:-Asia/Jakarta}
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      SMTP_USE_TLS: ${SMTP_USE_TLS:-true}
+      PIPELINE_REPORT_RECIPIENTS: ${PIPELINE_REPORT_RECIPIENTS:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -51,6 +58,13 @@ services:
       APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Jakarta}
       TZ: ${APP_TIMEZONE:-Asia/Jakarta}
       AIRFLOW_HEALTH_URL: http://airflow-webserver:8080/api/v2/monitor/health
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      SMTP_USE_TLS: ${SMTP_USE_TLS:-true}
+      PIPELINE_REPORT_RECIPIENTS: ${PIPELINE_REPORT_RECIPIENTS:-}
     ports:
       - "${DASHBOARD_PORT:-8501}:8501"
     healthcheck:
@@ -249,7 +263,7 @@ services:
   integration-tests:
     build: .
     profiles: ["test"]
-    command: python -m pytest tests/test_integration_postgres.py -q
+    command: bash -c "alembic upgrade head && python -m pytest tests/test_integration_postgres.py -q"
     environment:
       DATABASE_URL: postgresql+psycopg://ecommerce_test_user:${POSTGRES_TEST_PASSWORD:-test_password}@postgres-test:5432/ecommerce_sales_test
       RUN_POSTGRES_TESTS: "1"

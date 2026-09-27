@@ -28,15 +28,15 @@ Dashboard Arunika menyajikan ringkasan KPI, filter periode, analitik penjualan, 
 
 ### Ringkasan
 
-![Halaman Ringkasan Dashboard Arunika](docs/images/dashboard-overview.png)
+![Halaman Ringkasan Dashboard Arunika](docs/images/dashboard.png)
 
 ### Transaksi
 
-![Halaman Transaksi Dashboard Arunika](docs/images/dashboard-transactions.png)
+![Halaman Transaksi Dashboard Arunika](docs/images/transaksi.png)
 
 ### Pengaturan
 
-![Halaman Pengaturan Dashboard Arunika](docs/images/dashboard-settings.png)
+![Halaman Pengaturan Dashboard Arunika](docs/images/pengaturan.png)
 
 
 ## Fitur Utama

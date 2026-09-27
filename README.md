@@ -1,18 +1,30 @@
 # Arunika Beauty - E-Commerce Sales Data Pipeline
 
-Arunika Beauty adalah proyek data engineering dan analitik penjualan untuk menggabungkan data dari Shopee, Tokopedia, Website, Toko Offline, dan Master Produk. Data diproses secara bertahap sampai menjadi warehouse berbentuk star schema, diaudit, lalu disajikan melalui dashboard penjualan dan Airflow.
+Arunika Beauty E-Commerce Sales Data Pipeline menggabungkan transaksi dari Shopee, Tokopedia, Website, dan toko offline dengan Master Produk sebagai referensi. Data melewati pemeriksaan kualitas dan transformasi sebelum disimpan dalam warehouse berbentuk star schema. Dashboard menyajikan analitik penjualan, sementara Airflow menjadwalkan proses pipeline.
 
-Proyek ini dibuat untuk menjawab kebutuhan yang sederhana tetapi penting: **Berapa penjualan yang terjadi, dari berbagai kanal, produk apa yang paling berkontribusi, bagaimana kualitas datanya, dan apakah pipeline berjalan dengan sehat?**
+Tujuan proyek ini adalah menyediakan data penjualan yang dapat dipercaya dan ditelusuri: nilai penjualan, kontribusi setiap kanal, produk terlaris, kualitas data sumber, dan status pipeline.
 
-Dokumen ini adalah pintu masuk proyek. Gunakan bagian Quick Start untuk menjalankan sistem, bagian Penggunaan Dashboard untuk memahami alur kerja, dan dokumentasi lanjutan untuk detail teknis.
+README ini menjelaskan cara menjalankan proyek, alur pipeline, struktur database, asumsi bisnis, dan keputusan teknis. Definisi kolom tersedia di [Kamus Data](docs/data_dictionary.md), sedangkan relasi tabel ditampilkan di [ERD](docs/erd.md).
 
-```text
-CSV source -> raw -> validasi -> staging -> warehouse -> analytics -> dashboard
+```mermaid
+flowchart LR
+    A[CSV source] --> B[Extract dan Checksum]
+    B --> C[Filter Incremental]
+    C --> D[Raw Layer]
+    D --> E[Data Quality Check]
+    E -->|Validatian| F[Transformasi dan Pemetaan Produk]
+    F --> G[Staging]
+    G --> H[Dimensi dan Fact]
+    H --> I[SQL Analytics]
+    I --> J[Dashboard]
+    E -->|Rejected atau Duplicate| K[Audit]
+    L[Airflow, Dashboard, atau CLI] --> B
+    L -.-> M[Logging dan Monitoring]
 ```
 
 ## Tampilan Dashboard
 
-Dashboard Arunika memakai layout yang ringkas: navbar global, ringkasan KPI, filter periode, analitik penjualan, transaksi detail, serta halaman pengaturan pipeline. Warna utama menggunakan teal Arunika dengan orange sebagai aksen identitas.
+Dashboard Arunika menyajikan ringkasan KPI, filter periode, analitik penjualan, rincian transaksi, dan pengaturan pipeline. Teal menjadi warna utama, dengan oranye sebagai aksen.
 
 ### Ringkasan
 
@@ -29,7 +41,7 @@ Dashboard Arunika memakai layout yang ringkas: navbar global, ringkasan KPI, fil
 
 ## Fitur Utama
 
-- Mengambil data penjualan dari lima jenis sumber CSV.
+- Menggabungkan empat sumber transaksi CSV—Shopee, Tokopedia, Website, dan Offline Store—dengan satu CSV Product Master sebagai referensi.
 - Memvalidasi struktur dan isi data sebelum masuk ke warehouse.
 - Menyimpan metadata ingestion, hasil validasi, lineage, dan audit pipeline.
 - Memuat dimensi dan fact sales ke PostgreSQL star schema.
@@ -37,7 +49,9 @@ Dashboard Arunika memakai layout yang ringkas: navbar global, ringkasan KPI, fil
 - Menampilkan KPI penjualan, tren bulanan, kanal, status pesanan, kota, merek, kategori, SKU, dan produk terlaris.
 - Menyediakan filter tanggal, kanal, status, kategori, merek, dan produk.
 - Menyediakan tabel transaksi dengan pagination dan export CSV.
+- Menyediakan pencarian transaksi dan export CSV berdasarkan hasil filter.
 - Menyediakan halaman Pengaturan untuk upload CSV, menjalankan pipeline, dan melihat riwayat eksekusi.
+- Menampilkan grafik peringkat Produk dengan gradasi teal dan aksen pada peringkat pertama; warna status dan tren tetap membedakan arti metriknya.
 - Menjalankan pipeline terjadwal melalui Apache Airflow.
 - Mengirim laporan pipeline melalui email jika SMTP dikonfigurasi.
 
@@ -140,7 +154,7 @@ Pastikan tersedia:
 - Chrome atau Microsoft Edge untuk test browser.
 - Git jika proyek diambil dari repository.
 
-Untuk penggunaan Docker sehari-hari, Python lokal tetap berguna untuk menjalankan test dan script pemeriksaan secara langsung.
+Python lokal dapat digunakan untuk menjalankan pengujian dan skrip pemeriksaan tanpa Docker.
 
 ## Quick Start dengan Docker
 
@@ -175,7 +189,7 @@ Untuk penggunaan Docker sehari-hari, Python lokal tetap berguna untuk menjalanka
    docker compose down
    ```
 
-PostgreSQL hanya di-bind ke `127.0.0.1:5433` secara default sehingga tidak terbuka ke jaringan luar.
+Secara default, PostgreSQL hanya menerima koneksi lokal melalui `127.0.0.1:5433`.
 
 ## Konfigurasi Environment
 
@@ -224,14 +238,14 @@ Halaman Transaksi menampilkan baris transaksi sesuai filter terakhir dari Ringka
 
 ### Pengaturan
 
-Token Administrator digunakan bersama untuk operasi yang membutuhkan hak admin:
+Token Administrator diperlukan untuk operasi yang membutuhkan akses admin:
 
 1. Masukkan token pada area **Token Administrator**.
 2. Pilih sumber data dan unggah CSV pada Langkah 1.
-3. Klik **Runing** pada Langkah 2.
+3. Klik **Jalankan** pada Langkah 2.
 4. Gunakan **Check Status** untuk membaca riwayat pipeline.
 
-Token tidak disimpan ke localStorage. Ia hanya dipakai untuk request admin selama halaman aktif.
+Token tidak disimpan di `localStorage`; dashboard hanya menggunakannya selama halaman masih terbuka.
 
 ## Menjalankan Pipeline secara Manual
 
@@ -250,7 +264,7 @@ Periksa freshness source bila diperlukan:
 
 Hasil run tersimpan di `audit.pipeline_runs` dan `logs/pipeline.log`. Jika SMTP aktif, laporan juga dikirim ke penerima yang dikonfigurasi.
 
-Baris sumber yang fingerprint-nya identik akan dilaporkan sebagai `skipped_unchanged_records`. Ini berarti baris tersebut dikenali sebagai data yang sama dan tidak dimuat ulang.
+Baris sumber yang sama dengan snapshot sukses sebelumnya dihitung sebagai `skipped_unchanged_records`. Baris tersebut tidak dimuat ulang atau divalidasi kembali.
 
 ## Menambahkan Data Baru
 
@@ -264,9 +278,9 @@ data/source/website.csv
 data/source/offline.csv
 ```
 
-CSV dapat ditambahkan melalui dashboard atau langsung ke file sumber. Header harus tetap sesuai dengan kontrak extractor masing-masing sumber. Jangan mengubah header tanpa memperbarui kontrak dan test terkait.
+CSV dapat ditambahkan melalui dashboard atau ditempatkan langsung di folder sumber. Nama kolom harus sesuai dengan kontrak setiap sumber. Jika header diubah, perbarui extractor dan pengujian yang terkait.
 
-Data di repository adalah sample untuk simulasi, bukan katalog atau harga resmi Arunika.
+Data di repository hanya untuk simulasi; data tersebut bukan katalog atau harga resmi Arunika.
 
 ## Airflow
 
@@ -276,18 +290,20 @@ DAG `ecommerce_sales_pipeline` berada di `airflow/orchestration.py` dan dijadwal
 0 13 * * *
 ```
 
-Pastikan service `airflow-scheduler` dan `airflow-dag-processor` berjalan. Run manual, run dari dashboard, dan run Airflow menggunakan komponen pipeline yang sama sehingga audit tetap berada pada jalur yang konsisten.
+Pastikan service `airflow-scheduler` dan `airflow-dag-processor` berjalan. Eksekusi dari terminal, dashboard, dan Airflow memakai komponen pipeline yang sama, sehingga hasilnya tercatat dengan format audit yang konsisten.
 
 ## Database dan Migration
 
 Schema PostgreSQL dibagi menjadi beberapa area:
 
-```text
-raw       : payload source dan metadata ingestion
-staging   : data canonical yang sudah divalidasi
-warehouse : dimensi dan fact sales berbentuk star schema
-audit     : run, kualitas data, lineage, snapshot, dan observability
-```
+| Schema | Tabel penting | Grain, key, dan fungsi |
+| --- | --- | --- |
+| `raw` | `shopee_orders`, `tokopedia_transactions`, `website_transactions`, `offline_store_sales`, `product_master` | Satu baris sumber per ingestion. `raw_record_id` adalah PK; `ingestion_run_id` menghubungkan record ke run audit. Nilai sumber dan payload asli disimpan sebelum validasi. |
+| `staging` | `stg_sales` | Satu line transaksi canonical yang lolos validasi. `staging_sales_id` adalah PK; kombinasi source, order ID, dan nomor baris menjadi business key. Menyimpan `source_raw_record_id` untuk lineage. |
+| `warehouse` | `fact_sales`, `dim_date`, `dim_product`, `dim_customer`, `dim_channel`, `dim_payment` | Star schema untuk analitik. Grain fact adalah satu produk pada satu transaksi source. `sales_key` adalah PK; `date_key`, `product_key`, `customer_key`, `channel_key`, dan `payment_key` adalah FK. Business key fact adalah `(source_name, source_order_id, source_line_number)`. |
+| `audit` | `pipeline_runs`, `pipeline_stage_runs`, `source_ingestions`, `source_snapshots`, `data_quality_results`, `rejected_records`, `pipeline_watermarks` | Satu baris per run, tahap, source, rule, record rejected, atau snapshot sesuai fungsi tabel. Menyimpan hasil operasional, durasi, kualitas, dan jejak incremental. |
+
+Pada staging, `source_raw_record_id` adalah referensi lineage yang dijaga pipeline; foreign key warehouse ke seluruh dimensi ditegakkan oleh PostgreSQL. Detail PK, FK, tipe kolom, dan grain setiap tabel ada pada [Kamus Data](docs/data_dictionary.md).
 
 SQL dalam `database/schema/` digunakan saat volume PostgreSQL baru dibuat. Untuk database yang sudah ada, jalankan migration:
 
@@ -301,14 +317,16 @@ SQL dalam `database/schema/` digunakan saat volume PostgreSQL baru dibuat. Untuk
 
 - PostgreSQL memakai empat schema: `raw`, `staging`, `warehouse`, dan `audit`.
 - Raw adalah landing layer: payload source baru/berubah dipersist sebelum quality check atau transformasi.
-- Incremental loading memakai checksum file, payload hash per baris, business key, dan `source_record_hash`.
+- Incremental loading memakai checksum file dan payload hash per baris. Run tanpa perubahan berhenti setelah pemeriksaan snapshot; pipeline tidak mengulang quality check atau load downstream.
+- Pencarian fact untuk mendeteksi transaksi baru atau koreksi dibatasi pada business key kandidat run saat ini, bukan membaca seluruh fact ke memori. `source_record_hash` membedakan transaksi identik dari koreksi.
 - Warehouse menggunakan star schema dengan `fact_sales` sebagai fact utama dan dimensi tanggal, produk, customer, channel, serta pembayaran.
-- Migration memakai Alembic agar perubahan schema tidak bergantung pada penghapusan Docker volume.
+- Alembic mengelola perubahan schema melalui migration, sehingga pembaruan database tidak memerlukan penghapusan Docker volume.
 - Semua waktu aplikasi, audit, dashboard, dan Airflow memakai WIB (`Asia/Jakarta`).
 
 ### Asumsi bisnis
 
 - Grain `fact_sales` adalah satu produk pada satu transaksi source. Source sample saat ini umumnya satu produk per order sehingga `source_line_number = 1`.
+- Business key transaksi memakai `(source_name, source_order_id, source_line_number)` karena ID order dapat berulang antar-kanal. Source saat ini belum menyediakan line ID stabil, sehingga nomor baris transaksi canonical ditetapkan `1`.
 - Penjualan bersih dashboard adalah `net_amount` dengan status `COMPLETED` saja.
 - Penjualan kotor dashboard adalah `gross_amount` seluruh status: `CANCELLED`, `COMPLETED`, dan `RETURNED`.
 - Source belum menyediakan diskon; `discount_amount` saat ini bernilai nol dan `net_amount` setara gross pada order yang sama.
@@ -330,7 +348,9 @@ audit.v_data_quality_by_rule
 audit.v_data_quality_report
 ```
 
-Endpoint Overview memakai agregasi SQL pada `warehouse.v_sales_detail` untuk KPI dan chart yang sudah difilter pengguna. Dengan demikian gross sales, net sales, return rate, AOV, tren bulanan, channel, produk, status, kategori, kota, brand, dan SKU dihitung di PostgreSQL; Python hanya meneruskan hasilnya ke UI dan menampilkan tabel detail.
+Endpoint Overview memakai agregasi SQL pada `warehouse.v_sales_detail` sesuai filter yang dipilih pengguna. PostgreSQL menghitung gross sales, net sales, return rate, AOV, tren bulanan, kontribusi kanal, produk, status, kategori, kota, merek, dan SKU. Python menyajikan hasil query tersebut ke dashboard dan menyediakan rincian transaksi.
+
+Grafik peringkat Produk membedakan posisi teratas dengan aksen dan memakai gradasi teal untuk bar lainnya. Perbedaan warna tersebut hanya membantu membaca urutan; ukuran bar tetap menunjukkan nilai penjualan bersih.
 
 Contoh KPI utama:
 
@@ -341,7 +361,7 @@ SELECT * FROM warehouse.v_sales_channel_kpi ORDER BY net_sales_completed DESC;
 SELECT * FROM warehouse.v_top_product_kpi ORDER BY net_sales_completed DESC LIMIT 10;
 ```
 
-Laporan quality check per source dan rule untuk run terbaru:
+Laporan pemeriksaan kualitas untuk setiap sumber dan aturan pada run terbaru:
 
 ```powershell
 .\env\Scripts\python.exe .\scripts\report_data_quality.py
@@ -391,19 +411,11 @@ Jalankan analisis validasi dengan:
 
 Hasil export tersedia di `data/processed/clean/`. Notebook eksplorasi berada di folder `analisis/` dan tidak menjadi bagian dari runtime dashboard.
 
-## Keamanan dan Operasional
-
-- Jangan commit `.env`, password, token, atau App Password.
-- Gunakan secret yang berbeda untuk PostgreSQL, Dashboard, dan Airflow.
-- PostgreSQL hanya bind ke loopback secara default.
-- Upload CSV, menjalankan pipeline, dan membaca operasi admin membutuhkan `DASHBOARD_ADMIN_TOKEN`.
-- Token admin tidak disimpan ke localStorage oleh dashboard.
-- Periksa `logs/pipeline.log` dan tabel `audit.pipeline_runs` saat melakukan troubleshooting.
-- Semua komponen utama menggunakan `Asia/Jakarta` atau WIB.
-- Untuk deployment publik, gunakan reverse proxy HTTPS, secret manager, dan pembatasan jaringan yang sesuai.
 
 ## Dokumentasi Lanjutan
 
+- [Panduan Analisis Data](analisis/README.md) — cara menjalankan pemeriksaan data per sumber, membaca temuan, dan membuat export bersih.
+- [Panduan Database](database/README.md) — struktur schema, star schema, migration, koneksi, contoh pemeriksaan tabel, dan view analitik.
 - [Arsitektur Sistem](docs/architecture.md)
 - [Kualitas Data](docs/data_quality.md)
 - [Kamus Data](docs/data_dictionary.md)

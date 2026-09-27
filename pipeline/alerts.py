@@ -124,16 +124,6 @@ def format_pipeline_report(report):
         return "Belum direkam" if value is None else f"{value} detik"
 
     status = str(report.get("status", "UNKNOWN")).upper()
-    status_label = {"SUCCESS": "BERHASIL", "FAILED": "GAGAL"}.get(status, status)
-    if status == "FAILED":
-        summary = "Pipeline gagal. Periksa alasan kegagalan di bagian akhir laporan."
-    elif report.get("extracted_records") == 0:
-        summary = "Pipeline berjalan normal. Tidak ada data baru atau perubahan yang perlu dimuat."
-    elif report.get("loaded_records", 0):
-        summary = "Pipeline berhasil. Data baru atau perubahan telah diproses ke warehouse."
-    else:
-        summary = "Pipeline selesai. Tidak ada fact baru yang ditulis ke warehouse."
-
     explanation = (
         outcome_message(report) if status == "FAILED" else (report.get("outcome_message") or outcome_message(report))
     )

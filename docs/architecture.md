@@ -1,6 +1,6 @@
 # Arsitektur dan Lineage Pipeline
 
-Dokumen ini menjelaskan perjalanan record dari CSV sampai menjadi analitik. Seluruh waktu operasional menggunakan `Asia/Jakarta` atau WIB.
+Dokumen ini menjelaskan alur data dari CSV hingga tampil sebagai analitik. Waktu pada pipeline, dashboard, dan audit menggunakan zona waktu `Asia/Jakarta` (WIB).
 
 ## Alur fisik data
 
@@ -20,9 +20,9 @@ flowchart LR
     M[Airflow / UI / CLI] --> B
 ```
 
-Dashboard memakai `warehouse.v_sales_detail` sebagai sumber data terfilter. KPI dan chart dihitung dengan agregasi SQL di PostgreSQL, sehingga metrik UI tidak dihitung ulang melalui loop Python. View KPI tanpa filter (`v_sales_kpi`, `v_sales_monthly_kpi`, `v_sales_channel_kpi`, `v_top_product_kpi`, dan `v_sales_status_kpi`) tetap tersedia untuk reviewer dan tool BI.
+Dashboard menggunakan `warehouse.v_sales_detail` untuk menyajikan data sesuai filter. PostgreSQL menghitung KPI dan grafik melalui agregasi SQL. View KPI tanpa filter (`v_sales_kpi`, `v_sales_monthly_kpi`, `v_sales_channel_kpi`, `v_top_product_kpi`, dan `v_sales_status_kpi`) juga tersedia untuk pemeriksaan dan kebutuhan BI.
 
-`raw.*` adalah landing layer. Setiap baris baru atau berubah dipersist lebih dahulu tanpa mengubah nilai source. Record invalid tetap dapat ditelusuri melalui raw, `audit.data_quality_results`, dan `audit.rejected_records`, tetapi tidak boleh masuk staging atau fact.
+`raw.*` menjadi tempat penyimpanan awal. Setiap baris baru atau berubah disimpan terlebih dahulu tanpa mengubah nilai dari sumbernya. Baris yang tidak lolos validasi tetap dapat ditelusuri di raw dan tabel audit, tetapi tidak diteruskan ke staging atau fact.
 
 ## Kontrak tiap tahap
 
@@ -37,19 +37,25 @@ Dashboard memakai `warehouse.v_sales_detail` sebagai sumber data terfilter. KPI 
 | Warehouse | staging | dimensions dan `fact_sales` | surrogate key serta business key source |
 | Analytics | fact/dimension | SQL views dan dashboard | query view PostgreSQL |
 
+### Lookup fact incremental
+
+Setelah quality check menghasilkan kandidat valid, pipeline mengambil business key kandidat run tersebut dan mencari kecocokan hanya untuk key itu di `warehouse.fact_sales`. Pipeline tidak memuat seluruh tabel fact ke memori dan tidak menjalankan `COUNT(*)` atas seluruh fact sebelum dan sesudah load. Hash yang ditemukan dibandingkan dengan `source_record_hash` untuk membedakan record identik dari koreksi; jumlah insert baru dihitung dari kandidat yang key-nya belum ada.
+
+Biaya lookup ini mengikuti jumlah kandidat valid pada run saat ini, bukan jumlah seluruh transaksi historis di warehouse. Run tanpa perubahan tetap selesai pada pemeriksaan snapshot dan tidak menjalankan lookup fact.
+
 ## Transformasi utama
 
-1. Nama kolom source berbeda dipetakan ke field canonical seperti `order_id`, `order_date`, `product_name`, `quantity`, `unit_price`, dan `status`.
+1. Nama kolom dari setiap sumber dipetakan ke kolom standar seperti `order_id`, `order_date`, `product_name`, `quantity`, `unit_price`, dan `status`.
 2. Teks dinormalisasi dengan Unicode NFKC, whitespace konsisten, dan identifier disimpan sebagai string agar leading zero tidak hilang.
 3. Tanggal diparse sesuai kontrak masing-masing source lalu disimpan sebagai `DATE`.
 4. Quantity menjadi integer positif dan uang menjadi nilai `NUMERIC`/`Decimal`.
-5. Nama atau SKU produk dipetakan ke Product Master untuk memperoleh `mapped_sku`, brand, dan kategori.
-6. Customer email atau nama/kota dibentuk menjadi customer natural key yang aman untuk dimensi.
-7. Record valid masuk `staging.stg_sales`; dimension loader menyelesaikan surrogate key; fact loader melakukan insert atau koreksi berdasarkan business key dan hash.
+5. Nama atau SKU produk dicocokkan dengan Product Master untuk memperoleh `mapped_sku`, merek, dan kategori.
+6. Email pelanggan atau kombinasi nama dan kota digunakan untuk membentuk natural key pelanggan pada dimensi.
+7. Baris yang lolos validasi dimuat ke `staging.stg_sales`. Pipeline kemudian menentukan surrogate key dimensi dan memuat atau memperbarui fact berdasarkan business key dan hash.
 
 ## Incremental loading
 
-Pipeline membandingkan payload hash sumber dengan snapshot dari run sukses terakhir.
+Pipeline membandingkan hash payload dengan snapshot dari run sukses terakhir.
 
 ```text
 Payload identik                 → dilewati sebelum validasi dan raw load
@@ -76,4 +82,4 @@ Run 1: source berisi 100 transaksi → 100 kandidat baru → 100 valid → 100 f
 Run 2: source berisi 120 transaksi → hanya 20 kandidat baru/berubah diproses.
 ```
 
-Run 2 tidak memvalidasi atau memuat ulang 100 transaksi lama. Jika tidak ada kandidat baru sama sekali, quality check, staging, dan warehouse tidak dijalankan ulang. Narasi run disimpan pada `audit.pipeline_runs.outcome_message`, ditulis ke structured log, dan dikirim dalam laporan email.
+Run 2 tidak memvalidasi atau memuat ulang 100 transaksi lama. Jika tidak ada kandidat baru, pemeriksaan kualitas, staging, dan pemuatan warehouse dilewati. Ringkasan run disimpan di `audit.pipeline_runs.outcome_message`, dicatat pada log, dan disertakan dalam email laporan.

@@ -130,7 +130,7 @@ def test_success_report_uses_timestamps_and_has_no_error_section():
             "loaded_records": 0,
         }
     )
-    assert "Status: BERHASIL" in body
+    assert "Status:" not in body
     assert "tanpa data baru atau perubahan" in body
     assert "Durasi: 14.473 detik" in body
     assert "ERROR" not in body

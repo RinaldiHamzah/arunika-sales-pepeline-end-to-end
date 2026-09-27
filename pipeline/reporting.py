@@ -1,7 +1,7 @@
 """One reporting vocabulary for the runner, dashboard and daily email."""
 
 QUALITY_SECTIONS = (
-    ("missing_value", "Nilai wajib kosong"),
+    ("missing_value", "Missing value"),
     ("duplicate_business_key", "Duplikat business key"),
     ("invalid_quantity", "Kuantitas tidak valid"),
     ("invalid_price", "Harga atau nilai transaksi tidak valid"),

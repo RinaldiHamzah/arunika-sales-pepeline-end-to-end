@@ -183,25 +183,30 @@ function setPipelineProgress(message, stateName = 'idle') {
 
 async function pollPipelineProgress() {
   try {
-    const data = await requestJson('/api/pipeline/progress', { headers: adminHeaders() });
+    const query = state.pipelineExpectedRunId
+      ? `?run_id=${encodeURIComponent(state.pipelineExpectedRunId)}`
+      : '';
+    const data = await requestJson(`/api/pipeline/progress${query}`, { headers: adminHeaders() });
     const run = data.run;
     const button = $('run-pipeline');
     if (!run && state.pipelineProgressAttempts >= 10) {
       throw new Error('Belum ada status pipeline. Coba periksa riwayat eksekusi.');
     }
-    if (!run || (run.status !== 'RUNNING' && state.pipelineProgressAttempts < 10)) {
+    if (!run || (state.pipelineExpectedRunId && run.run_id !== state.pipelineExpectedRunId)) {
       state.pipelineProgressAttempts += 1;
       setPipelineProgress('Menunggu pipeline dimulai…', 'running');
       state.pipelineProgressTimer = window.setTimeout(pollPipelineProgress, 1000);
       return;
     }
     if (run.status === 'RUNNING') {
+      state.pipelineExpectedRunId ||= run.run_id || null;
       state.pipelineProgressAttempts = 0;
       setPipelineProgress(`Tahap aktif: ${run.current_stage || 'menyiapkan'}`, 'running');
       state.pipelineProgressTimer = window.setTimeout(pollPipelineProgress, 1000);
       return;
     }
     stopPipelinePolling();
+    state.pipelineExpectedRunId = null;
     loadOperations();
     button.disabled = false;
     button.textContent = 'Jalankan';
@@ -228,6 +233,7 @@ async function runPipeline() {
     const data = await requestJson('/api/pipeline/run', { method: 'POST', headers: adminHeaders() });
     stopPipelinePolling();
     state.pipelineProgressAttempts = 0;
+    state.pipelineExpectedRunId = data.run_id || null;
     if (data.status === 'already_running') {
       button.textContent = 'Pipeline berjalan';
       setPipelineProgress('Pipeline sudah berjalan. Memuat tahap aktif…', 'running');

@@ -56,10 +56,16 @@ const compactMoney = value => 'Rp ' + new Intl.NumberFormat('id-ID', {
 
 const BAR_PALETTE = ['#176b61', '#ed8b65', '#668aaa', '#d4ac50', '#99799d', '#75b9a7', '#c86b8c'];
 const STATUS_COLORS = { CANCELLED: '#8a9592', COMPLETED: '#176b61', RETURNED: '#ed8b65' };
+const PRODUCT_RANK_COLORS = ['#347f75', '#4c9287', '#65a499', '#7eb5ab', '#9ac6bd', '#b7d7d0'];
 
 function colorForLabel(label) {
   const hash = [...String(label)].reduce((total, character) => ((total * 31) + character.charCodeAt(0)) >>> 0, 0);
   return BAR_PALETTE[hash % BAR_PALETTE.length];
+}
+
+function productRankColor(item, index) {
+  if (index === 0) return '#d97952';
+  return PRODUCT_RANK_COLORS[Math.min(index - 1, PRODUCT_RANK_COLORS.length - 1)];
 }
 
 function horizontalChart(items, colors, formatter = money) {
@@ -130,9 +136,9 @@ export function renderCharts(data) {
       },
     },
   });
-  drawChart('brand', horizontalChart(charts.brand || [], item => colorForLabel(item.label)));
-  drawChart('category', horizontalChart(charts.category || [], item => colorForLabel(item.label)));
-  drawChart('sku', horizontalChart(charts.sku || [], item => colorForLabel(item.label)));
+  drawChart('brand', horizontalChart(charts.brand || [], productRankColor));
+  drawChart('category', horizontalChart(charts.category || [], productRankColor));
+  drawChart('sku', horizontalChart(charts.sku || [], productRankColor));
   drawChart('status', horizontalChart(
     (charts.status || []).map(item => ({ ...item, value: item.orders })),
     item => STATUS_COLORS[item.label] || colorForLabel(item.label),

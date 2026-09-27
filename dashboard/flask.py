@@ -11,6 +11,7 @@ from datetime import date, datetime, timedelta
 from decimal import Decimal
 from io import StringIO
 from pathlib import Path
+from uuid import UUID
 from urllib.error import URLError
 from urllib.request import urlopen
 from zoneinfo import ZoneInfo
@@ -517,7 +518,20 @@ def run_pipeline():
         )
         return jsonify({"status": "started", "process_id": process.pid, "run_id": str(run_id)}), 202
     except PipelineBusyError:
-        return jsonify({"status": "already_running", "error": "Pipeline sedang menunggu atau berjalan."}), 409
+        with engine.connect() as connection:
+            active_run_id = connection.execute(
+                text("""
+                    SELECT run_id FROM audit.pipeline_runs
+                    WHERE status='RUNNING'
+                    ORDER BY started_at DESC
+                    LIMIT 1
+                """)
+            ).scalar_one_or_none()
+        return jsonify({
+            "status": "already_running",
+            "run_id": str(active_run_id) if active_run_id else None,
+            "error": "Pipeline sedang menunggu atau berjalan.",
+        }), 409
     except Exception as error:
         if run_id:
             with engine.begin() as connection:
@@ -541,20 +555,27 @@ def pipeline_progress():
     authorization_error = require_admin_token()
     if authorization_error:
         return authorization_error
+    requested_run_id = request.args.get("run_id")
+    if requested_run_id:
+        try:
+            requested_run_id = UUID(requested_run_id)
+        except ValueError:
+            return jsonify({"error": "ID run tidak valid."}), 400
     with engine.connect() as connection:
-        run = (
-            connection.execute(
-                text("""
-                SELECT run_id, status, current_stage, current_stage_started_at,
-                       started_at, ended_at, duration_seconds, error_message, outcome_message
-                FROM audit.pipeline_runs
-                ORDER BY (status = 'RUNNING') DESC, started_at DESC
-                LIMIT 1
-            """)
-            )
-            .mappings()
-            .one_or_none()
-        )
+        query = text("""
+                    SELECT run_id, status, current_stage, current_stage_started_at,
+                           started_at, ended_at, duration_seconds, error_message, outcome_message
+                    FROM audit.pipeline_runs
+                    WHERE run_id = :run_id
+                """) if requested_run_id else text("""
+                    SELECT run_id, status, current_stage, current_stage_started_at,
+                           started_at, ended_at, duration_seconds, error_message, outcome_message
+                    FROM audit.pipeline_runs
+                    ORDER BY (status = 'RUNNING') DESC, started_at DESC
+                    LIMIT 1
+                """)
+        statement = connection.execute(query, {"run_id": requested_run_id}) if requested_run_id else connection.execute(query)
+        run = statement.mappings().one_or_none()
         stages = []
         if run:
             stages = (

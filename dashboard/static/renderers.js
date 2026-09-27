@@ -179,7 +179,7 @@ function renderRunExplanation(run) {
       <dt>Master Produk diproses</dt><dd>${metric(productMaster.new_or_changed)}</dd>
       <dt>Master Produk dimuat ke Raw Layer</dt><dd>${metric(productMaster.inserted_to_raw)}</dd>
     </dl>
-    ${!hasWork ? '<p>Tidak ada data baru dan perubahan pada ini sehingga tahap Data Quality Check, Transformasi, Staging, dan Warehouse tidak dijalankan pada run ini.</p>' : `
+    ${!hasWork ? '<p>Tidak ada data baru dan perubahan pada runing ini sehingga tahap Data Quality Check, Transformasi, Staging, dan Warehouse tidak dijalankan.</p>' : `
       <h4>Data Quality Check &amp; Staging</h4>
       ${findings ? `<ul class="run-findings">${findings}</ul>` : '<p>Tidak ada temuan data quality check yang memblokir data.</p>'}
       <dl>

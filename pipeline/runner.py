@@ -25,7 +25,7 @@ from pipeline.load.raw_loader import load_raw, load_source_snapshots, save_sourc
 from pipeline.load.staging_loader import load_staging
 from pipeline.logger import get_logger
 from pipeline.reporting import outcome_message, quality_staging_summary, run_report_summary, summarize_sources
-from pipeline.transform.standardize import clean_results_to_staging, filter_incremental_results
+from pipeline.transform.standardize import SOURCE_NAMES, clean_results_to_staging, filter_incremental_results
 from pipeline.validation.data_quality import run_quality
 
 # Keep a stable logger name when this module is executed both as an import and
@@ -53,6 +53,49 @@ def raw_transaction_total(connection) -> int:
 def raw_product_master_total(connection) -> int:
     """Return the current Product Master inventory in the Raw Layer."""
     return int(connection.execute(RAW_PRODUCT_MASTER_COUNT).scalar_one())
+
+
+def existing_fact_hashes(engine, quality_results) -> dict[tuple[str, str, int], str]:
+    """Fetch warehouse hashes only for valid candidate keys from this run."""
+    source_names = []
+    order_ids = []
+    line_numbers = []
+    for source, result in quality_results.items():
+        if source == "product" or result.clean.empty:
+            continue
+        clean = result.clean
+        source_names.extend([SOURCE_NAMES[source]] * len(clean))
+        order_ids.extend(clean["order_id"].astype(str).tolist())
+        line_numbers.extend(clean["line_number"].astype(int).tolist())
+
+    if not source_names:
+        return {}
+
+    with engine.connect() as connection:
+        rows = connection.execute(
+            text("""
+                SELECT fact.source_name, fact.source_order_id, fact.source_line_number,
+                       fact.source_record_hash
+                FROM warehouse.fact_sales AS fact
+                JOIN unnest(
+                    CAST(:source_names AS VARCHAR[]),
+                    CAST(:order_ids AS TEXT[]),
+                    CAST(:line_numbers AS INTEGER[])
+                ) AS candidate(source_name, source_order_id, source_line_number)
+                  ON candidate.source_name = fact.source_name
+                 AND candidate.source_order_id = fact.source_order_id
+                 AND candidate.source_line_number = fact.source_line_number
+            """),
+            {
+                "source_names": source_names,
+                "order_ids": order_ids,
+                "line_numbers": line_numbers,
+            },
+        ).mappings()
+        return {
+            (row["source_name"], row["source_order_id"], row["source_line_number"]): row["source_record_hash"]
+            for row in rows
+        }
 
 
 def _send_direct_run_report(engine, run_id, orchestration_run_id) -> bool:
@@ -297,16 +340,7 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
             lambda: run_quality(source_dir, selected_row_numbers=selected_rows, captured_sources=captured_sources),
         )
         stages[-1]["records_processed"] = sum(len(result.clean) for result in quality_results.values())
-        with engine.begin() as connection:
-            existing_keys = {
-                (row["source_name"], row["source_order_id"], row["source_line_number"]): row["source_record_hash"]
-                for row in connection.execute(
-                    text("""
-                SELECT source_name, source_order_id, source_line_number, source_record_hash
-                FROM warehouse.fact_sales
-            """)
-                ).mappings()
-            }
+        existing_keys = stage("fact_lookup", lambda: existing_fact_hashes(engine, quality_results))
         incremental_results = stage(
             "incremental_filter", lambda: filter_incremental_results(quality_results, existing_keys)
         )
@@ -339,11 +373,17 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
             stages[-1]["records_processed"] = staged_count
             dimension_counts = stage("dimension_load", lambda: load_dimensions(connection, product_delta, staging_rows))
             stages[-1]["records_processed"] = sum(dimension_counts.values())
-            fact_before = connection.execute(text("SELECT COUNT(*) FROM warehouse.fact_sales")).scalar_one()
+            fact_inserted_count = sum(
+                (
+                    row.source_name,
+                    row.source_order_id,
+                    int(row.source_line_number),
+                )
+                not in existing_keys
+                for row in staging_rows.itertuples(index=False)
+            )
             fact_count = stage("fact_load", lambda: load_facts(connection, run_id))
             stages[-1]["records_processed"] = fact_count
-            fact_after = connection.execute(text("SELECT COUNT(*) FROM warehouse.fact_sales")).scalar_one()
-            fact_inserted_count = max(int(fact_after) - int(fact_before), 0)
             incremental_count = len(staging_rows)
             fact_skipped_count = max(valid_count - incremental_count, 0)
             report_metrics["outcome_message"] = outcome_message(

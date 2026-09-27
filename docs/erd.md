@@ -1,6 +1,6 @@
 # ERD Warehouse dan Audit
 
-Diagram ini menunjukkan PK, FK, serta relasi data utama. Notasi `PK` berarti primary key, `FK` berarti foreign key, dan `UK` berarti unique key.
+Diagram berikut merangkum tabel dan relasi utama. `PK` menandai primary key, `FK` menandai foreign key, dan `UK` menandai unique key.
 
 ```mermaid
 erDiagram
@@ -15,6 +15,7 @@ erDiagram
     PIPELINE_RUNS ||--o{ REJECTED_RECORDS : run_id
     PIPELINE_RUNS ||--o{ PIPELINE_STAGE_RUNS : run_id
     PIPELINE_RUNS ||--o{ SOURCE_SNAPSHOTS : run_id
+    PIPELINE_RUNS ||--o{ PIPELINE_WATERMARKS : last_successful_run_id
 
     DIM_DATE ||--o{ FACT_SALES : date_key
     DIM_PRODUCT ||--o{ FACT_SALES : product_key
@@ -27,6 +28,7 @@ erDiagram
         varchar pipeline_name
         timestamptz started_at
         varchar status
+        jsonb report_summary
     }
     RAW_SHOPEE_ORDERS {
         bigint raw_record_id PK
@@ -109,6 +111,13 @@ erDiagram
         uuid run_id FK
         text rejection_reason
     }
+    PIPELINE_WATERMARKS {
+        varchar pipeline_name PK
+        varchar source_name PK
+        uuid last_successful_run_id FK
+        timestamptz last_processed_at
+        text last_business_key
+    }
 ```
 
 ## Grain tabel
@@ -128,8 +137,9 @@ erDiagram
 | `warehouse.dim_channel` | Satu channel penjualan. |
 | `warehouse.dim_payment` | Satu metode pembayaran canonical. |
 | `audit.pipeline_runs` | Satu eksekusi pipeline. |
+| `audit.pipeline_watermarks` | Satu watermark per pipeline dan source; menyimpan run sukses terakhir, waktu proses, dan penanda pemrosesan source. |
 | `audit.data_quality_results` | Satu rule kualitas per source per run. |
-| `audit.rejected_records` | Satu record yang ditolak pada satu run. |
+| `audit.rejected_records` | Satu baris transaksi yang ditolak dalam satu run. |
 | `audit.source_snapshots` | Snapshot terakhir satu source untuk incremental loading. |
 
-`source_raw_record_id` pada staging adalah referensi lineage aplikasi ke raw record yang dipilih pada run yang sama. Relasi database yang dipaksa dengan foreign key berada pada `ingestion_run_id` dan seluruh foreign key fact ke dimensi.
+Pada staging, `source_raw_record_id` menghubungkan baris bersih dengan data raw yang menjadi asalnya. Hubungan ini dijaga oleh pipeline. Database menerapkan foreign key untuk `ingestion_run_id` dan seluruh relasi fact ke dimensi.

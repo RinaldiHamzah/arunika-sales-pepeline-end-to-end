@@ -1,10 +1,10 @@
 # Kamus Data
 
-Dokumen ini mendefinisikan tabel operasional utama. `PK` = primary key, `FK` = foreign key, `UK` = unique key. Detail relasi ada di [ERD](erd.md).
+Dokumen ini menjelaskan kolom dan fungsi tabel operasional utama. `PK` berarti primary key, `FK` berarti foreign key, dan `UK` berarti unique key. Relasi antartabel ditampilkan pada [ERD](erd.md).
 
 ## Raw layer
 
-Semua tabel raw memiliki grain **satu baris source dalam satu ingestion run** dan field lineage berikut.
+Setiap tabel raw menyimpan **satu baris sumber dalam satu ingestion run**. Kolom lineage yang digunakan adalah:
 
 | Field | Tipe | Key | Fungsi |
 | --- | --- | --- | --- |
@@ -15,7 +15,7 @@ Semua tabel raw memiliki grain **satu baris source dalam satu ingestion run** da
 | `ingested_at` | TIMESTAMPTZ |  | Waktu landing ke raw. |
 | `source_payload` | JSONB |  | Payload source utuh tanpa transformasi. |
 
-Field source-specific tetap dipertahankan sebagai `TEXT` supaya data invalid dapat disimpan dan dianalisis.
+Kolom khusus sumber tetap disimpan sebagai `TEXT`. Dengan begitu, nilai yang tidak valid tetap tersimpan dan dapat diperiksa.
 
 | Tabel | Field source-specific utama | Fungsi |
 | --- | --- | --- |
@@ -98,7 +98,9 @@ Field source-specific tetap dipertahankan sebagai `TEXT` supaya data invalid dap
 | `audit.source_ingestions` | Satu source file pada satu run | `source_ingestion_id` PK; `run_id` FK | Checksum, path, format, jumlah record. |
 | `audit.source_snapshots` | Snapshot terbaru per pipeline/source | `(pipeline_name, source_name)` PK | Payload hash untuk incremental. |
 | `audit.data_quality_results` | Satu rule/source/run | `quality_result_id` PK; `run_id` FK | Jumlah kegagalan per rule dan severity. |
-| `audit.rejected_records` | Satu record rejected | `rejected_record_id` PK; `run_id` FK | Payload serta alasan penolakan. |
+| `audit.rejected_records` | Satu baris transaksi yang ditolak dalam satu run | `rejected_record_id` PK; `run_id` FK | Payload asli dan alasan penolakan. |
 | `audit.pipeline_watermarks` | Watermark per pipeline/source | `(pipeline_name, source_name)` PK | Run sukses dan waktu proses terakhir. |
+
+Kolom `audit.pipeline_runs.report_summary` bertipe `JSONB`. Nilainya dapat `NULL` pada run lama. Pada run baru, kolom ini menyimpan ringkasan untuk run tersebut: bagian `raw`, `quality_staging`, dan `warehouse`. Dashboard dan email membaca ringkasan yang sama agar angka laporan konsisten.
 
 View pelaporan tersedia pada `warehouse.v_sales_kpi`, `warehouse.v_sales_monthly_kpi`, `warehouse.v_sales_channel_kpi`, `warehouse.v_top_product_kpi`, `warehouse.v_sales_status_kpi`, `audit.v_data_quality_by_rule`, dan `audit.v_data_quality_report`. View terakhir merangkum total source, kandidat baru, data identik yang dilewati, valid, rejected, duplicate, serta kategori missing, quantity, price/amount, date, status, produk, dan warning per source.

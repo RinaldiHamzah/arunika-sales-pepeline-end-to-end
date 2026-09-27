@@ -1,8 +1,8 @@
 # Kebijakan Kualitas Data
 
-Aturan `pipeline.validation` digunakan bersama oleh notebook analisis, export clean CSV, dan pipeline database.
+Notebook analisis, ekspor CSV bersih, dan pipeline database menggunakan aturan validasi yang sama dari `pipeline.validation`.
 
-Tujuan kebijakan ini adalah menjaga agar angka di dashboard dapat ditelusuri kembali ke data sumber. Record yang tidak memenuhi aturan tidak diperbaiki dengan tebakan; record tersebut ditolak atau diberi peringatan sesuai jenis masalahnya.
+Kebijakan ini menjaga agar angka di dashboard dapat ditelusuri kembali ke sumber data. Baris yang bermasalah tidak diperbaiki dengan perkiraan; sistem menolaknya atau mencatat peringatan sesuai jenis masalah.
 
 ## Kontrak data bersih
 
@@ -12,7 +12,7 @@ Transaksi memakai kolom berikut:
 order_id,product_id,product_name,kategori,quantity,total_harga,tanggal_order,kota,channel,status,customer_email,harga_satuan
 ```
 
-Grain transaksi adalah satu baris per order. Business key internal adalah `(source, order_id, line_number)`. `line_number` saat ini bernilai `1` karena source belum menyediakan line ID stabil. `customer_id` tidak masuk ke clean contract karena tidak tersedia pada semua source.
+Setiap baris pada data transaksi bersih mewakili satu order. Business key internalnya adalah `(source, order_id, line_number)`. Nilai `line_number` saat ini `1` karena sumber belum menyediakan ID baris yang konsisten. `customer_id` tidak disertakan karena tidak tersedia di semua sumber.
 
 Product Master memakai:
 
@@ -20,24 +20,24 @@ Product Master memakai:
 product_id,product_name,brand,kategori,harga_satuan
 ```
 
-`product_id` adalah SKU dari Product Master. Nama, brand, dan kategori produk mengikuti master yang sudah valid.
+`product_id` adalah SKU dari Product Master. Nama, merek, dan kategori produk mengikuti data master yang lolos validasi.
 
 ## Aturan dan perlakuan
 
 | Pemeriksaan | Aturan | Perlakuan |
 | --- | --- | --- |
-| Missing value | Nilai kosong, whitespace, `NA`, dan `NULL` dianggap kosong. | Field wajib ditolak; field opsional tetap `null` dengan warning. |
+| Nilai kosong | Nilai kosong, spasi, `NA`, dan `NULL` dianggap sebagai data kosong. | Baris dengan kolom wajib kosong ditolak. Kolom opsional tetap `null` dan diberi peringatan. |
 | Field wajib | Order ID, tanggal, produk, quantity, harga satuan, dan status wajib ada. | Tidak diisi dengan tebakan. |
-| Duplikat sama | Business key dan nilai canonical sama. | Satu record disimpan, sisanya dicatat sebagai duplicate. |
-| Duplikat konflik | Business key sama tetapi isi berbeda. | Semua versi dikarantina sebagai rejected. |
+| Duplikat sama | Business key dan nilai standar sama. | Satu baris dipertahankan; sisanya dicatat sebagai duplikat. |
+| Duplikat konflik | Business key sama, tetapi isi berbeda. | Semua versi ditolak agar sistem tidak memilih data secara sembarang. |
 | Quantity | Bilangan bulat positif dalam batas `INTEGER`. | Nol, negatif, pecahan, atau nonnumerik ditolak. |
 | Harga dan total | Nilai uang positif, maksimal dua desimal. | Nilai tidak valid ditolak. |
 | Total Website | `total_amount` harus sama dengan `quantity × unit_price`. | Missing atau mismatch ditolak. |
 | Status | Hanya `COMPLETED`, `CANCELLED`, `RETURNED`. | Status lain ditolak. |
-| Tanggal | Format source diparse eksplisit lalu menjadi `YYYY-MM-DD`. | Tanggal mustahil atau format tidak dikenal ditolak. |
-| Produk | SKU atau nama dinormalisasi lalu dicocokkan ke master. | Produk tidak ditemukan ditolak sebagai `UNMAPPED_PRODUCT`. |
-| Harga berbeda master | Harga transaksi positif tetapi berbeda dari referensi. | Harga source dipertahankan dan diberi warning. |
-| Email | Bila tersedia, struktur email diperiksa. | Email tidak valid menjadi `null` dengan warning. |
+| Tanggal | Format setiap sumber dibaca sesuai aturan lalu diubah ke `YYYY-MM-DD`. | Tanggal yang tidak mungkin atau format yang tidak dikenali ditolak. |
+| Produk | SKU atau nama dinormalisasi dan dicocokkan dengan master. | Produk yang tidak ditemukan ditolak dengan alasan `UNMAPPED_PRODUCT`. |
+| Harga berbeda dari master | Harga transaksi valid, tetapi berbeda dari harga referensi. | Harga dari sumber dipertahankan dan perbedaannya dicatat sebagai peringatan. |
+| Email | Format email diperiksa jika nilainya tersedia. | Email tidak valid diubah menjadi `null` dan diberi peringatan. |
 
 ## Normalisasi
 
@@ -57,7 +57,7 @@ valid dan berulang  → duplicate
 valid pertama       → clean
 ```
 
-Satu record dapat melanggar beberapa rule sehingga jumlah issue tidak selalu sama dengan jumlah record rejected.
+Satu baris dapat melanggar beberapa aturan. Karena itu, jumlah temuan tidak selalu sama dengan jumlah baris yang ditolak.
 
 ```text
 extracted_records = valid_records + duplicate_records + invalid_records
@@ -84,11 +84,11 @@ Output utama ada di `data/processed/clean/`: `product.csv`, `shopee.csv`, `tokop
 .\env\Scripts\python.exe -m pytest tests/test_data_quality.py tests/test_analysis_format.py -q
 ```
 
-Record rejected dan duplicate menyimpan nomor baris, nama file, checksum, alasan, dan payload mentah sebagai evidence audit.
+Baris yang ditolak atau terdeteksi sebagai duplikat menyimpan nomor baris, nama file, checksum, alasan, dan payload asli sebagai bukti audit.
 
 ## Laporan hasil quality check
 
-Laporan quality tersimpan di PostgreSQL untuk setiap `run_id`. Dengan demikian hasilnya tidak bergantung pada tampilan dashboard atau file CSV sementara. Ada dua tingkat laporan:
+Hasil pemeriksaan kualitas disimpan di PostgreSQL untuk setiap `run_id`, sehingga tetap tersedia meskipun tampilan dashboard atau file CSV berubah. Laporan disajikan dalam dua tingkat:
 
 | Tingkat | Sumber | Isi |
 | --- | --- | --- |
@@ -106,7 +106,7 @@ Jalankan laporan untuk run terbaru:
 Atau pilih run tertentu:
 
 ```powershell
-.\env\Scripts\ython.exe .\scripts\report_data_quality.py --run-id <UUID_RUN>
+.\env\Scripts\python.exe .\scripts\report_data_quality.py --run-id <UUID_RUN>
 ```
 
 Contoh SQL untuk reviewer:
@@ -121,7 +121,7 @@ SELECT source_name,
        duplicate_records,
        missing_value_records,
        invalid_quantity_records,
-       invalid_price_or_amount_recordps,
+       invalid_price_or_amount_records,
        invalid_date_records,
        invalid_status_records,
        unmapped_product_records,

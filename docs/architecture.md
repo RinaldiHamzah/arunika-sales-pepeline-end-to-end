@@ -6,17 +6,17 @@ Dokumen ini menjelaskan alur data dari CSV hingga tampil sebagai analitik. Waktu
 
 ```mermaid
 flowchart LR
-    A[CSV source] --> B[Extract + checksum]
-    B --> C[Incremental filter]
-    C --> D[raw.*\npayload asli + lineage]
-    D --> E[Data quality]
-    E -->|valid| F[Transform canonical]
-    E -->|duplicate/rejected| G[audit.*\nevidence kualitas]
-    F --> H[staging.stg_sales]
-    H --> I[Dimension upsert]
-    I --> J[warehouse.fact_sales]
-    J --> K[SQL analytics views]
-    K --> L[Dashboard / export]
+    A[CSV source] --> B[Extract dan Checksum]
+    B --> C[Incremental Filter]
+    C --> D[Raw Layer dan Payload Data]
+    D --> E[Data Quality]
+    E -->|Valid| F[Transform Canonical]
+    E -->|Duplicate/Rejected| G[Audit dan Evidence Kualitas]
+    F --> H[Staging Layer]
+    H --> I[Dimension Upsert]
+    I --> J[Warehouse Layer]
+    J --> K[SQL Analytics Views]
+    K --> L[Dashboard]
     M[Airflow / UI / CLI] --> B
 ```
 

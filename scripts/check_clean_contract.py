@@ -10,7 +10,7 @@ from pathlib import Path
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
-CLEAN_DIR = ROOT / "data" / "processed" / "clean"
+PROCESSED_DIR = ROOT / "data" / "processed"
 
 SALES_COLUMNS = [
     "order_id",
@@ -53,13 +53,13 @@ def validate_file(path: Path) -> list[str]:
 
 
 def main() -> int:
-    if not CLEAN_DIR.exists():
-        print(f"Clean folder not found: {CLEAN_DIR}")
+    if not PROCESSED_DIR.exists():
+        print(f"Processed folder not found: {PROCESSED_DIR}")
         return 1
 
-    files = [path for path in sorted(CLEAN_DIR.glob("*.csv")) if path.name not in {"summary.csv", "quality_issues.csv"}]
+    files = [path for path in sorted(PROCESSED_DIR.glob("*.csv")) if path.name not in {"summary.csv", "quality_issues.csv"}]
     if not files:
-        print(f"No clean export CSV files found in {CLEAN_DIR}")
+        print(f"No processed export CSV files found in {PROCESSED_DIR}")
         return 1
 
     problems: list[str] = []

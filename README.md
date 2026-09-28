@@ -12,7 +12,7 @@ flowchart LR
     B --> C[Filter Incremental]
     C --> D[Raw Layer]
     D --> E[Data Quality Check]
-    E -->|Validatian| F[Transformasi dan Pemetaan Produk]
+    E -->|Valid| F[Transformasi dan Pemetaan Produk]
     F --> G[Staging]
     G --> H[Dimensi dan Fact]
     H --> I[SQL Analytics]
@@ -118,9 +118,9 @@ Ecommerce Sales/
 |- airflow/                 DAG dan konfigurasi orkestrasi
 |- alembic/                 Migration database
 |- analisis/                Notebook analisis eksploratif
-|- dashboard/               Flask app, template, CSS, JavaScript, dan smoke test
+|- dashboard/               Entry point `app.py`, route API, service dashboard, template, aset, dan smoke test
 |- data/source/             CSV sumber penjualan dan master produk
-|- data/processed/clean/    Hasil export data bersih
+|- data/processed/          Hasil export data bersih
 |- database/schema/         SQL bootstrap schema PostgreSQL
 |- docs/                    Dokumentasi arsitektur, kualitas, ERD, dan runbook
 |- pipeline/                Extract, load, transform, reporting, dan validation
@@ -409,7 +409,7 @@ Jalankan analisis validasi dengan:
 .\env\Scripts\python.exe -m pipeline.validation.analysis
 ```
 
-Hasil export tersedia di `data/processed/clean/`. Notebook eksplorasi berada di folder `analisis/` dan tidak menjadi bagian dari runtime dashboard.
+Hasil export tersedia di `data/processed/`. Notebook eksplorasi berada di folder `analisis/` dan tidak menjadi bagian dari runtime dashboard.
 
 
 ## Dokumentasi Lanjutan
@@ -424,6 +424,6 @@ Hasil export tersedia di `data/processed/clean/`. Notebook eksplorasi berada di 
 - [Database Schema](database/README.md)
 - [Dashboard dan UI/UX](dashboard/README.md)
 
-## Catatan Proyek
+## Catatan Project
 
 Arunika Beauty E-Commerce Sales Data Pipeline dirancang sebagai proyek pembelajaran dan operasional internal. Fokusnya bukan hanya membuat grafik, tetapi membangun jalur data yang dapat ditelusuri: source dapat divalidasi, transformasi dapat diaudit, warehouse dapat diperiksa, dan hasil analitik dapat digunakan kembali oleh dashboard maupun laporan pipeline.

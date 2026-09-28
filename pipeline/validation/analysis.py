@@ -139,7 +139,7 @@ def summary(results):
 
 
 def export_analysis(results, output_dir=None):
-    target = Path(output_dir) if output_dir else ROOT / "data/processed/clean"
+    target = Path(output_dir) if output_dir else ROOT / "data/processed"
     original = (ROOT / "data/source").resolve()
     resolved = target.resolve()
     if original == resolved or original in resolved.parents or resolved in original.parents:

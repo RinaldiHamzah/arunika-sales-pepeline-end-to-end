@@ -111,6 +111,27 @@ erDiagram
         uuid run_id FK
         text rejection_reason
     }
+    SOURCE_INGESTIONS {
+        bigint source_ingestion_id PK
+        uuid run_id FK
+        varchar source_name
+        char file_checksum_sha256
+        int extracted_records
+    }
+    PIPELINE_STAGE_RUNS {
+        bigint stage_run_id PK
+        uuid run_id FK
+        varchar stage_name
+        varchar status
+        numeric duration_seconds
+    }
+    SOURCE_SNAPSHOTS {
+        varchar pipeline_name PK
+        varchar source_name PK
+        char file_checksum_sha256
+        uuid run_id FK
+        jsonb payload_hashes
+    }
     PIPELINE_WATERMARKS {
         varchar pipeline_name PK
         varchar source_name PK
@@ -156,6 +177,8 @@ View berikut adalah objek baca saja. View tidak ditampilkan sebagai tabel pada E
 | `warehouse.dim_channel` | Satu channel penjualan. |
 | `warehouse.dim_payment` | Satu metode pembayaran canonical. |
 | `audit.pipeline_runs` | Satu eksekusi pipeline. |
+| `audit.source_ingestions` | Satu file source yang diekstrak dalam satu run. |
+| `audit.pipeline_stage_runs` | Satu tahap pemrosesan dalam satu run. |
 | `audit.pipeline_watermarks` | Satu watermark per pipeline dan source; menyimpan run sukses terakhir, waktu proses, dan penanda pemrosesan source. |
 | `audit.data_quality_results` | Satu rule kualitas per source per run. |
 | `audit.rejected_records` | Satu baris transaksi yang ditolak dalam satu run. |

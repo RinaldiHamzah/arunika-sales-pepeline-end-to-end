@@ -22,7 +22,7 @@ Pengaturan memakai `DASHBOARD_ADMIN_TOKEN` untuk upload, menjalankan pipeline, d
 
 1. Pilih rentang tanggal cepat atau tanggal mulai dan selesai.
 2. Pilih filter kanal, status, kategori, merek, atau produk jika diperlukan.
-3. Klik **Terapkan** untuk memuat hasil.
+3. Klik **Apply** untuk memuat hasil.
 4. Gunakan tab **Penjualan** dan **Produk** untuk melihat rincian analitik.
 
 ### Transaksi
@@ -61,24 +61,30 @@ Tombol **Refresh** memuat ulang data menggunakan filter terakhir yang sudah dite
 
 | File | Tanggung jawab |
 | --- | --- |
+| `app.py` | Entry point aplikasi, application factory, koneksi database, cache-busting aset, dan middleware logging. Docker menjalankan `dashboard.app:app`. |
+| `routes.py` | Endpoint halaman, API dashboard, ekspor CSV, upload, dan operasi pipeline. |
+| `services/analytics.py` | Query PostgreSQL untuk KPI, grafik, filter, transaksi, dan observability pipeline. |
+| `services/formatting.py` | Konversi row database menjadi respons JSON yang aman dan konsisten. |
+| `services/ingestion.py` | Validasi kontrak serta penambahan batch CSV dari halaman Pengaturan. |
 | `templates/base.html` | Shell HTML, navbar, header, status koneksi, dan pesan. |
 | `templates/dashboard.html` | Filter, KPI, tab analitik, dan Ringkasan. |
 | `templates/transactions.html` | Tampilan Transaksi yang di-include oleh `dashboard.html`. |
 | `templates/settings.html` | Pengaturan pipeline dan riwayat eksekusi. |
-| `static/dashboard.css` | Entry point stylesheet. |
-| `static/tokens.css` | Warna, tipografi, focus state, dan default dokumen. |
-| `static/layout.css` | Navbar, header, grid, dan struktur halaman. |
-| `static/components.css` | Form, KPI, tabel, tombol, dan panel operasi. |
-| `static/charts.css` | Canvas dan tabel alternatif grafik. |
-| `static/responsive.css` | Breakpoint mobile dan reduced motion. |
-| `static/dashboard.js` | Bootstrap aplikasi. |
-| `static/core.js` | State, format WIB, filter, dan helper DOM. |
-| `static/api.js` | Request API, timeout, dan error. |
-| `static/charts.js` | Pembuatan dan pembaruan Chart.js. |
-| `static/renderers.js` | Render KPI, tabel, peringkat, dan riwayat. |
-| `static/interactions.js` | Navigasi, filter, upload, polling, dan refresh. |
+| `static/css/dashboard.css` | Entry point stylesheet. |
+| `static/css/tokens.css` | Warna, tipografi, focus state, dan default dokumen. |
+| `static/css/layout.css` | Navbar, header, grid, dan struktur halaman. |
+| `static/css/components.css` | Form, KPI, tabel, tombol, dan panel operasi. |
+| `static/css/charts.css` | Canvas dan tabel alternatif grafik. |
+| `static/css/responsive.css` | Breakpoint mobile dan reduced motion. |
+| `static/js/chart.umd.min.js` | Library Chart.js untuk visualisasi grafik. |
+| `static/js/dashboard.js` | Bootstrap aplikasi. |
+| `static/js/core.js` | State, format WIB, filter, dan helper DOM. |
+| `static/js/api.js` | Request API, timeout, dan error. |
+| `static/js/charts.js` | Pembuatan dan pembaruan Chart.js. |
+| `static/js/renderers.js` | Render KPI, tabel, peringkat, dan riwayat. |
+| `static/js/interactions.js` | Navigasi, filter, upload, polling, dan refresh. |
 
-`dashboard.html` mewarisi `base.html`; `transactions.html` dan `settings.html` di-include dari template tersebut. Pertahankan ID kontrol ketika mengubah tampilan karena JavaScript mengambil elemen berdasarkan ID. Jangan memindahkan logika API ke HTML atau menambahkan override layout acak ke `dashboard.css`.
+`dashboard.html` mewarisi `base.html`; `transactions.html` dan `settings.html` di-include dari template tersebut. Pertahankan ID kontrol ketika mengubah tampilan karena JavaScript mengambil elemen berdasarkan ID. Endpoint tetap berada di `routes.py`, sedangkan query dan operasi bisnis berada di `services/`; jangan memindahkan logika tersebut ke HTML atau menambahkan override layout acak ke `dashboard.css`.
 
 ## Pengujian tampilan
 

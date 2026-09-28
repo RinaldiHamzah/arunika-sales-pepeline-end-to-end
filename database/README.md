@@ -39,16 +39,16 @@ Raw dan audit tidak selalu memakai foreign key langsung ke tabel lain. Pipeline 
 
 Pada volume PostgreSQL yang masih baru, script di `database/schema/` dijalankan dalam urutan berikut:
 
-1. `00_airflow_database.sql` membuat database metadata Airflow.
-2. `00_schemas.sql` membuat schema aplikasi.
-3. `01_extensions.sql` menyiapkan extension yang dibutuhkan.
-4. `02_raw_tables.sql` membuat tabel sumber.
-5. `03_staging_tables.sql` membuat tabel staging.
-6. `04_dimensions.sql` membuat dimensi.
-7. `05_fact_tables.sql` membuat tabel fact.
-8. `06_audit_tables.sql` membuat tabel audit dan quality.
-9. `07_analytics_views.sql` membuat view analitik.
-10. `99_security_hardening.sql` mengatur hak akses database.
+1. `0_airflow_database.sql` membuat database metadata Airflow.
+2. `1_schemas.sql` membuat schema aplikasi.
+3. `2_extensions.sql` menyiapkan extension yang dibutuhkan.
+4. `3_raw_tables.sql` membuat tabel sumber.
+5. `4_staging_tables.sql` membuat tabel staging.
+6. `5_dimensions.sql` membuat dimensi.
+7. `6_fact_tables.sql` membuat tabel fact.
+8. `7_audit_tables.sql` membuat tabel audit dan quality.
+9. `8_analytics_views.sql` membuat view analitik.
+10. `9_security_hardening.sql` mengatur hak akses database.
 
 Script init Docker berjalan saat volume database pertama kali dibuat. Untuk memperbarui database yang sudah berisi data, gunakan migration Alembic; jangan menghapus volume sebagai cara rutin memperbarui schema.
 
@@ -126,7 +126,7 @@ SELECT * FROM warehouse.v_sales_channel_kpi ORDER BY net_sales_completed DESC;
 SELECT * FROM warehouse.v_top_product_kpi ORDER BY net_sales_completed DESC LIMIT 10;
 ```
 
-Dashboard juga menjalankan agregasi SQL pada `warehouse.v_sales_detail` agar filter periode, kanal, status, kategori, merek, dan produk diterapkan di database. Aturan gross, net, AOV, dan return rate dijelaskan dalam [README utama](../README.md) dan definisi view berada di `database/schema/07_analytics_views.sql`.
+Dashboard juga menjalankan agregasi SQL pada `warehouse.v_sales_detail` agar filter periode, kanal, status, kategori, merek, dan produk diterapkan di database. Aturan gross, net, AOV, dan return rate dijelaskan dalam [README utama](../README.md) dan definisi view berada di `database/schema/8_analytics_views.sql`.
 
 ## Keamanan
 

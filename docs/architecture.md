@@ -1,8 +1,8 @@
-# Arsitektur dan Lineage Pipeline
+# Arsitektur dan Pipeline
 
 Dokumen ini menjelaskan alur data dari CSV hingga tampil sebagai analitik. Waktu pada pipeline, dashboard, dan audit menggunakan zona waktu `Asia/Jakarta` (WIB).
 
-## Alur fisik data
+## Alur Jalan Data
 
 ```mermaid
 flowchart LR

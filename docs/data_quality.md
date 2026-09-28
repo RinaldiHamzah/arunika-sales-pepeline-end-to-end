@@ -77,7 +77,7 @@ Warehouse memakai business key `(source_name, source_order_id, source_line_numbe
 
 ## Output dan perintah
 
-Output utama ada di `data/processed/clean/`: `product.csv`, `shopee.csv`, `tokopedia.csv`, `website.csv`, `offline.csv`, `sales.csv`, `summary.csv`, dan `quality_issues.csv`.
+Output utama ada di `data/processed/`: `product.csv`, `shopee.csv`, `tokopedia.csv`, `website.csv`, `offline.csv`, `sales.csv`, `summary.csv`, dan `quality_issues.csv`.
 
 ```powershell
 .\env\Scripts\python.exe -m pipeline.validation.analysis

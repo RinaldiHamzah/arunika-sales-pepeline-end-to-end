@@ -47,7 +47,7 @@ services:
 
   dashboard:
     build: .
-    command: waitress-serve --listen=0.0.0.0:8501 dashboard.flask:app
+    command: waitress-serve --listen=0.0.0.0:8501 dashboard.app:app
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432

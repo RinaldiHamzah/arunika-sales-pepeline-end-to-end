@@ -81,4 +81,15 @@ Laporan sukses merangkum hasil run yang bersangkutan. Jika ada data baru atau pe
 
 Sebelum memakai kode baru pada database yang sudah ada, jalankan `.\env\Scripts\python.exe -m alembic upgrade head`.
 
-Mulai ulang backend lokal setelah mengubah kode Python. Di Docker, build ulang service yang menjalankan kode pipeline; kode pipeline disalin ke image. Template dan aset di `dashboard/` dipasang sebagai volume, tetapi perubahan pada `dashboard/flask.py` tetap memerlukan restart service Dashboard. Jangan commit `.env`, log, atau kredensial.
+Mulai ulang backend lokal setelah mengubah kode Python. Di Docker, build ulang service yang menjalankan kode pipeline; kode pipeline disalin ke image. Template dan aset di `dashboard/` dipasang sebagai volume, tetapi perubahan pada `dashboard/app.py` atau `dashboard/routes.py` tetap memerlukan restart service Dashboard. Jangan commit `.env`, log, atau kredensial.
+
+### Integration test tidak menemukan revision Alembic
+
+Jika integration test menampilkan pesan seperti `Can't locate revision identified by '20260928_11'`, database test masih menyimpan revision lama yang sudah tidak ada di source code. Bersihkan hanya container dan volume sementara milik profile test, lalu jalankan ulang test:
+
+```powershell
+docker compose --profile test rm -sfv postgres-test integration-tests
+.\env\Scripts\python.exe .\tests\main.py --full
+```
+
+Perintah tersebut hanya menghapus state test terisolasi. Jangan gunakan perintah ini pada service `postgres` utama karena service tersebut menyimpan warehouse development.

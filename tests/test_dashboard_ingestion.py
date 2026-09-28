@@ -6,7 +6,8 @@ from io import BytesIO, StringIO
 
 import pytest
 
-from dashboard import flask as dashboard_app
+from dashboard import app as dashboard_app
+from dashboard.services import ingestion as dashboard_ingestion
 from pipeline.validation.contracts import RAW_COLUMNS
 
 
@@ -24,18 +25,18 @@ def test_append_csv_batch_validates_contract_and_appends(tmp_path, monkeypatch):
     fields = list(RAW_COLUMNS[source])
     target = tmp_path / "shopee.csv"
     target.write_text(",".join(fields) + "\n", encoding="utf-8")
-    monkeypatch.setattr(dashboard_app, "SOURCE_DIR", tmp_path)
+    monkeypatch.setattr(dashboard_ingestion, "SOURCE_DIR", tmp_path)
 
     row = dict.fromkeys(fields, "value")
-    assert dashboard_app.append_csv_batch(source, _csv_bytes(source, [row])) == 1
+    assert dashboard_ingestion.append_csv_batch(source, _csv_bytes(source, [row])) == 1
     assert len(list(csv.DictReader(target.open(encoding="utf-8", newline="")))) == 1
 
 
 def test_append_csv_batch_rejects_bad_header(tmp_path, monkeypatch):
     (tmp_path / "shopee.csv").write_text("order_id\n", encoding="utf-8")
-    monkeypatch.setattr(dashboard_app, "SOURCE_DIR", tmp_path)
+    monkeypatch.setattr(dashboard_ingestion, "SOURCE_DIR", tmp_path)
     with pytest.raises(ValueError, match="Header shopee.csv"):
-        dashboard_app.append_csv_batch("shopee", b"wrong_header\nvalue\n")
+        dashboard_ingestion.append_csv_batch("shopee", b"wrong_header\nvalue\n")
 
 
 def test_upload_endpoint_requires_admin_token(monkeypatch):

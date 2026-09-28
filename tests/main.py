@@ -71,9 +71,9 @@ def main() -> int:
 
     # Do not rely on the skip marker: a misconfigured local environment must
     # not accidentally point the real runner at a developer database.
-    # A unique directory below the user profile avoids both an inaccessible
-    # Windows Temp folder and OneDrive synchronization in the workspace.
-    pytest_temp_root = Path(os.getenv("ARUNIKA_PYTEST_TEMP_ROOT", Path.home() / ".arunika-pytest"))
+    # Keep pytest artifacts in the project runtime directory. This avoids
+    # permission issues from profile-level temporary folders on Windows.
+    pytest_temp_root = Path(os.getenv("ARUNIKA_PYTEST_TEMP_ROOT", ROOT / ".test_runtime" / "pytest"))
     pytest_temp_root.mkdir(parents=True, exist_ok=True)
     pytest_temp_base = pytest_temp_root / uuid4().hex
     run_step(

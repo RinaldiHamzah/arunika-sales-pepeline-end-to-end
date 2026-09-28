@@ -55,7 +55,7 @@ def test_exports_have_one_schema_and_single_source_does_not_replace_overview(tmp
 
 
 def test_clean_export_files_do_not_include_customer_id():
-    clean_dir = ROOT / "data/processed/clean"
+    clean_dir = ROOT / "data/processed"
     for path in clean_dir.glob("*.csv"):
         data = pd.read_csv(path, dtype="string")
         assert "customer_id" not in data.columns, f"{path.name} still contains customer_id"

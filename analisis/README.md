@@ -30,7 +30,7 @@ Untuk menjalankan analisis dan membuat export tanpa membuka notebook:
 .\env\Scripts\python.exe -m pipeline.validation.analysis
 ```
 
-Perintah tersebut memproses semua sumber dan menyimpan hasil di `data/processed/clean/`. File yang dihasilkan mencakup `product.csv`, file transaksi per sumber, `sales.csv`, `summary.csv`, dan `quality_issues.csv`. File export dapat diperbarui saat perintah dijalankan kembali; file di `data/source/` tidak ditimpa.
+Perintah tersebut memproses semua sumber dan menyimpan hasil di `data/processed/`. File yang dihasilkan mencakup `product.csv`, file transaksi per sumber, `sales.csv`, `summary.csv`, dan `quality_issues.csv`. File export dapat diperbarui saat perintah dijalankan kembali; file di `data/source/` tidak ditimpa.
 
 ## Cara membaca hasil
 

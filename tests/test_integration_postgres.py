@@ -250,7 +250,7 @@ def test_full_pipeline_and_incremental_acceptance():
     assert third["products"] == second["products"]
     assert third_successes == second_successes + 1
 
-    from dashboard.flask import app
+    from dashboard.app import app
 
     client = app.test_client()
     assert client.get("/healthz").status_code == 200

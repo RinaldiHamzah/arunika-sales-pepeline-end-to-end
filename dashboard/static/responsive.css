@@ -301,6 +301,21 @@
   .table-container .status {
     justify-self: start;
   }
+  /* The expandable audit detail lives in the first table cell. Unlike a
+     standard metric cell, it needs the complete card width on small screens. */
+  #operation-run-rows .operation-run-cell {
+    display: block;
+  }
+  #operation-run-rows .operation-run-cell::before {
+    display: block;
+    margin-bottom: 6px;
+  }
+  #operation-run-rows .run-explanation {
+    display: block;
+    width: 100%;
+    max-width: none;
+    margin-top: 12px;
+  }
   .pagination .button {
     padding-inline: 10px;
   }

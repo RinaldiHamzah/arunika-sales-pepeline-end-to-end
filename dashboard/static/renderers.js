@@ -207,7 +207,7 @@ export function renderOperationRows(runs = []) {
   }
   return runs.map(run => `
     <tr>
-      <td title="${escapeHtml(run.run_id)}">${escapeHtml(String(run.run_id).slice(0, 8))}${renderRunExplanation(run)}</td>
+      <td class="operation-run-cell" title="${escapeHtml(run.run_id)}">${escapeHtml(String(run.run_id).slice(0, 8))}${renderRunExplanation(run)}</td>
       <td>${statusBadge(run.status)}</td>
       <td>${formatJakartaDateTime(run.started_at)}</td>
       <td>${formatJakartaDateTime(run.ended_at)}</td>

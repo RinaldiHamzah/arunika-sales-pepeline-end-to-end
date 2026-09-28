@@ -7,7 +7,7 @@ function accessibleChart(canvas, config) {
   if (!details) {
     details = document.createElement('details');
     details.className = 'chart-data';
-    details.innerHTML = '<summary>Lihat data tabel</summary><div class="chart-table"></div>';
+    details.innerHTML = '<summary>Lihat Tabel</summary><div class="chart-table"></div>';
     panel.append(details);
   }
   const { labels, datasets } = config.data;
@@ -15,9 +15,9 @@ function accessibleChart(canvas, config) {
   const format = isCount ? number : money;
   const title = panel.querySelector('h3').textContent;
   canvas.setAttribute('role', 'img');
-  canvas.setAttribute('aria-label', title + '. Angka lengkap tersedia pada Lihat data tabel.');
+  canvas.setAttribute('aria-label', title + '. Angka lengkap tersedia pada Lihat Tabel.');
   details.querySelector('.chart-table').innerHTML = labels.length
-    ? `<table><caption>${escapeHtml(title)}</caption><thead><tr><th scope="col">Nama</th>${datasets.map(d => `<th scope="col">${escapeHtml(d.label || (isCount ? 'Pesanan' : 'Net sales'))}</th>`).join('')}</tr></thead><tbody>${labels.map((label, index) => `<tr><th scope="row">${escapeHtml(label)}</th>${datasets.map(d => `<td>${format(d.data[index])}</td>`).join('')}</tr>`).join('')}</tbody></table>`
+    ? `<table><caption>${escapeHtml(title)}</caption><thead><tr><th scope="col">Nama</th>${datasets.map(d => `<th scope="col">${escapeHtml(d.label || (isCount ? 'Pesanan' : 'Net Sales'))}</th>`).join('')}</tr></thead><tbody>${labels.map((label, index) => `<tr><th scope="row">${escapeHtml(label)}</th>${datasets.map(d => `<td>${format(d.data[index])}</td>`).join('')}</tr>`).join('')}</tbody></table>`
     : '<p class="empty">Tidak ada data pada periode ini. Coba rentang tanggal lain.</p>';
   canvas.hidden = !labels.length || !window.Chart;
   let notice = panel.querySelector('.chart-notice');
@@ -105,8 +105,8 @@ export function renderCharts(data) {
     data: {
       labels: month.map(item => item.label),
       datasets: [
-        { label: 'Penjualan bersih', data: month.map(item => item.net), borderColor: '#176b61', backgroundColor: '#176b6115', fill: true, tension: .25 },
-        { label: 'Penjualan kotor', data: month.map(item => item.gross), borderColor: '#ed8b65', tension: .25 },
+        { label: 'Penjualan Bersih', data: month.map(item => item.net), borderColor: '#176b61', backgroundColor: '#176b6115', fill: true, tension: .25 },
+        { label: 'Penjualan Kotor', data: month.map(item => item.gross), borderColor: '#ed8b65', tension: .25 },
       ],
     },
     options: {

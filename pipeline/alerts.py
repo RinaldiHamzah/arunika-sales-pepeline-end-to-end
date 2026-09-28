@@ -138,7 +138,7 @@ def format_pipeline_report(report):
     lines = [
         "PT Arunika Beauty Indonesia",
         f"PIPELINE {status} — {report.get('started_at', 'WIB')}",
-        "Laporan Pipeline Harian",
+        "LAPORAN HARIAN DATA PIPELINE",
         "",
         "WAKTU EKSEKUSI",
         f"Run ID: {report.get('run_id', '—')}",
@@ -156,7 +156,7 @@ def format_pipeline_report(report):
         "",
     ]
     if quality_staging and raw.get("new_or_changed", report.get("extracted_records", 0)):
-        lines.extend(["", "DATA QUALITY CHECK"])
+        lines.extend(["", "DATA QUALITY"])
         findings = []
         for key, label in QUALITY_SECTIONS:
             finding = quality_staging.get(key) or {}
@@ -186,9 +186,7 @@ def format_pipeline_report(report):
                 "",
                 "CATATAN AUDIT",
                 f"{explanation}",
-                "",
-                "TAHAP BERIKUTNYA",
-                "Data quality check, staging, dan warehouse tidak dijalankan karena tidak ada data baru.",
+                ""
             ]
         )
     elif status != "FAILED":

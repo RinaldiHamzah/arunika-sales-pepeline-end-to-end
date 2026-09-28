@@ -218,7 +218,7 @@ try {
   await until("document.getElementById('pipeline-progress').textContent.includes('staging_load')");
   assert.ok(requests.includes('/api/pipeline/run'));
   await evaluate("const input=document.getElementById('upload-file'); const dt=new DataTransfer(); dt.items.add(new File(['order_id\\n1'], 'new-batch.csv', {type:'text/csv'})); input.files=dt.files; input.dispatchEvent(new Event('change')); document.getElementById('upload-button').click()");
-  await until("document.getElementById('message').textContent.includes('20 baris')");
+  await until("document.getElementById('upload-status').textContent.includes('20 baris')");
   fail = true;
   await send('Page.navigate', { url: origin + '/?case=initial-failure#settings' });
   await until("document.getElementById('message')?.textContent.includes('unavailable')");

@@ -194,7 +194,7 @@ function renderRunExplanation(run) {
         <dt>Total fact ditulis</dt><dd>${metric(warehouse.facts_written)}</dd>
       </dl>`}`;
   return `<details class="run-explanation">
-    <summary>Rincian proses</summary>
+    <summary>Detail Proses</summary>
     <p>${escapeHtml(message)}</p>
     ${detail}
     ${run.error_message ? `<p class="run-error">Alasan gagal: ${escapeHtml(run.error_message)}</p>` : ''}

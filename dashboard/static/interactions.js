@@ -211,7 +211,10 @@ async function pollPipelineProgress() {
     button.disabled = false;
     button.textContent = 'Jalankan';
     if (run.status === 'SUCCESS') {
-      setPipelineProgress(`Selesai · ${formatJakartaDateTime(run.ended_at)} WIB. ${run.outcome_message || 'Lihat rincian proses untuk hasilnya.'}`, 'success');
+      // The pending batch has reached a completed pipeline run, so the upload
+      // reminder is no longer relevant. Keep it visible when a run fails.
+      setUploadStatus();
+      setPipelineProgress(`Selesai · ${formatJakartaDateTime(run.ended_at)} WIB.`, 'success');
       loadDashboard();
     } else {
       setPipelineProgress('Pipeline gagal. ' + (run.error_message || 'Lihat rincian riwayat eksekusi.'), 'failed');
@@ -255,10 +258,17 @@ function updateFileName() {
   $('upload-file-name').textContent = file ? file.name : 'Belum ada file';
 }
 
+function setUploadStatus(message = '') {
+  const status = $('upload-status');
+  status.textContent = message;
+  status.classList.toggle('hidden', !message);
+}
+
 async function uploadBatch() {
   const file = $('upload-file').files[0];
   if (!file) return showError('Pilih file CSV terlebih dahulu.');
   const button = $('upload-button');
+  setUploadStatus();
   button.disabled = true;
   button.textContent = 'Mengunggah…';
   try {
@@ -268,16 +278,15 @@ async function uploadBatch() {
     const data = await requestJson('/api/ingestion/upload', {
       method: 'POST', headers: adminHeaders(), body,
     });
-    $('message').textContent = `${data.rows_appended} baris ditambahkan ke ${data.source}. ${data.next_step}`;
-    $('message').dataset.kind = 'success';
-    $('message').classList.remove('hidden');
+    setUploadStatus(`${data.rows_appended} baris ditambahkan. Jalankan Pipeline untuk memproses data.`);
     $('upload-file').value = '';
     updateFileName();
   } catch (error) {
+    setUploadStatus();
     showError(error.message);
   } finally {
     button.disabled = false;
-    button.textContent = 'Unggah CSV';
+    button.textContent = 'Upload CSV';
   }
 }
 
@@ -288,9 +297,6 @@ async function loadOperations() {
   try {
     const data = await requestJson('/api/admin/operations', { headers: adminHeaders() });
     const latest = data.recent_runs[0];
-    $('operation-outcome').textContent = latest?.status === 'FAILED'
-      ? 'Pipeline terakhir gagal. Buka Rincian proses untuk melihat alasannya.'
-      : (latest?.outcome_message || 'Pilih Rincian proses untuk melihat metrik. Run lama belum memiliki metrik skip awal.');
     $('operations-empty').classList.add('hidden');
     $('operations-content').classList.remove('hidden');
     $('operation-latest-status').textContent = latest?.status || 'NO RUN';

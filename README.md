@@ -414,8 +414,8 @@ Hasil export tersedia di `data/processed/clean/`. Notebook eksplorasi berada di 
 
 ## Dokumentasi Lanjutan
 
-- [Panduan Analisis Data](analisis/README.md) — cara menjalankan pemeriksaan data per sumber, membaca temuan, dan membuat export bersih.
-- [Panduan Database](database/README.md) — struktur schema, star schema, migration, koneksi, contoh pemeriksaan tabel, dan view analitik.
+- [Panduan Analisis Data](analisis/README.md)
+- [Panduan Database](database/README.md) 
 - [Arsitektur Sistem](docs/architecture.md)
 - [Kualitas Data](docs/data_quality.md)
 - [Kamus Data](docs/data_dictionary.md)

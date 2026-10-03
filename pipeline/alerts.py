@@ -90,7 +90,8 @@ def send_pipeline_report(report: dict) -> bool:
         return True
     except (OSError, smtplib.SMTPException, ValueError) as error:
         LOGGER.warning(
-            "pipeline_email_failed",
+            "pipeline_email_failed: %s",
+            error,
             extra={
                 "run_id": str(report.get("run_id")),
                 "status": status,

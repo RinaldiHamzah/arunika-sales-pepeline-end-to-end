@@ -75,6 +75,14 @@ def email_pipeline_report_task(**context):
         payload["status"] = "FAILED"
         payload["error_message"] = payload["error_message"] or "Warehouse validation did not complete successfully."
     sent = send_pipeline_report(payload)
+    if not sent:
+        # Returning ``False`` from a PythonOperator still marks the task as a
+        # success. Raise explicitly so Airflow retries the notification and
+        # makes an operational problem visible in the DAG grid.
+        raise RuntimeError(
+            "Laporan pipeline gagal dikirim melalui SMTP. "
+            "Periksa log task email_pipeline_report untuk detailnya."
+        )
     LOGGER.info(
         "airflow_email_report_completed",
         extra={
@@ -83,7 +91,7 @@ def email_pipeline_report_task(**context):
             "loaded_records": payload["loaded_records"],
         },
     )
-    return sent
+    return True
 
 
 def validate_warehouse_for_run(**context):

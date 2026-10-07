@@ -128,6 +128,8 @@ SELECT * FROM warehouse.v_top_product_kpi ORDER BY net_sales_completed DESC LIMI
 
 Dashboard juga menjalankan agregasi SQL pada `warehouse.v_sales_detail` agar filter periode, kanal, status, kategori, merek, dan produk diterapkan di database. Aturan gross, net, AOV, dan return rate dijelaskan dalam [README utama](../README.md) dan definisi view berada di `database/schema/8_analytics_views.sql`.
 
+Bukti output query analytics tersedia pada [sql-analytics-output.png](../docs/images/sql-analytics-output.png).
+
 ## Keamanan
 
 - Jangan commit `.env`, password, token admin, atau App Password email.

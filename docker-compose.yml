@@ -104,7 +104,12 @@ services:
 
   airflow-init:
     build: .
-    command: airflow db migrate
+    command:
+      - sh
+      - -ec
+      - |
+        python -c 'import json, os; from pathlib import Path; Path("/opt/airflow/simple_auth_manager_passwords.json.generated").write_text(json.dumps({os.environ["AIRFLOW_ADMIN_USERNAME"]: os.environ["AIRFLOW_ADMIN_PASSWORD"]}) + "\n", encoding="utf-8")'
+        airflow db migrate
     environment:
       AIRFLOW_HOME: /opt/airflow
       PYTHONPATH: /app

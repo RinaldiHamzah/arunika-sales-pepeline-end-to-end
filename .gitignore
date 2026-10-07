@@ -20,3 +20,4 @@ postgres_data/
 logs/*.log
 !logs/.gitkeep
 url.txt
+docs/diagrams/*.drawio

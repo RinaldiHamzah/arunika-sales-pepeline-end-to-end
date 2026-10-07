@@ -23,6 +23,8 @@ Service yang diharapkan sehat adalah `postgres`, `dashboard`, `airflow-dag-proce
 
 Tambahkan opsi `--follow 10` pada `monitor_pipeline.py` untuk melihat pembaruan status setiap 10 detik.
 
+Hasil pengujian teknis terbaru tersedia pada [testing-result.png](images/testing-result.png).
+
 ## Membaca hasil run
 
 Tabel utama adalah `audit.pipeline_runs`.
@@ -44,6 +46,10 @@ Jika status run `SUCCESS` dan `extracted_records = 0`, tidak ada data baru atau 
 Pada kondisi tersebut, runner berhenti setelah membandingkan snapshot. Tahap staging dan warehouse dilewati. Audit tetap mencatat status `SUCCESS`, jumlah baris yang dilewati, dan alasan data tidak diproses kembali.
 
 Lihat tahap detail pada `audit.pipeline_stage_runs`. Log lokal berada di `logs/pipeline.log` dan `logs/dashboard.log`.
+
+![Ringkasan monitoring pipeline](images/pipeline-monitoring.png)
+
+*Bukti monitoring aktual dari `audit.pipeline_runs`.*
 
 ### Memantau run dari Dashboard
 
@@ -68,6 +74,10 @@ DAG `ecommerce_sales_pipeline` didefinisikan di `airflow/orchestration.py` dan d
 Jika file DAG atau Docker Compose berubah, jalankan `docker compose up -d --force-recreate airflow-dag-processor airflow-scheduler airflow-webserver`.
 
 Periksa Airflow di `http://127.0.0.1:8080` dan health endpoint di `http://127.0.0.1:8080/api/v2/monitor/health`.
+
+![Dependency task Airflow](images/airflow-dag.png)
+
+Diagram tersebut menjelaskan dependency pada source code. Gunakan Grid atau Graph View Airflow untuk bukti UI pada run tertentu.
 
 ## Email dan alert
 

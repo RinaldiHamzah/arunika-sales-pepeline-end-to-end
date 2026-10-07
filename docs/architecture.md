@@ -4,6 +4,8 @@ Dokumen ini menjelaskan alur data dari CSV hingga tampil sebagai analitik. Waktu
 
 ## Alur Jalan Data
 
+Diagram lengkap dapat dilihat pada [arsitektur pipeline end-to-end](images/end-to-end-pipeline.png). Diagram pendukung untuk tiap tahap tersedia pada [ingestion](images/ingestion-process.png), [cleaning dan standardisasi](images/cleaning-and-standardization.png), [product mapping](images/product-mapping-flow.png), [penyatuan antar-sumber](images/cross-source-data-integration.png), [pemuatan Staging](images/staging-load-flow.png), [transformasi ke Warehouse](images/transformation-to-warehouse-flow.png), serta [incremental loading](images/incremental-loading-flow.png).
+
 ```mermaid
 flowchart LR
     A[CSV source] --> B[Extract dan Checksum]
@@ -23,6 +25,10 @@ flowchart LR
 Dashboard menggunakan `warehouse.v_sales_detail` untuk menyajikan data sesuai filter. PostgreSQL menghitung KPI dan grafik melalui agregasi SQL. View KPI tanpa filter (`v_sales_kpi`, `v_sales_monthly_kpi`, `v_sales_channel_kpi`, `v_top_product_kpi`, dan `v_sales_status_kpi`) juga tersedia untuk pemeriksaan dan kebutuhan BI.
 
 `raw.*` menjadi tempat penyimpanan awal. Setiap baris baru atau berubah disimpan terlebih dahulu tanpa mengubah nilai dari sumbernya. Baris yang tidak lolos validasi tetap dapat ditelusuri di raw dan tabel audit, tetapi tidak diteruskan ke staging atau fact.
+
+![Ringkasan record Raw Layer](images/raw-layer.png)
+
+*Bukti query aktual jumlah record pada tabel Raw Layer.*
 
 ## Kontrak tiap tahap
 
@@ -74,6 +80,8 @@ Business key fact adalah:
 ```
 
 `source_record_hash` memastikan koreksi tidak tertukar dengan transaksi identik lama. Lihat [`docs/data_quality.md`](data_quality.md) untuk aturan validasi dan [`docs/erd.md`](erd.md) untuk relasi database.
+
+Bukti hasil runtime incremental tersedia pada [incremental-runs.png](images/incremental-runs.png).
 
 Contoh pembacaan yang benar:
 

@@ -17,7 +17,8 @@ from sqlalchemy import text
 from dashboard.services.analytics import (
     default_date_range,
     query_dashboard_analytics,
-    query_dashboard_data,)
+    query_dashboard_data,
+)
 from dashboard.services.formatting import operation_runs_for_display, serializable
 from dashboard.services.ingestion import append_csv_batch
 from pipeline.config import settings

@@ -1,0 +1,13 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "Arunika Sales Warehouse",
+      "Group": "Servers",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "ecommerce_sales",
+      "Username": "ecommerce_user",
+      "SSLMode": "prefer"
+    }
+  }
+}

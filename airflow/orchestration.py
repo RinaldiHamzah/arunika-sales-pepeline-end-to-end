@@ -106,8 +106,6 @@ with DAG(
     dag_id="ecommerce_sales_pipeline",
     description="Validate sources, load the warehouse, and verify published facts.",
     start_date=pendulum.datetime(2026, 1, 1, tz="Asia/Jakarta"),
-    # Cron format: minute hour day-of-month month day-of-week.
-    # Runs once every day at 13:00 WIB (Asia/Jakarta).
     schedule="0 13 * * *",
     catchup=False,
     default_args={
@@ -129,7 +127,6 @@ with DAG(
     email_pipeline_report = PythonOperator(
         task_id="email_pipeline_report",
         python_callable=email_pipeline_report_task,
-        # The daily report is still sent if loading or warehouse validation fails.
         trigger_rule="all_done",
     )
 

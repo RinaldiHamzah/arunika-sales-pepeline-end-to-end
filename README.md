@@ -421,6 +421,7 @@ Hasil export tersedia di `data/processed/`. Notebook eksplorasi berada di folder
 - [Kamus Data](docs/data_dictionary.md)
 - [ERD](docs/erd.md)
 - [Technical Runbook](docs/technical_runbook.md)
+- [Technical Project](docs/technical_project.md)
 - [Database Schema](database/README.md)
 - [Dashboard dan UI/UX](dashboard/README.md)
 

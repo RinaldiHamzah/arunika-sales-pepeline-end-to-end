@@ -1,145 +1,20 @@
 # ERD Warehouse dan Audit
 
-Diagram berikut merangkum tabel dan relasi utama. `PK` menandai primary key, `FK` menandai foreign key, dan `UK` menandai unique key.
+Diagram berikut merangkum tabel dan relasi utama. `PK` menandai primary key, `FK` menandai foreign key, dan `UNQ` menandai unique key.
 
-```mermaid
-erDiagram
-    PIPELINE_RUNS ||--o{ RAW_SHOPEE_ORDERS : ingestion_run_id
-    PIPELINE_RUNS ||--o{ RAW_TOKOPEDIA_TRANSACTIONS : ingestion_run_id
-    PIPELINE_RUNS ||--o{ RAW_WEBSITE_TRANSACTIONS : ingestion_run_id
-    PIPELINE_RUNS ||--o{ RAW_OFFLINE_STORE_SALES : ingestion_run_id
-    PIPELINE_RUNS ||--o{ RAW_PRODUCT_MASTER : ingestion_run_id
-    PIPELINE_RUNS ||--o{ STG_SALES : ingestion_run_id
-    PIPELINE_RUNS ||--o{ SOURCE_INGESTIONS : run_id
-    PIPELINE_RUNS ||--o{ DATA_QUALITY_RESULTS : run_id
-    PIPELINE_RUNS ||--o{ REJECTED_RECORDS : run_id
-    PIPELINE_RUNS ||--o{ PIPELINE_STAGE_RUNS : run_id
-    PIPELINE_RUNS ||--o{ SOURCE_SNAPSHOTS : run_id
-    PIPELINE_RUNS ||--o{ PIPELINE_WATERMARKS : last_successful_run_id
+## Star Schema Warehouse
 
-    DIM_DATE ||--o{ FACT_SALES : date_key
-    DIM_PRODUCT ||--o{ FACT_SALES : product_key
-    DIM_CUSTOMER ||--o{ FACT_SALES : customer_key
-    DIM_CHANNEL ||--o{ FACT_SALES : channel_key
-    DIM_PAYMENT ||--o{ FACT_SALES : payment_key
+![Arsitektur star schema Data Warehouse](images/warehouse-star-schema.png)
 
-    PIPELINE_RUNS {
-        uuid run_id PK
-        varchar pipeline_name
-        timestamptz started_at
-        varchar status
-        jsonb report_summary
-    }
-    RAW_SHOPEE_ORDERS {
-        bigint raw_record_id PK
-        uuid ingestion_run_id FK
-        text order_id
-        text source_payload
-    }
-    RAW_TOKOPEDIA_TRANSACTIONS {
-        bigint raw_record_id PK
-        uuid ingestion_run_id FK
-        text transaction_id
-        text source_payload
-    }
-    RAW_WEBSITE_TRANSACTIONS {
-        bigint raw_record_id PK
-        uuid ingestion_run_id FK
-        text invoice_no
-        text source_payload
-    }
-    RAW_OFFLINE_STORE_SALES {
-        bigint raw_record_id PK
-        uuid ingestion_run_id FK
-        text pos_receipt_no
-        text source_payload
-    }
-    RAW_PRODUCT_MASTER {
-        bigint raw_record_id PK
-        uuid ingestion_run_id FK
-        varchar sku
-        text source_payload
-    }
-    STG_SALES {
-        bigint staging_sales_id PK
-        uuid ingestion_run_id FK
-        bigint source_raw_record_id
-        varchar mapped_sku
-        text source_order_id
-        char source_record_hash
-    }
-    DIM_DATE {
-        int date_key PK
-        date full_date UK
-    }
-    DIM_PRODUCT {
-        bigint product_key PK
-        varchar sku UK
-    }
-    DIM_CUSTOMER {
-        bigint customer_key PK
-        text customer_nk UK
-    }
-    DIM_CHANNEL {
-        smallint channel_key PK
-        varchar channel_code UK
-    }
-    DIM_PAYMENT {
-        smallint payment_key PK
-        varchar payment_method UK
-    }
-    FACT_SALES {
-        bigint sales_key PK
-        int date_key FK
-        bigint product_key FK
-        bigint customer_key FK
-        smallint channel_key FK
-        smallint payment_key FK
-        varchar source_name
-        text source_order_id
-        int source_line_number
-        char source_record_hash
-    }
-    DATA_QUALITY_RESULTS {
-        bigint quality_result_id PK
-        uuid run_id FK
-        varchar rule_name
-        int failed_records
-    }
-    REJECTED_RECORDS {
-        bigint rejected_record_id PK
-        uuid run_id FK
-        text rejection_reason
-    }
-    SOURCE_INGESTIONS {
-        bigint source_ingestion_id PK
-        uuid run_id FK
-        varchar source_name
-        char file_checksum_sha256
-        int extracted_records
-    }
-    PIPELINE_STAGE_RUNS {
-        bigint stage_run_id PK
-        uuid run_id FK
-        varchar stage_name
-        varchar status
-        numeric duration_seconds
-    }
-    SOURCE_SNAPSHOTS {
-        varchar pipeline_name PK
-        varchar source_name PK
-        char file_checksum_sha256
-        uuid run_id FK
-        jsonb payload_hashes
-    }
-    PIPELINE_WATERMARKS {
-        varchar pipeline_name PK
-        varchar source_name PK
-        uuid last_successful_run_id FK
-        timestamptz last_processed_at
-        text last_business_key
-    }
-```
+
+
+## ERD Lengkap
+
+![ERD lengkap Raw, Staging, Audit, dan Warehouse](images/erd-full.png)
+
+Diagram lengkap mencakup relasi `audit.pipeline_runs` dengan Raw, Staging, dan tabel audit operasional, serta relasi `warehouse.fact_sales` dengan seluruh tabel dimensi.
+
+File sumber diagram yang dapat diedit menggunakan Draw.io tersedia pada `diagrams/erd_full.drawio`.
 
 ## Analytics Views
 

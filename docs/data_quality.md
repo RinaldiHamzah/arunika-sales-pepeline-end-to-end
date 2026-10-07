@@ -51,6 +51,10 @@ product_id,product_name,brand,kategori,harga_satuan
 
 ## Disposisi record
 
+![Disposisi record hasil validasi](images/data-quality-record-disposition.png)
+
+*Alur valid, duplikat, dan record yang ditolak pada tahap Data Quality.*
+
 ```text
 error atau konflik  → rejected
 valid dan berulang  → duplicate
@@ -98,6 +102,10 @@ Hasil pemeriksaan kualitas disimpan di PostgreSQL untuk setiap `run_id`, sehingg
 Angka `valid_records`, `rejected_records`, dan `duplicate_records` adalah jumlah record. Kolom berakhiran `*_records` pada kategori issue adalah jumlah temuan rule, bukan selalu jumlah record unik: satu baris yang memiliki harga dan tanggal tidak valid memang dihitung pada dua kategori agar penyebabnya terlihat lengkap.
 
 Jalankan laporan untuk run terbaru:
+
+![Ringkasan hasil pemeriksaan kualitas data](images/data-quality-report.png)
+
+*Bukti query aktual `audit.data_quality_results` tersedia pada Gambar — Ringkasan hasil Data Quality Check.*
 
 ```powershell
 .\env\Scripts\python.exe .\scripts\report_data_quality.py

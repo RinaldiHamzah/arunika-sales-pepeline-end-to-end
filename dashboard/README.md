@@ -16,6 +16,8 @@ Dashboard dirender sebagai satu halaman dengan beberapa tampilan. Hash URL dan J
 
 Pengaturan memakai `DASHBOARD_ADMIN_TOKEN` untuk upload, menjalankan pipeline, dan membaca informasi operasional yang dilindungi.
 
+Contoh tampilan tersedia pada [Dashboard Ringkasan](../docs/images/dashboard.png), [Rincian Transaksi](../docs/images/transaksi.png), dan [Pengaturan Pipeline](../docs/images/pengaturan.png).
+
 ## Cara menggunakan
 
 ### Ringkasan dan analitik

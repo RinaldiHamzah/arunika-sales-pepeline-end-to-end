@@ -766,51 +766,139 @@ Pemeriksaan terakhir pada 3 Oktober 2026 mengumpulkan 49 test non-integration da
 
 ## 16. How to Run
 
-### 16.1 Persiapan
+Panduan ini untuk menjalankan proyek di Windows. Anda tidak perlu memasang PostgreSQL atau Airflow secara terpisah; Docker Desktop akan menyiapkannya. Ikuti langkahnya berurutan. Jalankan perintah dari folder proyek, yaitu folder yang berisi `docker-compose.yml`.
+
+### 16.1 Yang perlu disiapkan
+
+- Komputer Windows dan Docker Desktop yang sudah dibuka.
+- Git hanya jika Anda belum memiliki folder proyek.
+
+Untuk memastikan Docker siap, buka PowerShell dan jalankan:
+
+```powershell
+docker version
+docker compose version
+```
+
+Jika kedua perintah menampilkan nomor versi tanpa pesan error, lanjutkan ke langkah berikutnya.
+
+### 16.2 Siapkan folder proyek dan pengaturan
+
+Jika folder proyek belum ada di komputer, jalankan perintah berikut untuk mengunduhnya:
+
+```powershell
+git clone https://github.com/RinaldiHamzah/arunika-sales-pepeline-end-to-end.git
+Set-Location .\arunika-sales-pepeline-end-to-end
+```
+
+Jika folder proyek sudah ada, buka folder tersebut di PowerShell. Pastikan Anda berada di folder yang berisi `docker-compose.yml` sebelum melanjutkan.
+
+Jika belum memiliki file `.env`, buat dari contoh. Jika `.env` sudah ada, jangan jalankan perintah `Copy-Item` lagi; cukup buka file tersebut. Perintah untuk membuat dan membuka file:
 
 ```powershell
 Copy-Item .env.example .env
+notepad .env
 ```
 
-Isi secret pada `.env`, terutama `POSTGRES_PASSWORD`, `DASHBOARD_ADMIN_TOKEN`, Airflow keys/password, dan SMTP bila email digunakan. Jangan commit `.env`.
+Di Notepad, ganti nilai contoh untuk password database, token administrator Dashboard, dan akun Airflow. Nilai ini digunakan untuk mengamankan dan menghubungkan aplikasi. Pengaturan email boleh dibiarkan kosong jika Anda tidak memakai laporan email. Simpan perubahan, lalu tutup Notepad.
 
-### 16.2 Menjalankan seluruh service
+Jangan bagikan atau unggah file `.env`; isinya mencakup password dan token.
+
+Pastikan pengaturan dapat dibaca oleh Docker:
+
+```powershell
+docker compose config --quiet
+```
+
+Jika perintah selesai tanpa pesan error, pengaturan sudah siap. Jika muncul error, periksa kembali nilai yang diminta pada file `.env`.
+
+### 16.3 Nyalakan proyek dan proses data pertama
+
+Dari folder utama proyek, jalankan:
 
 ```powershell
 docker compose up -d --build
-docker compose ps
 ```
 
-Endpoint utama:
+Perintah ini mengunduh kebutuhan proyek dan menyalakan aplikasi. Saat pertama kali dijalankan, proyek juga menyiapkan database, membuat atau memperbarui tabel, lalu membaca file CSV awal. Langkah-langkah tersebut berjalan otomatis; Anda tidak perlu menjalankannya satu per satu.
 
-```text
-Dashboard : http://127.0.0.1:8501
-Airflow   : http://127.0.0.1:8080
-PostgreSQL: 127.0.0.1:5433
-pgAdmin   : profile tools, port 5050
-```
-
-### 16.3 Menjalankan pipeline manual
+Periksa apakah aplikasi sudah siap:
 
 ```powershell
-.\env\Scripts\python.exe -m pipeline.runner
-.\env\Scripts\python.exe .\scripts\check_warehouse.py
+docker compose ps -a
 ```
 
-### 16.4 Migration
+Tunggu sebentar sampai proses persiapan selesai. Dashboard, Airflow, dan database seharusnya berstatus berjalan atau sehat. Baris `Exited (0)` pada tugas persiapan bukan selalu error: angka `0` berarti tugas itu selesai dengan sukses.
+
+### 16.4 Buka Dashboard atau Airflow
+
+Buka alamat berikut di browser:
+
+| Aplikasi | Alamat | Untuk apa |
+| --- | --- | --- |
+| Dashboard | `http://127.0.0.1:8501` | Melihat ringkasan dan rincian penjualan. |
+| Airflow | `http://127.0.0.1:8080` | Melihat jadwal dan riwayat proses. |
+
+Untuk masuk ke Airflow, gunakan nama pengguna dan password Airflow dari `.env`.
+
+Database tidak dibuka melalui browser. Alamat `127.0.0.1:5433` adalah alamat koneksi database dari komputer ini; biasanya Anda tidak perlu mengubahnya.
+
+pgAdmin adalah alat tambahan untuk melihat isi database. Langkah ini boleh dilewati jika Anda hanya ingin menggunakan Dashboard. Untuk menyalakannya, jalankan:
 
 ```powershell
-.\env\Scripts\python.exe -m alembic current
-.\env\Scripts\python.exe -m alembic upgrade head
+docker compose --profile tools up -d --build
 ```
 
-### 16.5 Mematikan service
+Buka `http://127.0.0.1:5050`, lalu masuk menggunakan email dan password pgAdmin dari `.env`. Setelah masuk, tambahkan koneksi database: host `postgres`, port `5432`, nama database sesuai `POSTGRES_DB`, pengguna sesuai `POSTGRES_USER`, dan password sesuai `POSTGRES_PASSWORD`. Password database ini berbeda dari password untuk masuk ke pgAdmin.
+
+Angka setelah tanda titik dua pada alamat, misalnya `8501`, disebut port. Angka di atas adalah port bawaan proyek. Jika nilainya diubah di `.env`, gunakan angka baru saat membuka aplikasi.
+
+### 16.5 Jalankan ulang proses setelah CSV berubah
+
+Pipeline adalah proses yang membaca dan memasukkan data CSV ke database. Proses ini sudah berjalan otomatis saat proyek pertama kali dinyalakan. Jika Anda menambah atau mengubah file CSV di folder `data/source/`, jalankan perintah berikut agar perubahan dibaca:
 
 ```powershell
-docker compose down
+docker compose run --rm pipeline
 ```
 
-Perintah ini tidak menghapus volume. Jangan menggunakan opsi `-v` bila data PostgreSQL masih diperlukan.
+Tunggu sampai perintah selesai; ringkasan hasil akan tampil di PowerShell. Jika file tidak berubah sejak proses sebelumnya, pipeline tetap dapat selesai dengan sukses tanpa memuat ulang data yang sama.
+
+Untuk melihat catatan proses yang baru dijalankan di Docker, gunakan:
+
+```powershell
+docker compose logs --tail=100 pipeline
+```
+
+Jika ingin terus melihat catatan saat proses berjalan, gunakan `docker compose logs -f pipeline`. Tekan `Ctrl+C` untuk berhenti melihat catatan; aplikasi tetap berjalan.
+
+### 16.6 Pembaruan struktur database (migration)
+
+*Migration* adalah langkah untuk membuat atau memperbarui struktur tabel database agar sesuai dengan versi aplikasi. Saat proyek dinyalakan dengan Docker, langkah ini berjalan otomatis sebelum file CSV diproses. Untuk penggunaan biasa, Anda tidak perlu menjalankannya secara manual.
+
+Jika perlu memeriksa atau menjalankan pembaruan secara manual, pastikan Docker dan database aktif. Dari PowerShell di folder proyek, jalankan:
+
+```powershell
+docker compose run --rm pipeline alembic current
+docker compose run --rm pipeline alembic upgrade head
+```
+
+Perintah pertama menampilkan versi struktur database saat ini. Perintah kedua menerapkan pembaruan yang tersedia. Jalankan hanya jika diperlukan; jangan menghapus volume database.
+
+### 16.7 Matikan atau nyalakan kembali proyek
+
+Untuk mematikan aplikasi setelah selesai digunakan:
+
+```powershell
+docker compose --profile tools down
+```
+
+Perintah tersebut mematikan aplikasi tetapi tetap menyimpan data database. Untuk menyalakannya kembali, jalankan:
+
+```powershell
+docker compose up -d
+```
+
+Jika Anda juga menggunakan pgAdmin, jalankan `docker compose --profile tools up -d`. Hindari menambahkan `-v` pada perintah `down`, karena opsi itu menghapus tempat penyimpanan data database.
 
 ---
 

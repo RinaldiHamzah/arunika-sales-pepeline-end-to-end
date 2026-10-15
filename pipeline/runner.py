@@ -1,5 +1,6 @@
-"""Jalankan ekstraksi 
-    Run: python -m pipeline.runner"""
+"""Jalankan ekstraksi dan pemuatan data.
+Contoh perintah: python -m pipeline.runner
+"""
 
 from __future__ import annotations
 

@@ -1,1 +1,1 @@
-"""Dashboard package for the Arunika sales warehouse."""
+"""Dashboard gudang data penjualan Arunika."""

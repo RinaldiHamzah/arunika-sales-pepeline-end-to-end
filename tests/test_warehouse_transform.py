@@ -1,4 +1,4 @@
-"""Tests for the clean-to-warehouse transformation boundary."""
+"""Tes transformasi dari data bersih ke gudang data."""
 
 from pathlib import Path
 

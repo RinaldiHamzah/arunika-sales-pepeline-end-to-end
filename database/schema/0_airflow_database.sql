@@ -1,4 +1,4 @@
--- Create a dedicated Airflow metadata database during first PostgreSQL init.
--- The application warehouse remains isolated in ecommerce_sales.
+-- Buat basis data metadata Airflow terpisah saat inisialisasi PostgreSQL pertama.
+-- Gudang data aplikasi tetap terpisah di ecommerce_sales.
 SELECT 'CREATE DATABASE airflow'
 WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'airflow')\gexec

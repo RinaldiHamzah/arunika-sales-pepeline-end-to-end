@@ -1,4 +1,4 @@
-"""Publish reusable SQL KPI and data-quality reporting views."""
+"""Sediakan view SQL yang dapat digunakan ulang untuk KPI dan laporan kualitas data."""
 
 from alembic import op
 
@@ -10,8 +10,8 @@ depends_on = None
 
 def upgrade():
     op.execute("""
--- PostgreSQL CREATE OR REPLACE VIEW cannot remove or reorder columns. The
--- bootstrap SQL may already contain a newer shape, so recreate these views.
+-- PostgreSQL CREATE OR REPLACE VIEW tidak dapat menghapus atau mengubah urutan kolom.
+-- SQL bootstrap mungkin sudah memiliki bentuk terbaru, jadi buat ulang view ini.
 DROP VIEW IF EXISTS audit.v_data_quality_report;
 DROP VIEW IF EXISTS audit.v_data_quality_by_rule;
 DROP VIEW IF EXISTS warehouse.v_sales_status_kpi;

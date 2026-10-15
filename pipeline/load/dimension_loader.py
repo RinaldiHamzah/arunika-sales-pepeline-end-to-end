@@ -1,12 +1,12 @@
-"""Idempotent upsert loader for warehouse dimensions."""
+"""Pemuat upsert dimensi gudang data."""
 
 from __future__ import annotations
 
 from sqlalchemy import text
 from sqlalchemy.engine import Connection
 
-# These are reference members of the analytical model, not source data.  They
-# must be present even after an operator clears warehouse tables manually.
+    # Anggota referensi ini merupakan bagian dari model analitik, bukan data sumber.
+    # Data tersebut harus tetap tersedia meskipun operator mengosongkan tabel gudang data.
 CHANNELS = (
     {"channel_code": "SHOPEE", "channel_name": "Shopee", "channel_type": "MARKETPLACE"},
     {"channel_code": "TOKOPEDIA", "channel_name": "Tokopedia", "channel_type": "MARKETPLACE"},
@@ -16,7 +16,7 @@ CHANNELS = (
 
 
 def load_dimensions(connection: Connection, product_rows, staging_rows) -> dict[str, int]:
-    """Upsert dimensions from validated product and staging rows."""
+    """Lakukan upsert dimensi dari baris produk dan staging yang telah tervalidasi."""
     connection.execute(
         text("""
             INSERT INTO warehouse.dim_channel (channel_code, channel_name, channel_type)
@@ -63,9 +63,9 @@ def load_dimensions(connection: Connection, product_rows, staging_rows) -> dict[
             customers[customer_key] = {
                 "customer_nk": row["customer_nk"],
                 "customer_name": row.get("customer_name") or existing_customer.get("customer_name"),
-                # A valid city seen earlier in the same batch remains the
-                # source-of-record when another line for that exact customer
-                # omits the optional location field.
+                # Kota valid yang ditemukan lebih awal dalam batch tetap menjadi
+                # acuan saat baris lain untuk pelanggan yang sama tidak mengisi
+                # kolom lokasi yang bersifat opsional.
                 "city": row.get("city") or existing_customer.get("city"),
             }
         if row.get("payment_method"):
@@ -90,10 +90,9 @@ def load_dimensions(connection: Connection, product_rows, staging_rows) -> dict[
                 VALUES (:customer_nk, :customer_name, :city)
                 ON CONFLICT (customer_nk) DO UPDATE SET
                     customer_name = COALESCE(EXCLUDED.customer_name, warehouse.dim_customer.customer_name),
-                    -- Do not erase a previously verified city when a later
-                    -- source row has no location.  This is deterministic
-                    -- enrichment by the exact customer natural key, not a
-                    -- geographic guess.
+                    -- Jangan hapus kota yang telah diverifikasi jika baris sumber
+                    -- berikutnya tidak memiliki lokasi. Pengayaan ini ditentukan
+                    -- oleh natural key pelanggan yang sama, bukan tebakan geografis.
                     city = CASE
                         WHEN EXCLUDED.city IS NULL
                           OR LOWER(BTRIM(EXCLUDED.city)) IN ('', 'nan', 'none', 'null', 'n/a', 'na')

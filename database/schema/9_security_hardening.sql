@@ -1,5 +1,5 @@
--- Final bootstrap hardening. Public connectivity and schema creation are closed;
--- production role privilege elevation is managed by the cluster administrator.
+-- Pengamanan akhir bootstrap. Koneksi publik dan pembuatan skema ditutup;
+-- peningkatan hak akses peran produksi dikelola oleh administrator klaster.
 DO $$
 BEGIN
     EXECUTE format('REVOKE CONNECT ON DATABASE %I FROM PUBLIC', current_database());

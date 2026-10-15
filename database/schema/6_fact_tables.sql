@@ -1,4 +1,4 @@
--- Fact grain: one product line in one source transaction.
+-- Grain fact: satu baris produk dalam satu transaksi sumber.
 CREATE TABLE IF NOT EXISTS warehouse.fact_sales (
     sales_key BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     source_name VARCHAR(30) NOT NULL CHECK (source_name IN ('SHOPEE', 'TOKOPEDIA', 'WEBSITE', 'OFFLINE_STORE')),

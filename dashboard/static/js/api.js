@@ -1,4 +1,4 @@
-/** HTTP boundary. A timeout covers both headers and the response body. */
+/** Batas komunikasi HTTP. Batas waktu berlaku untuk header dan isi respons. */
 export async function requestJson(url, options = {}) {
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), 20000);

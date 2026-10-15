@@ -1,6 +1,5 @@
-"""Display the latest Arunika pipeline performance from the audit database.
-
-Examples:
+"""Tampilkan ringkasan pipeline terbaru dari audit.
+Contoh penggunaan:
     python scripts/monitor_pipeline.py
     python scripts/monitor_pipeline.py --follow 10
 """
@@ -39,7 +38,7 @@ def _row(row):
 
 
 def collect_performance(run_id: str | None = None) -> dict:
-    """Return an operational snapshot for one run or the latest run."""
+    """Kembalikan ringkasan operasional untuk run tertentu atau run terbaru."""
     with get_engine().connect() as connection:
         run_query = """
                 SELECT run_id, pipeline_name, started_at, ended_at, status,

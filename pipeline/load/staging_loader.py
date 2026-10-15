@@ -1,4 +1,4 @@
-"""Load validated canonical rows into the staging table."""
+"""Pemuatan data tervalidasi."""
 
 from __future__ import annotations
 
@@ -11,9 +11,7 @@ RAW_TABLES = {
     "SHOPEE": "raw.shopee_orders",
     "TOKOPEDIA": "raw.tokopedia_transactions",
     "WEBSITE": "raw.website_transactions",
-    "OFFLINE_STORE": "raw.offline_store_sales",
-}
-
+    "OFFLINE_STORE": "raw.offline_store_sales",}
 
 def _raw_record_ids(connection: Connection, run_id: UUID) -> dict[tuple[str, int], int]:
     records = {}
@@ -27,7 +25,7 @@ def _raw_record_ids(connection: Connection, run_id: UUID) -> dict[tuple[str, int
 
 
 def load_staging(connection: Connection, run_id: UUID, rows) -> int:
-    """Insert clean rows once for the ingestion run and return inserted candidates."""
+    """Masukkan baris bersih satu kali untuk run ingestion dan kembalikan kandidat yang ditambahkan."""
     raw_ids = _raw_record_ids(connection, run_id)
     records = []
     for row in rows.to_dict("records"):

@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS warehouse.dim_payment (
     payment_method VARCHAR(60) NOT NULL UNIQUE
 );
 
--- Static channel members; the ETL only needs to resolve these keys.
+-- Anggota kanal bersifat tetap; ETL hanya perlu menentukan key-nya.
 INSERT INTO warehouse.dim_channel (channel_code, channel_name, channel_type)
 VALUES
     ('SHOPEE', 'Shopee', 'MARKETPLACE'),

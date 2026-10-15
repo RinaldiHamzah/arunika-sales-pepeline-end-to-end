@@ -1,4 +1,4 @@
-"""Fail-fast checks for the published PostgreSQL warehouse."""
+"""Pemeriksaan gudang data PostgreSQL yang dipublikasikan."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from pipeline.database import get_engine
 
 
 def validate_warehouse(run_id=None) -> None:
-    """Validate the latest successful run and core warehouse invariants."""
+    """Validasi run sukses terbaru dan aturan utama gudang data."""
     with get_engine().begin() as connection:
         run = (
             connection.execute(

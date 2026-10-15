@@ -1,8 +1,7 @@
-"""One PostgreSQL lock shared by CLI, dashboard and Airflow processes."""
+"""Proses eksekusi dashboard dan Airflow."""
 
 from contextlib import contextmanager
 from uuid import uuid4
-
 from sqlalchemy import text
 
 LOCK_KEY = 82462731
@@ -17,7 +16,7 @@ def try_transaction_lock(connection):
 
 
 def recover_abandoned_runs(connection):
-    """Call only while holding the shared lock: no live runner can be stopped."""
+    """Panggil hanya saat kunci bersama dipegang agar runner aktif tidak terhenti."""
     connection.execute(
         text("""
         UPDATE audit.pipeline_runs
@@ -33,7 +32,7 @@ def recover_abandoned_runs(connection):
 
 
 def reserve_run(connection, pipeline_name):
-    """Serialize check + reservation; the child claims this exact UUID."""
+    """Urutkan pemeriksaan dan reservasi; proses anak menggunakan UUID yang sama persis."""
     if not try_transaction_lock(connection):
         raise PipelineBusyError("Pipeline sedang berjalan.")
     recover_abandoned_runs(connection)
@@ -53,7 +52,7 @@ def reserve_run(connection, pipeline_name):
 
 @contextmanager
 def pipeline_lock(engine):
-    # A dedicated session owns the lock for the entire run, across commits.
+    # Sesi khusus memegang kunci selama seluruh run, termasuk di antara commit.
     with engine.connect() as connection:
         acquired = connection.execute(text("SELECT pg_try_advisory_lock(:key)"), {"key": LOCK_KEY}).scalar_one()
         connection.commit()
@@ -66,12 +65,12 @@ def pipeline_lock(engine):
                 connection.execute(text("SELECT pg_advisory_unlock(:key)"), {"key": LOCK_KEY})
                 connection.commit()
             except Exception:
-                # Never return a session with a potentially held lock to the pool.
+                # Jangan kembalikan sesi yang mungkin masih memegang kunci ke pool.
                 connection.invalidate()
 
 
 def begin_run(engine, pipeline_name, reserved_run_id=None, orchestration_run_id=None):
-    """Must be called under pipeline_lock."""
+    """Fungsi ini harus dipanggil saat pipeline_lock dipegang."""
     with engine.begin() as connection:
         if reserved_run_id:
             claimed = connection.execute(

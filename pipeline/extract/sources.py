@@ -1,4 +1,4 @@
-"""Build the complete list of project source extracts."""
+"""Ekstrak sumber data proyek."""
 
 from pathlib import Path
 

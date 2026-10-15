@@ -1,1 +1,1 @@
-"""Source extraction modules."""
+"""Modul ekstraksi sumber."""

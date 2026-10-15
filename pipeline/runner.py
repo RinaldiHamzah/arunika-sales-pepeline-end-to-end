@@ -1,4 +1,5 @@
-"""Run extraction and raw ingestion: python -m pipeline.runner."""
+"""Jalankan ekstraksi 
+    Run: python -m pipeline.runner"""
 
 from __future__ import annotations
 
@@ -28,9 +29,9 @@ from pipeline.reporting import outcome_message, quality_staging_summary, run_rep
 from pipeline.transform.standardize import SOURCE_NAMES, clean_results_to_staging, filter_incremental_results
 from pipeline.validation.data_quality import run_quality
 
-# Keep a stable logger name when this module is executed both as an import and
-# via ``python -m pipeline.runner``. The latter sets ``__name__`` to
-# ``__main__``; a stable name ensures the event is routed to pipeline.log.
+# Gunakan nama logger yang tetap saat modul dipanggil sebagai impor maupun
+# melalui ``python -m pipeline.runner``. Cara kedua mengatur ``__name__`` menjadi
+# ``__main__``; nama yang tetap memastikan log masuk ke pipeline.log.
 LOGGER = get_logger("pipeline.runner")
 SOURCE_DIR = Path(__file__).resolve().parents[1] / "data" / "source"
 APP_TIMEZONE = ZoneInfo(settings.app_timezone)
@@ -46,17 +47,17 @@ RAW_PRODUCT_MASTER_COUNT = text("SELECT COUNT(*) FROM raw.product_master")
 
 
 def raw_transaction_total(connection) -> int:
-    """Return the current transaction inventory in the Raw Layer."""
+    """Kembalikan inventaris transaksi saat ini di Raw Layer."""
     return int(connection.execute(RAW_TRANSACTION_COUNT).scalar_one())
 
 
 def raw_product_master_total(connection) -> int:
-    """Return the current Product Master inventory in the Raw Layer."""
+    """Kembalikan inventaris Product Master saat ini di Raw Layer."""
     return int(connection.execute(RAW_PRODUCT_MASTER_COUNT).scalar_one())
 
 
 def existing_fact_hashes(engine, quality_results) -> dict[tuple[str, str, int], str]:
-    """Fetch warehouse hashes only for valid candidate keys from this run."""
+    """Ambil hash gudang data hanya untuk key kandidat valid pada run ini."""
     source_names = []
     order_ids = []
     line_numbers = []
@@ -99,7 +100,7 @@ def existing_fact_hashes(engine, quality_results) -> dict[tuple[str, str, int], 
 
 
 def _send_direct_run_report(engine, run_id, orchestration_run_id) -> bool:
-    """Email an audit-backed report for CLI and dashboard executions only.
+    """Kirim laporan berbasis audit hanya untuk eksekusi CLI dan dashboard.
 
     Airflow has its own terminal ``email_pipeline_report`` task.  Skipping an
     orchestrated run here guarantees a scheduled DAG produces exactly one
@@ -133,8 +134,8 @@ def _send_direct_run_report(engine, run_id, orchestration_run_id) -> bool:
             return False
         return send_pipeline_report(dict(report))
     except Exception:
-        # Notification failures must not change the ETL result or mask its
-        # original exception.  The structured log retains the diagnosis.
+        # Kegagalan notifikasi tidak boleh mengubah hasil ETL atau menutupi
+        # pengecualian awal. Log terstruktur tetap menyimpan penyebabnya.
         LOGGER.exception("pipeline_email_report_unavailable", extra={"run_id": str(run_id)})
         return False
 
@@ -157,7 +158,7 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
     run_id = begin_run(engine, settings.pipeline_name, reserved_run_id, orchestration_run_id)
 
     def mark_current_stage(name: str) -> None:
-        """Persist stage entry immediately so the UI can report live progress."""
+        """Simpan awal tahap segera agar UI dapat menampilkan progres langsung."""
         with engine.begin() as connection:
             connection.execute(
                 text("""
@@ -201,7 +202,7 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
         return result
 
     def finish_incremental_noop():
-        """Complete an all-identical run without touching quality, staging, or facts."""
+        """Selesaikan run tanpa perubahan tanpa menyentuh kualitas, staging, atau fact."""
         message = outcome_message(
             {
                 **report_metrics,
@@ -217,8 +218,8 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
                 raw_transaction_total=raw_transaction_total(connection),
                 raw_product_master_total=raw_product_master_total(connection),
             )
-            # A reordered-but-identical CSV receives its latest checksum here.
-            # No row enters raw because every payload was already known.
+            # CSV yang disusun ulang tetapi isinya sama tetap mendapat checksum terbaru.
+            # Tidak ada baris yang dimuat ke raw karena seluruh payload sudah tercatat.
             save_source_snapshots(connection, run_id, scanned_sources, snapshots)
             load_stage_runs(connection, run_id, stages)
             connection.execute(
@@ -306,16 +307,16 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
                 },
             )
 
-        # All five sources, including Product Master, are unchanged. The
-        # snapshot check is sufficient: do not run quality, staging, or any
-        # warehouse query merely to rediscover that no work is required.
+        # Kelima sumber, termasuk Product Master, tidak berubah. Pemeriksaan
+        # snapshot sudah cukup; jangan jalankan pemeriksaan kualitas, staging,
+        # atau kueri gudang data hanya untuk memastikan tidak ada pekerjaan.
         if not any(len(source.frame) for source in sources):
             return finish_incremental_noop()
 
-        # Raw is the immutable landing layer. Persist each new or changed
-        # source payload before any quality rule or transformation can alter
-        # its interpretation. Invalid records therefore remain traceable in
-        # raw and audit evidence, but are blocked from staging below.
+        # Raw adalah lapisan pendaratan yang tidak diubah. Simpan setiap payload
+        # sumber yang baru atau berubah sebelum aturan kualitas atau transformasi
+        # mengubah penafsirannya. Record tidak valid tetap dapat ditelusuri di raw
+        # dan bukti audit, tetapi tidak diteruskan ke staging.
         with engine.begin() as connection:
             loaded_count = stage("raw_load", lambda: sum(load_raw(connection, run_id, source) for source in sources))
             stages[-1]["records_processed"] = loaded_count
@@ -348,8 +349,8 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
         stages[-1]["records_processed"] = len(staging_rows)
         product_source = next(source for source in sources if source.source_name == "PRODUCT_MASTER")
         product_rows = quality_results["product"].clean
-        # Product Master remains available in full for sales mapping, but only
-        # raw rows whose payload changed are upserted to the dimension.
+        # Seluruh Product Master tetap tersedia untuk pemetaan penjualan, tetapi
+        # hanya baris raw dengan payload berubah yang di-upsert ke dimensi.
         product_delta = product_rows[product_rows["source_row_number"].isin(product_source.row_numbers)].reset_index(
             drop=True
         )
@@ -408,9 +409,9 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
                 )
             report_metrics["report_summary"] = run_report_summary(
                 report_metrics,
-                # The public report describes transaction flow. Product Master
-                # is loaded to raw too, but is reference data rather than a
-                # transaction and therefore is excluded from these totals.
+                # Laporan merangkum alur transaksi. Product Master juga dimuat
+                # ke raw, tetapi merupakan data referensi, bukan transaksi,
+                # sehingga tidak dihitung dalam jumlah ini.
                 raw_inserted_records=extracted_count,
                 raw_transaction_total=raw_total_after,
                 raw_product_master_total=raw_product_master_total_after,
@@ -453,9 +454,9 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
                     "valid_records": valid_count,
                     "duplicate_records": duplicate_count,
                     "invalid_records": invalid_count,
-                    # ``loaded_records`` counts fact rows written (inserted or
-                    # corrected by UPSERT); ``fact_inserted_records`` remains
-                    # the narrower physical-insert metric.
+                    # ``loaded_records`` menghitung baris fact yang ditulis
+                    # (disisipkan atau dikoreksi melalui UPSERT); ``fact_inserted_records``
+                    # tetap menjadi metrik khusus untuk penyisipan fisik.
                     "loaded_records": fact_count,
                     "validated_records": valid_count,
                     "rejected_records": invalid_count,

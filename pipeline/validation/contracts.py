@@ -1,4 +1,4 @@
-"""Canonical data contracts shared by validation, analysis, and loaders."""
+"""Validasi kontrak data canonical untuk analisis dan pemuat data."""
 
 from types import MappingProxyType
 
@@ -15,8 +15,7 @@ SOURCE_SPECS = MappingProxyType(
                 "customer_city": "customer_city",
                 "payment_method": "payment_method",
                 "status": "status",
-            }
-        ),
+            }),
         "tokopedia": MappingProxyType(
             {
                 "order_id": "transaction_id",
@@ -28,8 +27,7 @@ SOURCE_SPECS = MappingProxyType(
                 "customer_city": "city",
                 "payment_method": "payment",
                 "status": "status",
-            }
-        ),
+            }),
         "website": MappingProxyType(
             {
                 "order_id": "invoice_no",
@@ -40,8 +38,7 @@ SOURCE_SPECS = MappingProxyType(
                 "source_total_amount": "total_amount",
                 "customer_email": "customer_email",
                 "status": "status",
-            }
-        ),
+            }),
         "offline": MappingProxyType(
             {
                 "order_id": "pos_receipt_no",
@@ -53,10 +50,8 @@ SOURCE_SPECS = MappingProxyType(
                 "store_city": "store_city",
                 "payment_method": "payment_type",
                 "status": "status",
-            }
-        ),
-    }
-)
+            }),
+    })
 
 PRODUCT_RAW_COLUMNS = ("sku", "product_name", "brand", "category", "price")
 META_COLUMNS = ("source", "source_file", "source_row_number", "source_sha256")
@@ -82,8 +77,7 @@ INTERNAL_SALES_COLUMNS = (
     "status",
     "source_file",
     "source_row_number",
-    "source_sha256",
-)
+    "source_sha256",)
 CLEAN_PRODUCT_COLUMNS = ("product_id", "product_name", "brand", "kategori", "harga_satuan")
 CLEAN_SALES_COLUMNS = (
     "order_id",
@@ -97,8 +91,7 @@ CLEAN_SALES_COLUMNS = (
     "channel",
     "status",
     "customer_email",
-    "harga_satuan",
-)
+    "harga_satuan",)
 
 VALID_STATUSES = frozenset({"COMPLETED", "CANCELLED", "RETURNED"})
 CHANNEL_LABELS = MappingProxyType(
@@ -107,8 +100,7 @@ CHANNEL_LABELS = MappingProxyType(
         "tokopedia": "Tokopedia",
         "website": "Website",
         "offline": "Offline Store",
-    }
-)
+    })
 TRANSACTION_GRAIN = "one row per order; line_number=1"
 BUSINESS_KEY = ("source", "order_id", "line_number")
 DISPOSITION_RULES = MappingProxyType(
@@ -116,17 +108,15 @@ DISPOSITION_RULES = MappingProxyType(
         "clean": "first valid record for a business key",
         "duplicate": "later valid record with the same business key",
         "rejected": "record with an error or conflicting duplicate versions",
-    }
-)
+    })
 
 RAW_COLUMNS = MappingProxyType(
     {
         "product": PRODUCT_RAW_COLUMNS,
         **{source: tuple(spec.values()) for source, spec in SOURCE_SPECS.items()},
-    }
-)
+    })
 
 
 def raw_column_mapping(source):
-    """Return the identity mapping used when loading a raw CSV table."""
+    """Kembalikan pemetaan identitas yang digunakan saat memuat tabel CSV raw."""
     return {column: column for column in RAW_COLUMNS[source]}

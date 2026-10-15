@@ -1,12 +1,10 @@
-"""Transform validated clean records into warehouse loading rows."""
+"""Transformasi data tervalidasi."""
 
 from __future__ import annotations
 
 import hashlib
 import json
-
 import pandas as pd
-
 from pipeline.validation.contracts import CHANNEL_LABELS
 
 SOURCE_NAMES = {source: label.upper().replace(" ", "_") for source, label in CHANNEL_LABELS.items()}
@@ -14,16 +12,16 @@ _HASH_EXCLUDED = {"source_file", "source_row_number", "source_sha256"}
 
 
 def source_record_hash(record: dict) -> str:
-    """Stable content hash used to detect corrections for an existing business key."""
+    """Hash isi yang stabil untuk mendeteksi koreksi pada business key yang sudah ada."""
     values = {key: value for key, value in record.items() if key not in _HASH_EXCLUDED}
     return hashlib.sha256(json.dumps(values, sort_keys=True, default=str, ensure_ascii=False).encode()).hexdigest()
 
 
 def filter_incremental_results(results, existing_keys):
-    """Keep new rows and changed rows; skip only an identical key/content hash.
+    """Pertahankan baris baru dan berubah; lewati hanya key dan hash isi yang sama.
 
-    ``existing_keys`` accepts the legacy set of keys and the production mapping
-    ``business_key -> source_record_hash``.
+    ``existing_keys`` dapat berupa himpunan key lama atau pemetaan yang digunakan
+    sistem produksi: ``business_key -> source_record_hash``.
     """
     is_mapping = hasattr(existing_keys, "get")
     filtered = {}
@@ -39,8 +37,7 @@ def filter_incremental_results(results, existing_keys):
                     [source_name] * len(clean),
                     clean["order_id"],
                     clean["line_number"].astype(int),
-                )
-            )
+                ))
             hashes = [source_record_hash(row) for row in clean.to_dict("records")]
             clean = clean[
                 [
@@ -54,13 +51,12 @@ def filter_incremental_results(results, existing_keys):
             duplicates=result.duplicates,
             issues=result.issues,
             profile=result.profile,
-            summary=result.summary,
-        )
+            summary=result.summary,)
     return filtered
 
 
 def clean_results_to_staging(results) -> pd.DataFrame:
-    """Build typed staging rows from the validated clean results."""
+    """Susun baris staging bertipe sesuai hasil bersih yang telah tervalidasi."""
     rows = []
     for source, result in results.items():
         if source == "product":
@@ -92,6 +88,5 @@ def clean_results_to_staging(results) -> pd.DataFrame:
                     "unit_price": record["unit_price"],
                     "source_total_amount": record.get("source_total_amount"),
                     "source_record_hash": source_record_hash(record),
-                }
-            )
+                })
     return pd.DataFrame(rows)

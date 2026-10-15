@@ -1,4 +1,4 @@
-"""Restrict public database access and application role privileges."""
+"""Batasi akses publik ke basis data dan hak akses peran aplikasi."""
 from alembic import op
 
 
@@ -16,10 +16,10 @@ def upgrade() -> None:
             EXECUTE format('GRANT CONNECT ON DATABASE %I TO %I', current_database(), current_user);
         END $$;
     """)
-    # Role privilege changes require a separate cluster administrator. The
-    # application role is intentionally managed outside transactional Alembic.
+    # Perubahan hak akses peran memerlukan administrator klaster tersendiri.
+    # Peran aplikasi sengaja dikelola di luar transaksi Alembic.
 
 
 def downgrade() -> None:
-    # Privilege elevation is intentionally never automated on downgrade.
+    # Peningkatan hak akses tidak pernah dijalankan otomatis saat downgrade.
     pass

@@ -1,4 +1,4 @@
-"""Record the currently executing pipeline stage for live UI progress."""
+"""Catat tahap pipeline yang sedang berjalan untuk menampilkan progres langsung di UI."""
 
 from alembic import op
 

@@ -1,1 +1,1 @@
-"""E-commerce sales ETL pipeline package."""
+"""Pipeline ETL penjualan e-commerce."""

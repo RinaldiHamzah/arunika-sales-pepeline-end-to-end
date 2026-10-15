@@ -1,4 +1,4 @@
-"""Formatting helpers that keep JSON API responses consistent."""
+"""Pemformatan data API JSON."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from typing import Iterable, Mapping
 
 
 def serializable(rows: Iterable[Mapping]) -> list[dict]:
-    """Convert database rows to JSON-safe dictionaries."""
+    """Ubah baris basis data menjadi kamus yang aman untuk JSON."""
     result = []
     for row in rows:
         item = dict(row)
@@ -20,7 +20,7 @@ def serializable(rows: Iterable[Mapping]) -> list[dict]:
 
 
 def operation_runs_for_display(rows: Iterable[Mapping]) -> list[dict]:
-    """Expose run evidence to the UI without snapshot-only audit metrics."""
+    """Sajikan bukti run ke UI tanpa metrik audit yang hanya tersedia pada snapshot."""
     visible = []
     for row in serializable(rows):
         row.pop("source_records", None)

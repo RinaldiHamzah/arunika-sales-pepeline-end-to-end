@@ -1,1 +1,1 @@
-"""Data validation modules."""
+"""Modul validasi data."""

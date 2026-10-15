@@ -1,4 +1,4 @@
-"""Shopee extractor (Marketplace A)."""
+"""Ekstraktor data Shopee."""
 
 from pathlib import Path
 

@@ -1,4 +1,4 @@
-/* All viewport adaptations live here, ordered from wide to narrow. */
+/* Seluruh penyesuaian ukuran layar berada di sini, diurutkan dari lebar ke sempit. */
 @media (min-width: 1600px) {
   .kpi-grid {
     grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -301,8 +301,8 @@
   .table-container .status {
     justify-self: start;
   }
-  /* The expandable audit detail lives in the first table cell. Unlike a
-     standard metric cell, it needs the complete card width on small screens. */
+  /* Rincian audit yang dapat dibuka berada di sel tabel pertama. Berbeda dari
+     sel metrik biasa, elemen ini memerlukan lebar kartu penuh pada layar kecil. */
   #operation-run-rows .operation-run-cell {
     display: block;
   }

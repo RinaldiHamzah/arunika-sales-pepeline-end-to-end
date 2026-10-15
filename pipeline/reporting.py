@@ -1,4 +1,4 @@
-"""One reporting vocabulary for the runner, dashboard and daily email."""
+"""Satu kosakata pelaporan untuk runner, dashboard, dan email harian."""
 
 QUALITY_SECTIONS = (
     ("missing_value", "Missing value"),
@@ -21,7 +21,6 @@ RESULT_SOURCE_NAMES = {
 
 
 def _count(report, key):
-    """Return a non-negative integer metric when a run recorded it."""
     value = report.get(key)
     try:
         return max(0, int(value))
@@ -30,7 +29,6 @@ def _count(report, key):
 
 
 def _source_metric(report: dict, source_name: str, key: str) -> int:
-    """Return one non-negative metric from a recorded source summary."""
     for source in report.get("source_metrics") or []:
         if source.get("source_name") == source_name:
             try:
@@ -63,7 +61,6 @@ def summarize_sources(scanned, candidates):
 
 
 def _quality_section(rule: object, field: object) -> str:
-    """Map a technical validation finding to one user-facing report section."""
     rule_name = str(rule)
     field_name = str(field).lower()
     if rule_name in {"MISSING_REQUIRED", "MISSING_OPTIONAL"}:
@@ -102,7 +99,6 @@ def _summarize_quality_issues(issues) -> dict:
 
 
 def quality_staging_summary(results, *, passed_to_staging: int, written_to_staging: int) -> dict:
-    """Create one explicit quality/staging result from validation evidence."""
     sections = _empty_quality_sections()
     by_source = []
     for source, result in results.items():
@@ -118,9 +114,6 @@ def quality_staging_summary(results, *, passed_to_staging: int, written_to_stagi
                 "issues": source_sections,
             }
         )
-        # Product Master is quality-checked and shown in its own detail card,
-        # but it never creates transaction staging rows. Do not include it in
-        # transaction-level Quality/Staging totals.
         if source != "product":
             for key, _ in QUALITY_SECTIONS:
                 sections[key]["total"] += source_sections[key]["total"]
@@ -147,11 +140,6 @@ def run_report_summary(
     inserted_facts: int = 0,
     facts_written: int = 0,
 ) -> dict:
-    """Build the durable Raw → Quality/Staging → Warehouse run report.
-
-    Processing metrics describe this run. Transaction and Product Master
-    inventory are separate so reference records never inflate sales metrics.
-    """
     written = max(0, int(facts_written))
     inserted = max(0, int(inserted_facts))
     return {

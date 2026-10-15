@@ -1,4 +1,4 @@
-"""Tests for early raw-row delta detection before validation begins."""
+"""Tes pemrosesan inkremental pada Raw sebelum validasi."""
 
 from pathlib import Path
 

@@ -1,4 +1,4 @@
-"""Application entry point for the Arunika sales dashboard."""
+"""Aplikasi dashboard penjualan Arunika."""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ LOGGER = get_logger("dashboard")
 
 
 def create_app() -> Flask:
-    """Create the web application and register its HTTP routes."""
+    """Buat aplikasi web dan daftarkan rute HTTP-nya."""
     app = Flask(__name__, template_folder="templates", static_folder="static")
     app.config["TEMPLATES_AUTO_RELOAD"] = True
     app.extensions["warehouse_engine"] = create_engine(

@@ -1,4 +1,4 @@
-"""Store a consistent Raw, Quality/Staging, and Warehouse run summary."""
+"""Simpan ringkasan run yang konsisten untuk Raw, Quality/Staging, dan Warehouse."""
 
 from alembic import op
 

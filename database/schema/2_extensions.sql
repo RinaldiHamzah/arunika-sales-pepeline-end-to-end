@@ -1,2 +1,2 @@
--- Extensions required by audit and warehouse schemas.
+-- Ekstensi yang diperlukan oleh skema audit dan gudang data.
 CREATE EXTENSION IF NOT EXISTS pgcrypto;

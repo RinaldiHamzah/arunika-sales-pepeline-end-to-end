@@ -1,4 +1,4 @@
-"""Consistent console logging for pipeline modules."""
+"""Pencatatan log pipeline."""
 
 import json
 import logging
@@ -43,8 +43,7 @@ LOG_FIELDS = (
     "request_method",
     "request_path",
     "status_code",
-    "duration_ms",
-)
+    "duration_ms",)
 
 
 class _LoggerNameFilter(logging.Filter):
@@ -73,7 +72,6 @@ class _JsonFormatter(logging.Formatter):
 
 
 class _ApplicationTimeFormatter(logging.Formatter):
-    """Render non-JSON logs in the configured application timezone."""
 
     def formatTime(self, record: logging.LogRecord, datefmt: str | None = None) -> str:
         timestamp = datetime.fromtimestamp(record.created, APP_TIMEZONE)
@@ -81,7 +79,6 @@ class _ApplicationTimeFormatter(logging.Formatter):
 
 
 class _PrettyConsoleFormatter(_ApplicationTimeFormatter):
-    """Render pipeline completion logs as a complete, readable console report."""
 
     @staticmethod
     def _mapping(value) -> dict:
@@ -242,9 +239,6 @@ def _configure_logging() -> None:
 
     for prefix, filename in (("pipeline", "pipeline.log"), ("dashboard", "dashboard.log")):
         file_handler = logging.FileHandler(log_dir / filename, encoding="utf-8")
-        # Keep file logs readable like the CLI report. Pipeline completion
-        # events become a sectioned summary; other events remain text lines
-        # with their available operational fields.
         file_handler.setFormatter(_PrettyConsoleFormatter())
         file_handler.addFilter(_LoggerNameFilter(prefix))
         root.addHandler(file_handler)

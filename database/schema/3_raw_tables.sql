@@ -1,5 +1,5 @@
--- Raw tables retain source-specific fields and allow bad values for data-quality analysis.
--- Business IDs are deliberately not unique here: duplicate source records must remain observable.
+-- Tabel raw mempertahankan kolom khusus sumber dan menerima nilai tidak valid untuk analisis kualitas data.
+-- ID bisnis sengaja tidak dibuat unik agar record sumber yang duplikat tetap dapat diamati.
 
 CREATE TABLE IF NOT EXISTS raw.shopee_orders (
     raw_record_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -52,9 +52,9 @@ CREATE TABLE IF NOT EXISTS raw.product_master (
     CONSTRAINT uq_raw_product_master_file_row UNIQUE (ingestion_run_id, source_file_name, source_row_number)
 );
 
--- Compatibility migration for databases initialized by the earlier source contract.
--- Existing databases may retain legacy columns, but fresh databases follow the
--- active source contract above and do not create the retired source-only identifier.
+-- Penyesuaian kompatibilitas untuk basis data yang dibuat dengan kontrak sumber lama.
+-- Basis data lama dapat menyimpan kolom terdahulu, tetapi basis data baru mengikuti
+-- kontrak sumber aktif di atas dan tidak membuat identifier khusus sumber yang sudah tidak digunakan.
 DO $$
 BEGIN
     IF EXISTS (

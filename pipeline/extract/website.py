@@ -1,4 +1,4 @@
-"""Website CSV extractor."""
+"""Ekstraktor CSV website."""
 
 from pathlib import Path
 

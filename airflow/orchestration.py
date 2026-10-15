@@ -1,4 +1,4 @@
-"""Daily 13:00 WIB orchestration for the e-commerce warehouse pipeline."""
+"""Orkestrasi harian pukul 13.00 WIB untuk pipeline gudang data e-commerce."""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ LOGGER = get_logger(__name__)
 
 
 def run_pipeline_task(**context):
-    """Run the ETL and emit a concise operational record to Airflow logs."""
+    """Jalankan ETL dan tulis catatan operasional ringkas ke log Airflow."""
     task_instance = context["ti"]
     LOGGER.info(
         "airflow_task_started",
@@ -43,7 +43,7 @@ def run_pipeline_task(**context):
 
 
 def email_pipeline_report_task(**context):
-    """Send a daily audit summary after the DAG reaches a terminal state."""
+    """Kirim ringkasan audit harian setelah DAG mencapai status akhir."""
     with get_engine().connect() as connection:
         report = (
             connection.execute(
@@ -68,17 +68,17 @@ def email_pipeline_report_task(**context):
         LOGGER.warning("airflow_email_report_skipped", extra={"status": "NO_AUDIT_RUN"})
         return False
     payload = dict(report)
-    # A load can succeed while the warehouse validation fails. Do not report
-    # that DAG execution as successful merely because its ETL audit succeeded.
+    # Pemuatan dapat berhasil sementara validasi gudang data gagal. Jangan laporkan
+    # eksekusi DAG sebagai berhasil hanya karena audit ETL menyatakan sukses.
     validated_run = context["ti"].xcom_pull(task_ids="validate_warehouse", key="return_value")
     if str(validated_run) != str(payload["run_id"]):
         payload["status"] = "FAILED"
         payload["error_message"] = payload["error_message"] or "Warehouse validation did not complete successfully."
     sent = send_pipeline_report(payload)
     if not sent:
-        # Returning ``False`` from a PythonOperator still marks the task as a
-        # success. Raise explicitly so Airflow retries the notification and
-        # makes an operational problem visible in the DAG grid.
+        # Nilai ``False`` dari PythonOperator tetap menandai task sebagai sukses.
+        # Lemparkan pengecualian agar Airflow mencoba ulang notifikasi dan
+        # menampilkan masalah operasional pada grid DAG.
         raise RuntimeError(
             "Laporan pipeline gagal dikirim melalui SMTP. "
             "Periksa log task email_pipeline_report untuk detailnya."
@@ -130,8 +130,8 @@ with DAG(
         trigger_rule="all_done",
     )
 
-    # A strict leaf preserves a failed upstream status even when the email task
-    # succeeds with all_done. Email failure also remains visible.
+    # Task akhir yang ketat mempertahankan status gagal dari task sebelumnya,
+    # meskipun task email berhasil dengan all_done. Kegagalan email juga tetap terlihat.
     complete = EmptyOperator(task_id="complete", trigger_rule="all_success")
     load_pipeline >> validate_warehouse_task >> email_pipeline_report
     [load_pipeline, validate_warehouse_task, email_pipeline_report] >> complete

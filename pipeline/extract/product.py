@@ -1,4 +1,4 @@
-"""Product master CSV extractor."""
+"""Ekstraktor CSV master produk."""
 
 from pathlib import Path
 

@@ -1,1 +1,1 @@
-"""Business services used by dashboard HTTP routes."""
+"""Layanan bisnis yang digunakan oleh rute HTTP dashboard."""

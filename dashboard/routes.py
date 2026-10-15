@@ -1,4 +1,4 @@
-"""HTTP routes for dashboard pages, analytics, and administration."""
+"""Rute HTTP untuk halaman dashboard, analitik, dan administrasi."""
 
 from __future__ import annotations
 

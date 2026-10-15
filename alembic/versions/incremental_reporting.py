@@ -1,4 +1,4 @@
-"""Explain pre-validation skips without inventing metrics for historical runs."""
+"""Jelaskan data yang dilewati sebelum validasi tanpa mengarang metrik riwayat."""
 from alembic import op
 
 revision = "20260922_07"
@@ -19,5 +19,5 @@ ALTER TABLE audit.pipeline_runs
 
 
 def downgrade():
-    # Keep additive audit history.
+    # Pertahankan riwayat audit yang bersifat penambahan.
     pass

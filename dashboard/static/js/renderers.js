@@ -222,7 +222,7 @@ export function renderOperationRows(runs = []) {
   `).join('');
 }
 
-/** Same table data becomes labelled cards on mobile; no duplicate controls or markup. */
+/** Data tabel yang sama ditampilkan sebagai kartu berlabel di ponsel tanpa kontrol atau markup duplikat. */
 export function labelTableCells() {
   document.querySelectorAll('.table-container table').forEach(table => {
     const labels = [...table.querySelectorAll('thead th')].map(cell => cell.textContent.trim());

@@ -1,4 +1,4 @@
-"""Verify the requested user-facing schema and safe consolidated exports."""
+"""Verifikasi format analisis yang diminta."""
 
 from decimal import Decimal
 from hashlib import sha256
@@ -75,7 +75,7 @@ def test_notebook_cells_run_without_changing_sources(monkeypatch, tmp_path):
 
     import pipeline.validation.analysis as helpers
 
-    # Exercise every code cell while redirecting only exports to a temporary folder.
+    # Jalankan setiap sel kode dan arahkan hanya hasil ekspor ke folder sementara.
     original_export = helpers.export_analysis
     monkeypatch.setattr(helpers, "export_analysis", lambda results: original_export(results, tmp_path))
     paths = list((ROOT / "data/source").glob("*.csv"))

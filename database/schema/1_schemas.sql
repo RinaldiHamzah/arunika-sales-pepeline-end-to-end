@@ -1,4 +1,4 @@
--- Canonical database namespaces. Loaded before all table definitions.
+-- Namespace basis data utama. Berkas ini dimuat sebelum definisi tabel.
 CREATE SCHEMA IF NOT EXISTS raw;
 CREATE SCHEMA IF NOT EXISTS staging;
 CREATE SCHEMA IF NOT EXISTS warehouse;

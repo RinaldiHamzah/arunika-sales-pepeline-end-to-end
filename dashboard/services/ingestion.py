@@ -1,4 +1,4 @@
-"""Safe source-file upload handling for dashboard administration."""
+"""Penanganan unggahan pada administrasi dashboard."""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ SOURCE_FILES = {
 
 
 def append_csv_batch(source_key: str, payload: bytes) -> int:
-    """Validate a source CSV contract and append it to the source batch file."""
+    """Validasi kontrak CSV sumber lalu tambahkan isinya ke berkas sumber terkait."""
     if source_key not in SOURCE_FILES:
         raise ValueError("Source tidak didukung.")
     try:

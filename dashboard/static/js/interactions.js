@@ -211,8 +211,8 @@ async function pollPipelineProgress() {
     button.disabled = false;
     button.textContent = 'Jalankan';
     if (run.status === 'SUCCESS') {
-      // The pending batch has reached a completed pipeline run, so the upload
-      // reminder is no longer relevant. Keep it visible when a run fails.
+      // Batch yang menunggu telah mencapai status akhir pipeline, sehingga
+      // pengingat unggahan tidak lagi diperlukan. Tetap tampilkan jika run gagal.
       setUploadStatus();
       setPipelineProgress(`Selesai · ${formatJakartaDateTime(run.ended_at)} WIB.`, 'success');
       loadDashboard();
@@ -343,7 +343,7 @@ export function bindEvents() {
   syncPageFromHash();
   window.addEventListener('hashchange', syncPageFromHash);
   window.setInterval(() => {
-    // Do not replace content under a reader, a focused control, or a draft filter.
+    // Jangan ganti konten yang sedang dibaca, kontrol yang sedang fokus, atau filter yang belum diterapkan.
     const interacting = document.activeElement?.closest('input, select, button, summary, a');
     const readingChart = [...document.querySelectorAll('.chart-data[open]')]
       .some(details => details.getClientRects().length);

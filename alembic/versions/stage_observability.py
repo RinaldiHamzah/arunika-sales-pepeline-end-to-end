@@ -1,4 +1,4 @@
-"""Add per-stage observability records."""
+"""Tambahkan catatan pemantauan untuk setiap tahap pipeline."""
 from alembic import op
 
 

@@ -1,15 +1,14 @@
-"""Incremental fact loader with dimension-key resolution."""
+"""Pemuat fact secara inkremental."""
 
 from __future__ import annotations
 
 from uuid import UUID
-
 from sqlalchemy import text
 from sqlalchemy.engine import Connection
 
 
 def load_facts(connection: Connection, run_id: UUID) -> int:
-    """Load valid staging rows into fact_sales without duplicate business keys."""
+    """Muat baris staging valid ke fact_sales tanpa menggandakan business key."""
     result = connection.execute(
         text("""
 		INSERT INTO warehouse.fact_sales (

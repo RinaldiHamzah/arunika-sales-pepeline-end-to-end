@@ -1,7 +1,5 @@
-"""Reproducible file-based DQ used by all analysis notebooks.
-
-Run: python -m pipeline.validation.data_quality
-Source files are never modified. Money stays Decimal until CSV serialization.
+"""Dukungan notebook analisis kualitas data.
+Jalankan dengan: python -m pipeline.validation.data_quality
 """
 
 import argparse
@@ -12,7 +10,6 @@ import re
 from dataclasses import dataclass
 from hashlib import sha256
 from pathlib import Path
-
 import pandas as pd
 
 from pipeline.validation.contracts import (
@@ -20,8 +17,7 @@ from pipeline.validation.contracts import (
     META_COLUMNS,
     PRODUCT_RAW_COLUMNS,
     SOURCE_SPECS,
-    VALID_STATUSES,
-)
+    VALID_STATUSES,)
 from pipeline.validation.rules import clean_text, match_key, number, parse_date
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -47,7 +43,7 @@ class QualityResult:
 
 
 def read_source(path, payload=None):
-    """Hash exactly the bytes parsed; preserve strings, empty cells, and identifiers."""
+    """Hash byte yang benar-benar diurai dengan tetap mempertahankan teks, sel kosong, dan identifier."""
     payload = path.read_bytes() if payload is None else payload
     reader = csv.reader(io.StringIO(payload.decode("utf-8-sig"), newline=""))
     try:
@@ -201,7 +197,7 @@ def analyze(path, source, products=None, selected_row_numbers=None, captured=Non
         row.update(meta)
         candidates.append({"row": row, "errors": errors, "raw": raw, "key": key})
 
-    # Conflicting versions of the same key are all quarantined. No arbitrary winner.
+    # Semua versi yang bertentangan untuk key yang sama dikarantina; tidak ada versi yang dipilih secara sembarang.
     groups = {}
     for candidate in candidates:
         if candidate["key"]:
@@ -276,7 +272,7 @@ def analyze(path, source, products=None, selected_row_numbers=None, captured=Non
 
 
 def run_quality(source_dir=None, output_dir=None, selected_row_numbers=None, captured_sources=None):
-    """Explicit source allowlist; never accidentally ingest old exports or copies."""
+    """Daftar sumber yang diizinkan secara eksplisit agar ekspor lama atau salinan tidak ikut dimuat."""
     source_dir = Path(source_dir) if source_dir else ROOT / "data/source"
     captured = captured_sources or {}
     results = {"product": analyze(source_dir / "product.csv", "product", captured=captured.get("product"))}

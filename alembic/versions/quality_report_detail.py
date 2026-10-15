@@ -1,4 +1,4 @@
-"""Add an explicit per-source data-quality reporting view."""
+"""Tambahkan view laporan kualitas data yang terperinci untuk setiap sumber."""
 
 from alembic import op
 

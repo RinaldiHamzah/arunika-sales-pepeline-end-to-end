@@ -1,4 +1,4 @@
-"""Optional operational notifications without making alerts a pipeline dependency."""
+"""Notifikasi operasional pipeline."""
 
 import json
 import os
@@ -15,24 +15,34 @@ from pipeline.reporting import QUALITY_SECTIONS, outcome_message, run_report_sum
 LOGGER = get_logger("pipeline.alerts")
 
 
-def _connect_smtp(host: str, port: int):
-    """Open SMTP with bounded retries for transient DNS/network failures.
+def _connect_smtp(host: str, port: int, username: str, password: str, use_tls: bool):
+    """Hubungkan, lakukan negosiasi TLS, dan autentikasi dengan percobaan terbatas.
 
-    Only the connection phase is retried.  Retrying after ``send_message``
-    could produce duplicate notification emails when a server accepted the
-    message but its acknowledgement was lost.
+    Pesan baru dikirim setelah fungsi ini berhasil. Percobaan ulang setelah
+    ``send_message`` dapat mengirim email ganda jika server sudah menerima pesan,
+    tetapi tanda terimanya hilang.
     """
     retries = max(1, int(os.getenv("SMTP_CONNECT_RETRIES", "3")))
     last_error = None
     for attempt in range(1, retries + 1):
+        client = None
         try:
-            return smtplib.SMTP(host, port, timeout=15)
-        except (OSError, smtplib.SMTPConnectError) as error:
+            client = smtplib.SMTP(host, port, timeout=15)
+            if use_tls:
+                client.starttls()
+            client.login(username, password)
+            return client
+        except (OSError, smtplib.SMTPConnectError, smtplib.SMTPServerDisconnected) as error:
             last_error = error
+            if client is not None:
+                try:
+                    client.close()
+                except OSError:
+                    pass
             if attempt == retries:
                 break
             LOGGER.warning(
-                "pipeline_email_connect_retry",
+                "pipeline_email_session_retry",
                 extra={
                     "smtp_host": host,
                     "smtp_port": port,
@@ -59,14 +69,17 @@ def notify_pipeline_failure(run_id, error_message):
 
 
 def send_pipeline_report(report: dict) -> bool:
-    """Email one concise pipeline report using SMTP when it is configured.
+    """Kirim satu laporan pipeline yang ringkas melalui SMTP jika sudah dikonfigurasi.
 
-    Missing or invalid SMTP settings only skip the alert. They never change the
-    result of the warehouse pipeline itself.
+    Pengaturan SMTP yang kosong atau tidak valid hanya membuat alert dilewati.
+    Kondisi tersebut tidak mengubah hasil pipeline gudang data.
     """
     host = os.getenv("SMTP_HOST", "").strip()
     username = os.getenv("SMTP_USERNAME", "").strip()
     password = os.getenv("SMTP_PASSWORD", "")
+    if host.lower() == "smtp.gmail.com":
+        # Google menampilkan App Password dalam kelompok; spasi bukan bagian dari sandi.
+        password = "".join(password.split())
     sender = os.getenv("SMTP_FROM", username).strip()
     recipients = [item.strip() for item in os.getenv("PIPELINE_REPORT_RECIPIENTS", "").split(",") if item.strip()]
     if not all((host, username, password, sender, recipients)):
@@ -80,11 +93,9 @@ def send_pipeline_report(report: dict) -> bool:
     message["To"] = ", ".join(recipients)
     message.set_content(format_pipeline_report(report))
     port = int(os.getenv("SMTP_PORT", "587"))
+    use_tls = os.getenv("SMTP_USE_TLS", "true").lower() in {"1", "true", "yes"}
     try:
-        with _connect_smtp(host, port) as client:
-            if os.getenv("SMTP_USE_TLS", "true").lower() in {"1", "true", "yes"}:
-                client.starttls()
-            client.login(username, password)
+        with _connect_smtp(host, port, username, password, use_tls) as client:
             client.send_message(message)
         LOGGER.info("pipeline_email_sent", extra={"run_id": str(report.get("run_id")), "status": status})
         return True
@@ -104,7 +115,7 @@ def send_pipeline_report(report: dict) -> bool:
 
 
 def format_pipeline_report(report):
-    """Pure formatter: no SMTP side effects; shared metric names with the UI."""
+    """Pemformat murni tanpa efek samping SMTP, dengan nama metrik yang sama seperti UI."""
 
     def metric(key):
         value = report.get(key)
@@ -182,14 +193,7 @@ def format_pipeline_report(report):
             ]
         )
     elif status != "FAILED" and not raw.get("new_or_changed", report.get("extracted_records", 0)):
-        lines.extend(
-            [
-                "",
-                "CATATAN AUDIT",
-                f"{explanation}",
-                ""
-            ]
-        )
+        lines.extend(["", "CATATAN AUDIT", f"{explanation}", ""])
     elif status != "FAILED":
         lines.extend(["", "QUALITY CHECK & STAGING", "Rincian quality run lama tidak tersedia di audit."])
     if status == "FAILED":

@@ -1,4 +1,4 @@
-"""Generate deterministic, deliberately imperfect input files for the ETL."""
+"""Buat data contoh deterministik untuk ETL."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from pathlib import Path
 OUT = Path(__file__).resolve().parents[1] / "data" / "source"
 RNG = random.Random(20260913)
 
-# Synthetic catalogue inspired by Paragon brands; SKU and price are fictional.
+# Katalog sintetis terinspirasi dari merek Paragon; SKU dan harga hanya contoh.
 PRODUCTS = [
     ("WRD-SKC-001", "Wardah UV Shield Aqua Fresh Essence SPF 50 PA++++ 30ml", "Wardah", "Skincare", 68900),
     ("WRD-SKC-002", "Wardah Lightening Micellar Water 100ml", "Wardah", "Skincare", 28900),
@@ -65,7 +65,7 @@ def records(offset: int) -> list[dict]:
             }
         )
 
-    # Controlled quality defects, one of each type per source.
+    # Cacat kualitas dibuat secara terkontrol, satu untuk setiap jenis pada tiap sumber.
     result[3]["qty"] = 0
     result[7]["price"] = -50000
     result[11]["customer"] = ""
@@ -86,7 +86,7 @@ def write(name: str, fields: list[str], rows: list[dict], convert) -> None:
 
 
 def format_date(value, pattern: str):
-    """Format date values while preserving intentionally invalid test values."""
+    """Format nilai tanggal sambil mempertahankan nilai uji yang sengaja dibuat tidak valid."""
     return value.strftime(pattern) if isinstance(value, date) else value
 
 

@@ -1,4 +1,4 @@
--- Canonical analytics views over warehouse.fact_sales and dimensions.
+-- View analitik utama atas warehouse.fact_sales dan tabel dimensinya.
 CREATE OR REPLACE VIEW warehouse.v_sales_detail AS
 SELECT
     f.sales_key,
@@ -65,8 +65,8 @@ LEFT JOIN audit.data_quality_results q ON q.run_id = r.run_id
 GROUP BY r.run_id, r.started_at, r.ended_at, r.status, r.extracted_records,
          r.valid_records, r.duplicate_records, r.invalid_records, r.loaded_records;
 
--- KPI definitions shared by SQL consumers and the dashboard documentation.
--- Gross is every transaction status; net revenue is completed orders only.
+-- Definisi KPI yang digunakan bersama oleh kueri SQL dan dokumentasi dashboard.
+-- Gross mencakup semua status transaksi; pendapatan neto hanya untuk pesanan selesai.
 CREATE OR REPLACE VIEW warehouse.v_sales_kpi AS
 SELECT
     COALESCE(SUM(gross_amount), 0) AS gross_sales_all_statuses,
@@ -157,7 +157,7 @@ SELECT
 FROM warehouse.fact_sales
 GROUP BY sale_status;
 
--- Quality evidence is queryable by run, source, and failed rule.
+-- Bukti kualitas dapat ditelusuri berdasarkan run, sumber, dan aturan yang gagal.
 CREATE OR REPLACE VIEW audit.v_data_quality_by_rule AS
 SELECT
     r.run_id,
@@ -175,8 +175,8 @@ JOIN audit.pipeline_runs r ON r.run_id = q.run_id
 GROUP BY r.run_id, r.pipeline_name, r.started_at, r.status,
          q.source_name, q.rule_name, q.severity, q.details;
 
--- One row per run and source. Values ending in "issue_records" count findings,
--- so one source row may contribute to more than one column when it has several errors.
+-- Satu baris untuk setiap run dan sumber. Nilai dengan akhiran "issue_records" menghitung temuan,
+-- sehingga satu baris sumber dapat masuk ke beberapa kolom jika memiliki lebih dari satu kesalahan.
 CREATE OR REPLACE VIEW audit.v_data_quality_report AS
 WITH source_metrics AS (
     SELECT

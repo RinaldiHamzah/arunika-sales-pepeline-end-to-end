@@ -1,4 +1,4 @@
-"""Print the latest or selected data-quality evidence from PostgreSQL."""
+"""Bukti kualitas data dari PostgreSQL."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ from pipeline.database import get_engine  # noqa: E402
 
 
 def report_data_quality(run_id: str | None = None) -> dict:
-    """Return a per-source quality summary and its auditable rule details."""
+    """Kembalikan ringkasan kualitas setiap sumber beserta rincian aturan yang dapat diaudit."""
     with get_engine().connect() as connection:
         selected_run_id = (
             run_id

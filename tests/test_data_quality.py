@@ -1,4 +1,4 @@
-"""Quality contracts tested with isolated fixtures; never regenerate user sources."""
+"""Tes kontrak kualitas data."""
 
 import csv
 from decimal import Decimal

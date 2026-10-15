@@ -9,8 +9,8 @@ from pyngrok import ngrok
 PORT = 8501
 NGROK_URL_FILE = "url.txt"
 
-# ``os.getenv`` only reads process environment variables. Load the project's
-# ignored .env file explicitly so ``python ngrok.py`` works from the repository.
+# ``os.getenv`` hanya membaca variabel lingkungan proses. Muat berkas .env
+# proyek yang diabaikan Git secara eksplisit agar ``python ngrok.py`` dapat dijalankan.
 load_dotenv(Path(__file__).resolve().with_name(".env"))
 
 if __name__ == "__main__":

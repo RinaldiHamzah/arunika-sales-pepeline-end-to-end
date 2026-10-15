@@ -1,4 +1,4 @@
-"""Deterministic data-quality primitives; no locale-dependent guessing."""
+"""Aturan kualitas data."""
 
 import re
 import unicodedata
@@ -16,7 +16,7 @@ def clean_text(value):
 
 
 def match_key(value):
-    """Match case/separators, but preserve digits, units, shades, and SPF '+' signs."""
+    """Samakan kapitalisasi dan pemisah, tetapi pertahankan angka, satuan, varian warna, dan tanda '+' pada SPF."""
     value = clean_text(value) or ""
     return re.sub(r"[\s_\-]+", "", value.casefold())
 

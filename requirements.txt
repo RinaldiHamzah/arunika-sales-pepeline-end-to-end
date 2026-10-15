@@ -1,11 +1,11 @@
-# Direct project dependencies. Resolve transitive packages through pip/constraints in CI or Docker.
+# Dependensi langsung proyek. Dependensi turunannya diselesaikan melalui pip/constraints di CI atau Docker.
 pandas==3.0.5
 SQLAlchemy==2.0.51
 alembic>=1.15,<2.0
 psycopg[binary]==3.3.5
 asyncpg>=0.29,<1.0
 python-dotenv==1.2.1
-# Notebook quality checks execute analysis cells in CI.
+# Pemeriksaan kualitas notebook menjalankan sel analisis di CI.
 ipython>=9.0,<10.0
 Flask>=3.1,<4.0
 waitress==3.0.2

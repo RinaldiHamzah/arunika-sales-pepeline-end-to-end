@@ -1,4 +1,4 @@
-"""Incremental reporting must count skipped occurrences, not unique hashes."""
+"""Pelaporan inkremental."""
 
 from dataclasses import replace
 from pathlib import Path

@@ -1,4 +1,4 @@
-"""Fail when an expected source file is missing or older than MAX_SOURCE_AGE_HOURS."""
+"""Validasi batas usia maksimum sumber melalui MAX_SOURCE_AGE_HOURS."""
 
 import os
 import sys

@@ -1,4 +1,4 @@
-"""SQL safety gate; --database executes all scripts in an isolated PostgreSQL."""
+"""Pemeriksaan keamanan SQL."""
 
 import argparse
 import os
@@ -29,7 +29,7 @@ def validate_database(files):
         PGPASSWORD=url.password or "",
     )
     for file in files:
-        # psql handles DO blocks and the bootstrap's conditional \\gexec.
+        # psql menangani blok DO dan perintah \\gexec bersyarat pada proses bootstrap.
         subprocess.run(
             [executable, "-X", "--no-password", "--set", "ON_ERROR_STOP=1", "--file", str(file)],
             env=environment,

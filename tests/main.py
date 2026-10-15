@@ -1,14 +1,9 @@
-"""Single entry point for the Arunika test suite.
-
-Examples:
+"""
+Contoh:
     python tests/main.py
     python tests/main.py --integration
     python tests/main.py --browser
     python tests/main.py --full
-
-The default is safe for a developer machine: static checks plus every
-non-integration pytest test. PostgreSQL acceptance tests are opt-in because
-they use Docker and a dedicated ecommerce_sales_test database.
 """
 
 from __future__ import annotations
@@ -25,7 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def run_step(label: str, command: list[str]) -> None:
-    """Print a clear boundary and stop immediately when a check fails."""
+    """Tampilkan pemisah yang jelas dan hentikan proses saat pemeriksaan gagal."""
     print(f"\n{'=' * 72}\n{label}\n{'=' * 72}")
     subprocess.run(command, cwd=ROOT, check=True)
 
@@ -68,11 +63,6 @@ def main() -> int:
     if not args.skip_static:
         run_step("SQL safety validation", [sys.executable, "scripts/validate_sql.py"])
         run_step("Clean export contract", [sys.executable, "scripts/check_clean_contract.py"])
-
-    # Do not rely on the skip marker: a misconfigured local environment must
-    # not accidentally point the real runner at a developer database.
-    # Keep pytest artifacts in the project runtime directory. This avoids
-    # permission issues from profile-level temporary folders on Windows.
     pytest_temp_root = Path(os.getenv("ARUNIKA_PYTEST_TEMP_ROOT", ROOT / ".test_runtime" / "pytest"))
     pytest_temp_root.mkdir(parents=True, exist_ok=True)
     pytest_temp_base = pytest_temp_root / uuid4().hex

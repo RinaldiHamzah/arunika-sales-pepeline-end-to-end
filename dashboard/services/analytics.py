@@ -1,4 +1,4 @@
-"""Warehouse query services used by dashboard routes."""
+"""Kueri gudang data untuk dashboard."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from .formatting import serializable
 
 
 def default_date_range(engine, timezone: str) -> tuple[str, str]:
-    """Return warehouse history through today's Jakarta business date."""
+    """Ambil riwayat gudang data hingga tanggal bisnis hari ini di Jakarta."""
     today = datetime.now(ZoneInfo(timezone)).date()
     try:
         with engine.connect() as connection:
@@ -24,7 +24,7 @@ def default_date_range(engine, timezone: str) -> tuple[str, str]:
 
 
 def build_filter_clause(start, end, channels, statuses, categories, brands=None, products=None):
-    """Build a bound filter shared by detail, KPI, and chart queries."""
+    """Susun filter terikat yang digunakan bersama oleh kueri rincian, KPI, dan grafik."""
     conditions = ["order_date BETWEEN :start AND :end"]
     params = {"start": start, "end": end}
     for name, values in (
@@ -45,7 +45,7 @@ def build_filter_clause(start, end, channels, statuses, categories, brands=None,
 
 
 def query_dashboard_analytics(engine, start, end, channels, statuses, categories, brands=None, products=None):
-    """Calculate dashboard KPIs and charts in PostgreSQL for active filters."""
+    """Hitung KPI dan data grafik dashboard di PostgreSQL sesuai filter aktif."""
     where, params = build_filter_clause(start, end, channels, statuses, categories, brands, products)
     usable_city = "LOWER(TRIM(COALESCE(city, ''))) NOT IN ('', 'nan', 'none', 'null', 'n/a', 'na')"
     source = f"FROM warehouse.v_sales_detail WHERE {where}"
@@ -109,7 +109,7 @@ def query_dashboard_analytics(engine, start, end, channels, statuses, categories
 
 
 def query_dashboard_data(engine, start, end, channels, statuses, categories, brands=None, products=None):
-    """Read detail rows, filter options, and pipeline observability data."""
+    """Ambil baris rincian, pilihan filter, dan data pemantauan pipeline."""
     where, params = build_filter_clause(start, end, channels, statuses, categories, brands, products)
     completed_where = " AND ".join([where, "status = 'COMPLETED'"])
     with engine.begin() as connection:
@@ -152,7 +152,7 @@ def query_dashboard_data(engine, start, end, channels, statuses, categories, bra
 
 
 def _previous_period(connection, params, completed_where, start, end):
-    """Calculate the comparable preceding date range without failing the request."""
+    """Hitung rentang tanggal sebelumnya yang sebanding tanpa menggagalkan permintaan."""
     try:
         current_start, current_end = date.fromisoformat(start), date.fromisoformat(end)
         period_days = (current_end - current_start).days + 1

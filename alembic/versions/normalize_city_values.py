@@ -1,4 +1,4 @@
-"""Normalize legacy placeholder text in the customer city dimension."""
+"""Normalisasi teks penanda lama pada dimensi kota pelanggan."""
 
 from alembic import op
 
@@ -10,8 +10,8 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # City is optional.  A textual NaN is a legacy source marker, not a city.
-    # Keep it NULL so analytics can present one explicit "Unknown city" bucket.
+    # Kota bersifat opsional. Teks NaN adalah penanda lama dari sumber, bukan nama kota.
+    # Simpan sebagai NULL agar analitik dapat menampilkan satu kelompok "Kota tidak diketahui".
     op.execute("""
         UPDATE warehouse.dim_customer
         SET city = NULL,
@@ -22,5 +22,5 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    # The original placeholder does not carry recoverable geographic information.
+    # Penanda lama tersebut tidak memuat informasi geografis yang dapat dipulihkan.
     pass

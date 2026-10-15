@@ -1,7 +1,4 @@
-"""Quick contract validation for final clean exports.
-
-Run before publishing a notebook or exporting a final dataset.
-"""
+"""Validasi kontrak secara cepat."""
 
 from __future__ import annotations
 

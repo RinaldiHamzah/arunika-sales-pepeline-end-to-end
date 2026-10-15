@@ -1,9 +1,7 @@
-"""Simple, shared notebook interface using the user's 12-column sales format."""
+"""Antarmuka notebook."""
 
 from pathlib import Path
-
 import pandas as pd
-
 from pipeline.validation.contracts import CHANNEL_LABELS, CLEAN_PRODUCT_COLUMNS, CLEAN_SALES_COLUMNS
 from pipeline.validation.data_quality import ROOT, SPECS, analyze, run_quality
 
@@ -30,7 +28,7 @@ CHECKS = {
 
 
 def validate_sales_contract(data: pd.DataFrame) -> pd.DataFrame:
-    """Fail fast when a clean transaction export drifts from its public contract."""
+    """Hentikan proses segera jika ekspor transaksi bersih menyimpang dari kontraknya."""
     if list(data.columns) != SALES_COLUMNS:
         raise ValueError(f"Clean sales schema must be exactly: {SALES_COLUMNS}")
     if "customer_id" in data.columns:
@@ -57,7 +55,7 @@ def load_analysis(source="all", source_dir=None):
 
 
 def standard_data(results):
-    """Keep typed dates/money and exactly one user-facing schema across channels."""
+    """Pertahankan tipe tanggal dan nilai uang serta satu skema tampilan untuk semua kanal."""
     if set(results) == {"product"}:
         return (
             results["product"]
@@ -144,18 +142,18 @@ def export_analysis(results, output_dir=None):
     resolved = target.resolve()
     if original == resolved or original in resolved.parents or resolved in original.parents:
         raise ValueError("Output must not overlap source directory")
-    # Build and validate every export before overwriting an existing clean file.
+    # Susun dan validasi seluruh ekspor sebelum menimpa berkas bersih yang sudah ada.
     exports = {source: standard_data({source: result}) for source, result in results.items()}
     combined = standard_data(results) if set(results) == {"product", *SPECS} else None
     target.mkdir(parents=True, exist_ok=True)
     for source, result in results.items():
         exports[source].to_csv(target / f"{source}.csv", index=False, date_format="%Y-%m-%d")
-    # Only the overview writes shared reports, preventing a single-source notebook
-    # from replacing the consolidated report with a partial one.
+    # Hanya ringkasan yang menulis laporan bersama agar notebook satu sumber
+    # tidak mengganti laporan gabungan dengan laporan parsial.
     if set(results) == {"product", *SPECS}:
         combined.to_csv(target / "sales.csv", index=False, date_format="%Y-%m-%d")
         summary(results).to_csv(target / "summary.csv", index=False)
-        # Keep detailed evidence out of the displayed sales dataset.
+        # Pisahkan bukti terperinci dari dataset penjualan yang ditampilkan.
         evidence = []
         for source, result in results.items():
             issues = result.issues.copy()

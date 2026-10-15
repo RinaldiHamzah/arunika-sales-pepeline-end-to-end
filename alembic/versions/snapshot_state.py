@@ -1,4 +1,4 @@
-"""Store the last successful source snapshot and correlate Airflow runs."""
+"""Simpan snapshot sumber sukses terakhir dan hubungkan dengan run Airflow."""
 from alembic import op
 
 revision = "20260920_06"
@@ -25,5 +25,5 @@ CREATE INDEX IF NOT EXISTS idx_runs_orchestration
 
 
 def downgrade():
-    # Keep additive audit history. No destructive rollback.
+    # Pertahankan riwayat audit yang ditambahkan; jangan lakukan rollback destruktif.
     pass

@@ -102,7 +102,7 @@ CREATE INDEX IF NOT EXISTS idx_audit_rejected_run ON audit.rejected_records (run
 CREATE INDEX IF NOT EXISTS idx_audit_source_ingestions_run ON audit.source_ingestions (run_id);
 CREATE INDEX IF NOT EXISTS idx_audit_stage_runs_run ON audit.pipeline_stage_runs (run_id, started_at);
 
--- Raw and staging run IDs reference the audit table only after it exists.
+-- ID run raw dan staging merujuk ke tabel audit setelah tabel tersebut tersedia.
 CREATE TABLE IF NOT EXISTS audit.source_snapshots (
     pipeline_name VARCHAR(100) NOT NULL,
     source_name VARCHAR(30) NOT NULL,
@@ -123,7 +123,7 @@ ALTER TABLE audit.pipeline_runs
     ADD COLUMN IF NOT EXISTS report_summary JSONB,
     ADD COLUMN IF NOT EXISTS outcome_message TEXT;
 
--- Raw and staging run IDs reference the audit table only after it exists.
+-- ID run raw dan staging merujuk ke tabel audit setelah tabel tersebut tersedia.
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_raw_shopee_run') THEN

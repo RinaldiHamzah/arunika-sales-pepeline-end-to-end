@@ -1,4 +1,4 @@
-/* Page shell and navigation; component internals live in components.css. */
+/* Kerangka halaman dan navigasi; isi komponen berada di components.css. */
 .app-shell {
   display: block;
   min-height: 100vh;

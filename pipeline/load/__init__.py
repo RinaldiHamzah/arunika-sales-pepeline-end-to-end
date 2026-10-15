@@ -1,1 +1,1 @@
-"""Warehouse loading modules."""
+"""Modul pemuatan ke gudang data."""

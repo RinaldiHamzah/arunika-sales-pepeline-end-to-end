@@ -1,4 +1,4 @@
-"""Offline POS-store extractor."""
+"""Ekstraktor data penjualan offline."""
 
 from pathlib import Path
 

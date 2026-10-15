@@ -1,13 +1,11 @@
-"""Load extracted records, unchanged, into raw PostgreSQL tables."""
+"""Muat record hasil ekstraksi tanpa perubahan ke tabel raw PostgreSQL."""
 
 from __future__ import annotations
 
 import json
 from uuid import UUID
-
 from sqlalchemy import text
 from sqlalchemy.engine import Connection
-
 from pipeline.config import settings
 from pipeline.extract.base import ExtractedSource, raw_payload_hash
 
@@ -26,7 +24,7 @@ def load_source_snapshots(connection):
 
 
 def existing_raw_hashes(connection: Connection, sources: list[ExtractedSource]) -> dict[str, set[str]]:
-    """Only the last successful snapshot, never the historical union."""
+    """Gunakan hanya snapshot sukses terakhir, bukan gabungan seluruh riwayat."""
     snapshots = load_source_snapshots(connection)
     return {
         source.source_name: set(snapshots.get(source.source_name, {}).get("payload_hashes", [])) for source in sources
@@ -39,8 +37,7 @@ def save_source_snapshots(connection, run_id, sources, previous):
         hashes = (
             old.get("payload_hashes", [])
             if old.get("file_checksum_sha256") == source.checksum_sha256
-            else [raw_payload_hash(row) for row in source.frame.to_dict("records")]
-        )
+            else [raw_payload_hash(row) for row in source.frame.to_dict("records")])
         connection.execute(
             text("""
             INSERT INTO audit.source_snapshots
@@ -59,9 +56,7 @@ def save_source_snapshots(connection, run_id, sources, previous):
                 "hashes": json.dumps(sorted(set(hashes))),
                 "run_id": run_id,
                 "source_records": source.source_records if source.source_records is not None else len(source.frame),
-            },
-        )
-
+            },)
 
 def load_raw(connection: Connection, run_id: UUID, source: ExtractedSource) -> int:
     missing = set(source.column_mapping) - set(source.frame.columns)
@@ -95,8 +90,7 @@ def load_raw(connection: Connection, run_id: UUID, source: ExtractedSource) -> i
                 "source_file_name": source.file_path.name,
                 "source_row_number": source_row_number,
                 "source_payload": json.dumps(row, default=str, ensure_ascii=False),
-            }
-        )
+            })
         records.append(record)
     if records:
         connection.execute(statement, records)
@@ -114,6 +108,5 @@ def load_raw(connection: Connection, run_id: UUID, source: ExtractedSource) -> i
             "checksum": source.checksum_sha256,
             "source_format": source.source_format,
             "records": len(records),
-        },
-    )
+        },)
     return len(records)

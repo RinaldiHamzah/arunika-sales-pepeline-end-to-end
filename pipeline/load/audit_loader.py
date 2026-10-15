@@ -1,4 +1,4 @@
-"""Persist data-quality evidence and run watermarks in PostgreSQL."""
+"""Bukti kualitas data pada PostgreSQL."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from pipeline.transform.standardize import SOURCE_NAMES
 
 
 def _quality_category(rule: object, field: object) -> str:
-    """Classify a finding so the report can show business-relevant totals."""
+    """Kelompokkan temuan agar laporan menampilkan jumlah yang relevan bagi bisnis."""
     rule_name = str(rule)
     field_name = str(field).lower()
     if rule_name in {"MISSING_REQUIRED", "MISSING_OPTIONAL"}:
@@ -33,7 +33,7 @@ def _quality_category(rule: object, field: object) -> str:
 
 
 def load_stage_runs(connection, run_id: UUID, stages) -> None:
-    """Persist per-stage timings collected by the runner."""
+    """Simpan durasi setiap tahap yang dikumpulkan runner."""
     if not stages:
         return
     connection.execute(
@@ -49,7 +49,7 @@ def load_stage_runs(connection, run_id: UUID, stages) -> None:
 
 
 def load_quality_audit(connection: Connection, run_id: UUID, results) -> None:
-    """Persist rule counts and rejected records for one pipeline run."""
+    """Simpan jumlah temuan per aturan dan record yang ditolak untuk satu run pipeline."""
     quality_rows = []
     rejected_rows = []
     for source, result in results.items():
@@ -115,7 +115,7 @@ def load_quality_audit(connection: Connection, run_id: UUID, results) -> None:
 
 
 def update_watermarks(connection: Connection, run_id: UUID, results) -> None:
-    """Advance each source watermark only after its run succeeds."""
+    """Majukan watermark setiap sumber hanya setelah run terkait berhasil."""
     rows = []
     for source, result in results.items():
         source_name = "PRODUCT_MASTER" if source == "product" else SOURCE_NAMES[source]

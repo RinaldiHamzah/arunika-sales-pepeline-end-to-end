@@ -1,4 +1,4 @@
-"""Add operational audit metrics and incremental row hashes.
+"""Tambahkan metrik audit operasional dan hash baris untuk pemrosesan inkremental.
 
 This revision is safe on both a fresh SQL-init database and an older volume.
 """
@@ -44,5 +44,5 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    # Metrics are additive and shared with audit history; keep them on downgrade.
+    # Metrik menambah informasi pada riwayat audit; pertahankan saat downgrade.
     pass

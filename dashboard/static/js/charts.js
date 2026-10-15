@@ -1,6 +1,6 @@
 import { $, state, money, number, escapeHtml } from './core.js';
 
-/** The table is always available, including offline and to assistive technology. */
+/** Tabel tetap tersedia, termasuk saat offline dan bagi teknologi bantu. */
 function accessibleChart(canvas, config) {
   const panel = canvas.closest('.panel');
   let details = panel.querySelector('.chart-data');

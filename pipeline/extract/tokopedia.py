@@ -1,4 +1,4 @@
-"""Tokopedia CSV extractor (Marketplace B)."""
+"""Ekstraktor CSV Tokopedia."""
 
 from pathlib import Path
 

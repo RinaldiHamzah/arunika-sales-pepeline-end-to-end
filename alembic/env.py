@@ -1,4 +1,4 @@
-"""Alembic environment using the same validated settings as the pipeline."""
+"""Konfigurasi lingkungan migrasi Alembic untuk pipeline."""
 
 from logging.config import fileConfig
 

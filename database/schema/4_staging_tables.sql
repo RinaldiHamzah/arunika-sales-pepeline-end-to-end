@@ -1,4 +1,4 @@
--- Canonical sales record. Grain: one source line item before warehouse dimensions resolve.
+-- Record penjualan canonical. Grain: satu baris item sumber sebelum dimensi gudang data ditentukan.
 CREATE TABLE IF NOT EXISTS staging.stg_sales (
     staging_sales_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     ingestion_run_id UUID NOT NULL,

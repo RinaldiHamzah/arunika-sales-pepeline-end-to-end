@@ -1,4 +1,4 @@
-/* Stable entry point. Edit the owning stylesheet instead of adding overrides here. */
+/* Titik masuk tetap. Ubah lembar gaya terkait, bukan menambahkan penimpaan di sini. */
 @import url("./tokens.css?v=ux2");
 @import url("./layout.css?v=ux2");
 @import url("./components.css?v=ux2");

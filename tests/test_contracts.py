@@ -1,4 +1,4 @@
-"""Regression tests for the canonical data contract."""
+"""Tes regresi."""
 
 from pipeline.validation.analysis import PRODUCT_COLUMNS, SALES_COLUMNS
 from pipeline.validation.contracts import (

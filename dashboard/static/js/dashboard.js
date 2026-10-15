@@ -1,4 +1,4 @@
-/** Entry point. Wire controls before requesting data so failure never disables navigation. */
+/** Titik masuk aplikasi. Siapkan kontrol sebelum meminta data agar kegagalan tidak menonaktifkan navigasi. */
 import { bindEvents, loadDashboard } from './interactions.js';
 
 bindEvents();

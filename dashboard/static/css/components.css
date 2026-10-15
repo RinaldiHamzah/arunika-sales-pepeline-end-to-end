@@ -1,4 +1,4 @@
-/* Shared controls, KPI cards, tables, and pipeline operations. */
+/* Kontrol, kartu KPI, tabel, dan pengelolaan pipeline yang digunakan bersama. */
 .card, .panel, .kpi-card {
   min-width: 0;
   padding: 26px;

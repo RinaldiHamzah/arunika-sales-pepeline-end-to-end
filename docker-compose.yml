@@ -76,13 +76,13 @@ services:
       pipeline:
         condition: service_completed_successfully
     volumes:
-      # Keep templates and front-end assets in sync with local development.
+      # Samakan template dan aset antarmuka dengan lingkungan pengembangan lokal.
       - ./dashboard:/app/dashboard:ro
       - ./data/source:/app/data/source:rw
     restart: unless-stopped
 
-  # PostgreSQL init scripts run only for a new volume. This idempotent bootstrap
-  # also supports existing developer volumes created before Airflow was added.
+  # Skrip inisialisasi PostgreSQL hanya berjalan untuk volume baru. Bootstrap idempoten ini
+  # juga mendukung volume pengembangan lama yang dibuat sebelum Airflow ditambahkan.
   airflow-db-bootstrap:
     image: postgres:16-alpine
     command:
@@ -113,7 +113,7 @@ services:
     environment:
       AIRFLOW_HOME: /opt/airflow
       PYTHONPATH: /app
-      # Airflow 3 tasks must reach the API server over the Docker network.
+      # Task Airflow 3 harus dapat mengakses server API melalui jaringan Docker.
       AIRFLOW__CORE__EXECUTION_API_SERVER_URL: http://airflow-webserver:8080/execution/
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
@@ -129,7 +129,7 @@ services:
       AIRFLOW_ADMIN_EMAIL: ${AIRFLOW_ADMIN_EMAIL:-admin@arunika.co.id}
     volumes:
       - airflow_home:/opt/airflow
-      # DAG modules live directly in the repository's airflow/ directory.
+      # Modul DAG berada langsung di direktori airflow/ pada repositori.
       - ./airflow:/opt/airflow/dags:ro
     depends_on:
       airflow-db-bootstrap:
@@ -177,8 +177,8 @@ services:
       APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Jakarta}
       AIRFLOW__CORE__DEFAULT_TIMEZONE: ${APP_TIMEZONE:-Asia/Jakarta}
       TZ: ${APP_TIMEZONE:-Asia/Jakarta}
-      # Pipeline tasks use these application connection settings, distinct
-      # from Airflow's own metadata database connection above.
+      # Task pipeline menggunakan pengaturan koneksi aplikasi ini, terpisah
+      # dari koneksi basis data metadata Airflow di atas.
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
       POSTGRES_DB: ${POSTGRES_DB:-ecommerce_sales}
@@ -200,7 +200,7 @@ services:
         condition: service_completed_successfully
     restart: unless-stopped
 
-  # Airflow 3 renamed the Airflow 2 webserver process to api-server.
+  # Pada Airflow 3, proses webserver Airflow 2 berganti nama menjadi api-server.
   airflow-webserver:
     build: .
     command: airflow api-server --host 0.0.0.0 --port 8080

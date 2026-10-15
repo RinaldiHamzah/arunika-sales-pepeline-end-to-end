@@ -1,4 +1,4 @@
-"""Database connection helpers."""
+"""Koneksi basis data."""
 
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
@@ -8,8 +8,8 @@ from pipeline.config import settings
 
 def get_engine() -> Engine:
     settings.validate()
-    # Fail clearly instead of leaving a local test or CLI process indefinitely
-    # blocked when PostgreSQL is unavailable (for example before Docker starts).
+    # Tampilkan kegagalan dengan jelas agar proses tes lokal atau CLI tidak
+    # tertahan tanpa batas saat PostgreSQL belum tersedia, misalnya sebelum Docker aktif.
     return create_engine(
         settings.sqlalchemy_url,
         pool_pre_ping=True,

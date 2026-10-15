@@ -1,9 +1,4 @@
-"""Acceptance tests against an isolated PostgreSQL database.
-
-The test is intentionally blocked unless its dedicated test-database markers
-are present. It executes the real runner three times and must never target a
-developer or production warehouse.
-"""
+"""Tes integrasi basis data PostgreSQL."""
 
 import csv
 import os
@@ -49,13 +44,13 @@ def _counts(connection):
 
 
 def _reset_isolated_database(engine) -> None:
-    """Clear only the explicitly marked acceptance-test database.
+    """Kosongkan hanya basis data yang secara eksplisit ditandai untuk tes penerimaan.
 
-    Docker may retain the test container between runs. Resetting every project
-    table makes the first run deterministic while Alembic keeps the schema and
-    migration version intact.
+    Docker dapat mempertahankan container tes di antara beberapa run. Mengosongkan
+    seluruh tabel proyek membuat tes deterministik, sementara Alembic tetap menjaga
+    skema dan versi migrasi.
     """
-    assert _enabled(), "The destructive test reset requires the isolated database markers."
+    assert _enabled(), "Pengosongan data tes memerlukan penanda basis data terisolasi."
     with engine.begin() as connection:
         tables = connection.execute(
             text("""
@@ -80,8 +75,8 @@ def _append_valid_website_rows(source_dir, count=20):
     test_batch = uuid4().hex[:12].upper()
     for index in range(count):
         row = dict(template)
-        # A unique business key keeps the test repeatable against a persistent
-        # developer database where a previous acceptance run may still exist.
+        # Business key unik membuat tes dapat diulang pada basis data pengembangan
+        # yang datanya tetap tersimpan setelah tes penerimaan sebelumnya.
         row["invoice_no"] = f"WEB-TEST-{test_batch}-{index:04d}"
         rows.append(row)
     with path.open("w", newline="", encoding="utf-8") as file:
@@ -102,8 +97,8 @@ def _source_row_count(source_dir):
     reason="run against the isolated ecommerce_sales_test database via the test compose profile",
 )
 def test_full_pipeline_and_incremental_acceptance():
-    # pytest's ``tmp_path`` and a repository folder can be locked by OneDrive
-    # on Windows. Use a dedicated directory in the OS temporary area instead.
+    # OneDrive pada Windows dapat mengunci ``tmp_path`` pytest maupun folder repositori.
+    # Gunakan folder khusus pada direktori sementara sistem operasi.
     runtime_root = Path(os.getenv("ARUNIKA_TEST_RUNTIME", str(Path(tempfile.gettempdir()) / "arunika_ecommerce_tests")))
     runtime_root.mkdir(exist_ok=True)
     source_dir = Path(tempfile.mkdtemp(dir=runtime_root)) / "source"

@@ -1,4 +1,4 @@
-/* Fixed chart viewport prevents layout jumps; tables are the accessible alternative. */
+/* Area grafik dengan ukuran tetap mencegah perubahan tata letak; tabel menjadi alternatif yang mudah diakses. */
 .chart-container {
   position: relative;
   height: 310px;

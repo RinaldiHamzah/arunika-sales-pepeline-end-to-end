@@ -1,7 +1,7 @@
 /**
- * Dashboard-only regression test. Uses Node 22+ and installed Chrome/Edge.
- * No database, credentials, Python imports, or production API calls.
- * Run: node dashboard/tests/browser_smoke.mjs
+ * Tes regresi khusus dashboard. Memerlukan Node 22+ dan Chrome/Edge yang terpasang.
+ * Tidak menggunakan basis data, kredensial, impor Python, maupun API produksi.
+ * Jalankan: node dashboard/tests/browser_smoke.mjs
  */
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
@@ -251,7 +251,7 @@ try {
   server.closeAllConnections();
   server.close();
   await wait(1000);
-  // Only remove the dedicated temporary browser profile created by this test.
+  // Hapus hanya profil peramban sementara yang dibuat khusus oleh tes ini.
   if (path.dirname(profile) === path.resolve(tmpdir()) && path.basename(profile).startsWith('arunika-ui-test-')) {
     await rm(profile, { recursive: true, force: true, maxRetries: 3, retryDelay: 500 }).catch(() => {});
   }

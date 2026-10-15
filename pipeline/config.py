@@ -1,14 +1,12 @@
-"""Centralized, environment-driven pipeline configuration."""
+"""Konfigurasi terpusat untuk pipeline."""
 
 import os
 from dataclasses import dataclass
 from urllib.parse import urlparse
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
-
 from dotenv import load_dotenv
 
 load_dotenv()
-
 
 @dataclass(frozen=True)
 class Settings:
@@ -34,7 +32,7 @@ class Settings:
         )
 
     def validate(self) -> None:
-        """Reject unsafe/incomplete connection settings before opening a database."""
+        """Tolak pengaturan koneksi yang tidak aman atau tidak lengkap sebelum membuka basis data."""
         if not self.database_url and (not self.postgres_password or self.postgres_password == "change_me"):
             raise ValueError("POSTGRES_PASSWORD must be set to a non-default secret")
         if not self.postgres_db or not self.postgres_user:
@@ -47,6 +45,5 @@ class Settings:
             ZoneInfo(self.app_timezone)
         except ZoneInfoNotFoundError as error:
             raise ValueError(f"APP_TIMEZONE is not a valid IANA timezone: {self.app_timezone}") from error
-
 
 settings = Settings()

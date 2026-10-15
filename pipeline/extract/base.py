@@ -1,11 +1,10 @@
-"""Shared extraction contracts and file metadata capture."""
+"""Kontrak ekstraksi."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
 from hashlib import sha256
 from pathlib import Path
-
 import pandas as pd
 
 
@@ -27,12 +26,12 @@ class ExtractedSource:
 
     @property
     def row_numbers(self) -> tuple[int, ...]:
-        """Original CSV row numbers, retained when an incremental subset is used."""
+        """Nomor baris asli CSV yang dipertahankan saat menggunakan subset inkremental."""
         return self.source_row_numbers or tuple(range(1, len(self.frame) + 1))
 
 
 def raw_payload_hash(payload: dict) -> str:
-    """Hash an exact source row before validation for safe delta detection."""
+    """Hitung hash baris sumber apa adanya sebelum validasi untuk mendeteksi perubahan dengan aman."""
     import json
 
     canonical = json.dumps(payload, sort_keys=True, ensure_ascii=False, default=str, separators=(",", ":"))
@@ -40,7 +39,7 @@ def raw_payload_hash(payload: dict) -> str:
 
 
 def filter_unseen_rows(source: ExtractedSource, known_hashes: set[str]) -> ExtractedSource:
-    """Return only rows whose raw payload has not already been ingested."""
+    """Kembalikan hanya baris dengan payload yang belum pernah dimuat."""
     if source.frame.empty:
         return source
     selected = [
@@ -62,7 +61,7 @@ def extract_delimited(
 
     payload = file_path.read_bytes()
     checksum = sha256(payload).hexdigest()
-    # Hash bytes to detect changes, but do not parse an unchanged sales file.
+    # Gunakan hash byte untuk mendeteksi perubahan tanpa mengurai ulang berkas penjualan yang sama.
     if (
         source_name != "PRODUCT_MASTER"
         and snapshot

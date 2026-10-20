@@ -13,8 +13,7 @@ def upgrade():
         """
         ALTER TABLE audit.pipeline_runs
         ADD COLUMN IF NOT EXISTS report_summary JSONB;
-        """
-    )
+        """)
 
 
 def downgrade():

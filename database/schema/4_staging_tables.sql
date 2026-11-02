@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS staging.stg_sales (
     source_name VARCHAR(30) NOT NULL CHECK (source_name IN ('SHOPEE', 'TOKOPEDIA', 'WEBSITE', 'OFFLINE_STORE')),
     source_raw_record_id BIGINT NOT NULL,
     source_order_id TEXT NOT NULL,
-    source_line_number INTEGER NOT NULL DEFAULT 1 CHECK (source_line_number > 0),
+    source_line_number INTEGER NOT NULL CHECK (source_line_number > 0),
     order_date DATE NOT NULL,
     product_input TEXT NOT NULL,
     mapped_sku VARCHAR(30),

@@ -32,7 +32,8 @@ alembic/
 │   ├── incremental_reporting.py
 │   ├── analytics_and_quality_views.py
 │   ├── quality_report_detail.py
-│   └── run_report_summary.py
+│   ├── run_report_summary.py
+│   └── order_line_grain.py
 └── README.md
 ```
 
@@ -59,8 +60,11 @@ Nama file dibuat berdasarkan fungsi perubahan agar mudah dibaca. Urutan migratio
 | `20260925_08` | `analytics_and_quality_views.py` | Menambahkan SQL analytics views dan view laporan quality check. |
 | `20260925_09` | `quality_report_detail.py` | Menambahkan laporan data quality detail per source dan aturan. |
 | `20260926_10` | `run_report_summary.py` | Menambahkan ringkasan Raw, Quality/Staging, dan Warehouse per run. |
+| `20261102_11` | `order_line_grain.py` | Menyimpan nomor item native pada Raw/Audit dan menghapus default nomor item pada Staging/Fact. |
 
-Revision terbaru saat ini adalah `20260926_10`.
+Revision terbaru saat ini adalah `20261102_11`.
+
+Sebelum menerapkan migrasi item pesanan pada database yang sudah berisi data, buat backup dan cocokkan order lama dengan sumber terbaru. Migrasi tidak menebak nomor item historis: baris Raw lama boleh tetap memiliki nomor item `NULL`, sedangkan baris Staging/Fact lama mempertahankan nomor yang sudah tersimpan. Source yang tidak lagi muncul dalam file juga tidak dihapus otomatis dari Warehouse. Rollback ditolak bila sudah ada nomor item lebih dari satu di Staging/Fact; ini mencegah kode lama menafsirkan data multi-item secara keliru.
 
 ## Perintah yang digunakan
 

@@ -8,7 +8,9 @@ from datetime import date, timedelta
 from pathlib import Path
 
 OUT = Path(__file__).resolve().parents[1] / "data" / "source"
-RNG = random.Random(20260913)
+SEED = 20260913
+FIXED_ITEM_COUNTS = (1, 2, 3, 5, 10)
+SAMPLE_LINE_COUNT = 50
 
 # Katalog sintetis terinspirasi dari merek Paragon; SKU dan harga hanya contoh.
 PRODUCTS = [
@@ -43,38 +45,59 @@ CUSTOMERS = [
 
 
 def records(offset: int) -> list[dict]:
+    """Buat lima pesanan acuan dan pesanan acak dengan 1–10 item per pesanan."""
+    rng = random.Random(SEED + offset)
     result: list[dict] = []
-    for i in range(50):
-        sku, product, brand, category, price = RNG.choice(PRODUCTS)
-        customer_id, customer, city = RNG.choice(CUSTOMERS)
-        variants = [product, product.upper(), product.replace(" ", "-"), f" {product} "]
-        result.append(
-            {
-                "id": offset + i,
-                "date": date(2026, 1, 1) + timedelta(days=RNG.randrange(240)),
-                "sku": sku,
-                "name": RNG.choice(variants),
-                "qty": RNG.choice([1, 1, 2, 3]),
-                "price": price,
-                "customer_id": customer_id,
-                "customer": customer,
-                "city": city,
-                "payment": RNG.choice(["Transfer Bank", "E-Wallet", "Credit Card", "COD"]),
-                "status": RNG.choice(["completed", "completed", "completed", "cancelled", "returned"]),
-                "customer_email": f"{customer.lower().replace(' ', '.')}@example.test",
-            }
-        )
+    order_index = 0
+    while len(result) < SAMPLE_LINE_COUNT:
+        count = FIXED_ITEM_COUNTS[order_index] if order_index < len(FIXED_ITEM_COUNTS) else rng.randint(1, 10)
+        count = min(count, SAMPLE_LINE_COUNT - len(result))
+        customer_id, customer, city = rng.choice(CUSTOMERS)
+        order_date = date(2026, 1, 1) + timedelta(days=rng.randrange(240))
+        payment = rng.choice(["Transfer Bank", "E-Wallet", "Credit Card", "COD"])
+        status = rng.choice(["completed", "completed", "completed", "cancelled", "returned"])
+        for line_number in range(1, count + 1):
+            sku, product, _brand, _category, price = rng.choice(PRODUCTS)
+            variants = [product, product.upper(), product.replace(" ", "-"), f" {product} "]
+            result.append(
+                {
+                    "id": offset + order_index,
+                    "line_number": line_number,
+                    "date": order_date,
+                    "sku": sku,
+                    "name": rng.choice(variants),
+                    "qty": rng.choice([1, 1, 2, 3]),
+                    "price": price,
+                    "customer_id": customer_id,
+                    "customer": customer,
+                    "city": city,
+                    "payment": payment,
+                    "status": status,
+                    "customer_email": f"{customer.lower().replace(' ', '.')}@example.test",
+                }
+            )
+        order_index += 1
 
     # Cacat kualitas dibuat secara terkontrol, satu untuk setiap jenis pada tiap sumber.
-    result[3]["qty"] = 0
-    result[7]["price"] = -50000
-    result[11]["customer"] = ""
-    result[15]["city"] = ""
-    result[19]["payment"] = ""
-    result[23]["status"] = "in_progress"
-    result[27]["name"] = "Brigthning Serumm 30ml"
-    result[31]["date"] = "not-a-date"
-    result.append(result[5].copy())
+    result[22]["qty"] = 0
+    result[24]["price"] = -50000
+    result[26]["customer"] = ""
+    result[28]["city"] = ""
+    result[30]["payment"] = ""
+    result[32]["status"] = "in_progress"
+    result[34]["name"] = "Brigthning Serumm 30ml"
+    result[36]["date"] = "not-a-date"
+    result[40]["source_total_amount"] = 1  # Cacat khusus Website: total tidak sesuai dengan quantity × harga.
+    result[38]["qty"] = 2
+    result[38]["price"] = 100
+    result[38]["sku"] = PRODUCTS[0][0]
+    result[38]["name"] = PRODUCTS[0][1]
+    result[38]["date"] = date(2026, 3, 1)
+    result[38]["status"] = "completed"
+    result.append(result[38].copy())  # Duplikat persis, terpisah dari lima pesanan acuan.
+    conflict = result[39].copy()
+    conflict["qty"] = int(conflict["qty"]) + 1
+    result.append(conflict)
     return result
 
 
@@ -99,6 +122,7 @@ def main() -> None:
         "shopee.csv",
         [
             "order_id",
+            "order_line_id",
             "order_date",
             "product_name",
             "qty",
@@ -111,6 +135,7 @@ def main() -> None:
         shopee_rows,
         lambda r: {
             "order_id": f"SHP-{r['id']:04}",
+            "order_line_id": r["line_number"],
             "order_date": fmt(r["date"], "%Y-%m-%d"),
             "product_name": r["name"],
             "qty": r["qty"],
@@ -126,6 +151,7 @@ def main() -> None:
         "tokopedia.csv",
         [
             "transaction_id",
+            "item_sequence",
             "transaction_date",
             "item_name",
             "quantity",
@@ -138,6 +164,7 @@ def main() -> None:
         tokopedia_rows,
         lambda r: {
             "transaction_id": f"TKP-{r['id']:04}",
+            "item_sequence": r["line_number"],
             "transaction_date": fmt(r["date"], "%d/%m/%Y"),
             "item_name": r["name"],
             "quantity": r["qty"],
@@ -153,6 +180,7 @@ def main() -> None:
         "website.csv",
         [
             "invoice_no",
+            "line_item_no",
             "created_at",
             "product_identifier",
             "quantity",
@@ -164,11 +192,12 @@ def main() -> None:
         website_rows,
         lambda r: {
             "invoice_no": f"WEB-{r['id']:04}",
+            "line_item_no": r["line_number"],
             "created_at": fmt(r["date"], "%Y-%m-%dT10:30:00"),
             "product_identifier": r["sku"],
             "quantity": r["qty"],
             "unit_price": r["price"],
-            "total_amount": r["qty"] * r["price"],
+            "total_amount": r.get("source_total_amount", r["qty"] * r["price"]),
             "customer_email": r["customer_email"],
             "status": r["status"],
         },
@@ -178,6 +207,7 @@ def main() -> None:
         "offline.csv",
         [
             "pos_receipt_no",
+            "receipt_line_no",
             "sold_at",
             "item_description",
             "units",
@@ -190,6 +220,7 @@ def main() -> None:
         offline_rows,
         lambda r: {
             "pos_receipt_no": f"POS-{r['id']:04}",
+            "receipt_line_no": r["line_number"],
             "sold_at": fmt(r["date"], "%d-%b-%Y"),
             "item_description": r["name"],
             "units": r["qty"],

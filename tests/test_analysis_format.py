@@ -30,7 +30,7 @@ def test_all_sales_sources_have_exact_requested_columns_and_types():
         assert pd.api.types.is_datetime64_any_dtype(data.tanggal_order)
         assert data.harga_satuan.map(lambda x: isinstance(x, Decimal)).all()
         assert (data.total_harga == data.quantity * data.harga_satuan).all()
-        assert not data.duplicated(["channel", "order_id"]).any()
+        assert not data.duplicated(["channel", "order_id", "line_number"]).any()
         assert data.product_id.isin(results["product"].clean.sku).all()
         assert data.status.isin(["Completed", "Cancelled", "Returned"]).all()
     website = standard_data({"website": results["website"]})

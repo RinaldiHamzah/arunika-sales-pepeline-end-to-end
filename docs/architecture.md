@@ -34,7 +34,7 @@ Dashboard menggunakan `warehouse.v_sales_detail` untuk menyajikan data sesuai fi
 
 | Tahap | Input | Output | Bukti lineage |
 | --- | --- | --- | --- |
-| Extract | CSV source | frame source, checksum, nomor baris | checksum SHA-256 dan `source_row_number` |
+| Extract | CSV source | frame source, checksum, nomor baris | checksum SHA-256, `source_row_number`, dan ID item asli |
 | Incremental | frame source + snapshot sukses terakhir | hanya payload baru/berubah | `audit.source_snapshots.payload_hashes` |
 | Raw load | payload source asli | `raw.*` | `ingestion_run_id`, file, baris, JSON payload |
 | Validation | raw-equivalent delta | valid, duplicate, rejected | rule, severity, alasan, payload rejected |
@@ -51,7 +51,7 @@ Biaya lookup ini mengikuti jumlah kandidat valid pada run saat ini, bukan jumlah
 
 ## Transformasi utama
 
-1. Nama kolom dari setiap sumber dipetakan ke kolom standar seperti `order_id`, `order_date`, `product_name`, `quantity`, `unit_price`, dan `status`.
+1. Nama kolom dari setiap sumber dipetakan ke kolom standar seperti `order_id`, `line_number`, `order_date`, `product_name`, `quantity`, `unit_price`, dan `status`. Nomor item berasal dari `order_line_id` (Shopee), `item_sequence` (Tokopedia), `line_item_no` (Website), atau `receipt_line_no` (Offline).
 2. Teks dinormalisasi dengan Unicode NFKC, whitespace konsisten, dan identifier disimpan sebagai string agar leading zero tidak hilang.
 3. Tanggal diparse sesuai kontrak masing-masing source lalu disimpan sebagai `DATE`.
 4. Quantity menjadi integer positif dan uang menjadi nilai `NUMERIC`/`Decimal`.
@@ -79,6 +79,8 @@ Business key fact adalah:
 (source_name, source_order_id, source_line_number)
 ```
 
+Satu order dapat memiliki banyak baris item, termasuk SKU yang sama pada nomor baris berbeda. Raw menyimpan nomor item sumber sebagai `TEXT`; validasi mewajibkan bilangan bulat positif, lalu Staging dan Fact menyimpannya sebagai `INTEGER` tanpa default. Perubahan satu item hanya mengubah key item tersebut. Bila satu key dalam snapshot mempunyai dua payload berbeda, semua versinya ditolak; filter Raw turut memeriksa versi lama yang masih ada bersama versi baru agar konflik tidak tersembunyi.
+
 `source_record_hash` memastikan koreksi tidak tertukar dengan transaksi identik lama. Lihat [`docs/data_quality.md`](data_quality.md) untuk aturan validasi dan [`docs/erd.md`](erd.md) untuk relasi database.
 
 Bukti hasil runtime incremental tersedia pada [incremental-runs.png](images/incremental-runs.png).
@@ -86,8 +88,8 @@ Bukti hasil runtime incremental tersedia pada [incremental-runs.png](images/incr
 Contoh pembacaan yang benar:
 
 ```text
-Run 1: source berisi 100 transaksi → 100 kandidat baru → 100 valid → 100 fact dimuat.
-Run 2: source berisi 120 transaksi → hanya 20 kandidat baru/berubah diproses.
+Run 1: source berisi 100 baris item → 100 kandidat baru → fact sesuai jumlah item valid.
+Run 2: source berisi 120 baris item → hanya 20 kandidat baru/berubah diproses.
 ```
 
 Run 2 tidak memvalidasi atau memuat ulang 100 transaksi lama. Jika tidak ada kandidat baru, pemeriksaan kualitas, staging, dan pemuatan warehouse dilewati. Ringkasan run disimpan di `audit.pipeline_runs.outcome_message`, dicatat pada log, dan disertakan dalam email laporan.

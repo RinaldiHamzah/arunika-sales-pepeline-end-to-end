@@ -9,10 +9,10 @@ Kebijakan ini menjaga agar angka di dashboard dapat ditelusuri kembali ke sumber
 Transaksi memakai kolom berikut:
 
 ```text
-order_id,product_id,product_name,kategori,quantity,total_harga,tanggal_order,kota,channel,status,customer_email,harga_satuan
+order_id,line_number,product_id,product_name,kategori,quantity,total_harga,tanggal_order,kota,channel,status,customer_email,harga_satuan
 ```
 
-Setiap baris pada data transaksi bersih mewakili satu order. Business key internalnya adalah `(source, order_id, line_number)`. Nilai `line_number` saat ini `1` karena sumber belum menyediakan ID baris yang konsisten. `customer_id` tidak disertakan karena tidak tersedia di semua sumber.
+Setiap baris transaksi bersih mewakili satu item dalam order. Business key internalnya adalah `(source, order_id, line_number)`. `line_number` berasal dari kolom item masing-masing sumber, bukan nomor baris file dan bukan nilai default. `customer_id` tidak disertakan karena tidak tersedia di semua sumber.
 
 Product Master memakai:
 
@@ -27,7 +27,8 @@ product_id,product_name,brand,kategori,harga_satuan
 | Pemeriksaan | Aturan | Perlakuan |
 | --- | --- | --- |
 | Nilai kosong | Nilai kosong, spasi, `NA`, dan `NULL` dianggap sebagai data kosong. | Baris dengan kolom wajib kosong ditolak. Kolom opsional tetap `null` dan diberi peringatan. |
-| Field wajib | Order ID, tanggal, produk, quantity, harga satuan, dan status wajib ada. | Tidak diisi dengan tebakan. |
+| Field wajib | Order ID, nomor item, tanggal, produk, quantity, harga satuan, dan status wajib ada. | Tidak diisi dengan tebakan. |
+| Nomor item | `line_number` harus integer positif sampai batas `INTEGER` PostgreSQL. | Nilai kosong, nol, negatif, pecahan, atau teks ditolak dengan `INVALID_LINE_NUMBER`. |
 | Duplikat sama | Business key dan nilai standar sama. | Satu baris dipertahankan; sisanya dicatat sebagai duplikat. |
 | Duplikat konflik | Business key sama, tetapi isi berbeda. | Semua versi ditolak agar sistem tidak memilih data secara sembarang. |
 | Quantity | Bilangan bulat positif dalam batas `INTEGER`. | Nol, negatif, pecahan, atau nonnumerik ditolak. |
@@ -76,6 +77,7 @@ Warehouse memakai business key `(source_name, source_order_id, source_line_numbe
 - Key baru akan di-insert.
 - Key sama dengan hash berbeda diproses sebagai koreksi atau upsert.
 - Key dan hash sama dilewati.
+- Dua item pada order yang sama tetap terpisah selama nomor item berbeda, termasuk bila SKU-nya sama.
 - Transaksi yang hilang dari source tidak dihapus otomatis.
 - Transaksi yang datang terlambat tetap diterima menggunakan tanggal transaksinya.
 

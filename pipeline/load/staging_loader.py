@@ -11,7 +11,9 @@ RAW_TABLES = {
     "SHOPEE": "raw.shopee_orders",
     "TOKOPEDIA": "raw.tokopedia_transactions",
     "WEBSITE": "raw.website_transactions",
-    "OFFLINE_STORE": "raw.offline_store_sales",}
+    "OFFLINE_STORE": "raw.offline_store_sales",
+}
+
 
 def _raw_record_ids(connection: Connection, run_id: UUID) -> dict[tuple[str, int], int]:
     records = {}
@@ -59,6 +61,7 @@ def load_staging(connection: Connection, run_id: UUID, rows) -> int:
             source_total_amount = EXCLUDED.source_total_amount,
             source_record_hash = EXCLUDED.source_record_hash,
             transformed_at = CURRENT_TIMESTAMP
+        WHERE staging.stg_sales.source_record_hash IS DISTINCT FROM EXCLUDED.source_record_hash
     """)
     result = connection.execute(statement, records)
     return result.rowcount

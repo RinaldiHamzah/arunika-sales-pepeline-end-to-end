@@ -9,6 +9,7 @@ from uuid import uuid4
 
 import pytest
 from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 
 from pipeline.database import get_engine
 from pipeline.runner import run
@@ -90,6 +91,25 @@ def _source_row_count(source_dir):
         len(list(csv.DictReader((Path(source_dir) / name).open(encoding="utf-8", newline=""))))
         for name in ("product.csv", "shopee.csv", "tokopedia.csv", "website.csv", "offline.csv")
     )
+
+
+def _website_order_lines(source_dir, order_id, count, changed_line=None):
+    """Tambahkan atau ubah satu pesanan tanpa menyentuh baris sumber lain."""
+    path = Path(source_dir) / "website.csv"
+    with path.open(newline="", encoding="utf-8") as stream:
+        rows = list(csv.DictReader(stream))
+        fields = list(rows[0])
+    template = next(row for row in rows if row["status"] == "completed")
+    rows = [row for row in rows if row["invoice_no"] != order_id]
+    for line in range(1, count + 1):
+        row = dict(template)
+        row.update(invoice_no=order_id, line_item_no=str(line), quantity="4" if line == changed_line else "1")
+        row["total_amount"] = str(int(row["quantity"]) * int(row["unit_price"]))
+        rows.append(row)
+    with path.open("w", newline="", encoding="utf-8") as stream:
+        writer = csv.DictWriter(stream, fieldnames=fields)
+        writer.writeheader()
+        writer.writerows(rows)
 
 
 @pytest.mark.skipif(
@@ -243,6 +263,93 @@ def test_full_pipeline_and_incremental_acceptance():
     assert third["staging"] == second["staging"] + 20
     assert third["facts"] == second["facts"] + 20
     assert third["products"] == second["products"]
+
+    order_id = f"WEB-LINES-{uuid4().hex[:12]}"
+    _website_order_lines(source_dir, order_id, 5)
+    inserted_run = run(source_dir)
+    with engine.connect() as connection:
+        first_lines = connection.execute(
+            text("""SELECT source_line_number, quantity, loaded_at FROM warehouse.fact_sales
+                    WHERE source_name='WEBSITE' AND source_order_id=:order_id ORDER BY source_line_number"""),
+            {"order_id": order_id},
+        ).all()
+        raw_line = connection.execute(
+            text(
+                "SELECT line_item_no FROM raw.website_transactions WHERE invoice_no=:order_id ORDER BY line_item_no LIMIT 1"
+            ),
+            {"order_id": order_id},
+        ).scalar_one()
+    assert [row.source_line_number for row in first_lines] == [1, 2, 3, 4, 5]
+    assert raw_line == "1"
+    with engine.connect() as connection:
+        assert connection.execute(
+            text("SELECT fact_inserted_records, loaded_records FROM audit.pipeline_runs WHERE run_id=:run_id"),
+            {"run_id": inserted_run},
+        ).one() == (5, 5)
+    unchanged_run = run(source_dir)
+    with engine.connect() as connection:
+        unchanged_lines = connection.execute(
+            text("""SELECT source_line_number, loaded_at FROM warehouse.fact_sales
+                    WHERE source_name='WEBSITE' AND source_order_id=:order_id ORDER BY source_line_number"""),
+            {"order_id": order_id},
+        ).all()
+    assert [row.loaded_at for row in unchanged_lines] == [row.loaded_at for row in first_lines]
+    with engine.connect() as connection:
+        assert connection.execute(
+            text("SELECT fact_inserted_records, loaded_records FROM audit.pipeline_runs WHERE run_id=:run_id"),
+            {"run_id": unchanged_run},
+        ).one() == (0, 0)
+
+    _website_order_lines(source_dir, order_id, 5, changed_line=3)
+    corrected_run = run(source_dir)
+    with engine.connect() as connection:
+        corrected = connection.execute(
+            text("""SELECT source_line_number, quantity, loaded_at FROM warehouse.fact_sales
+                    WHERE source_name='WEBSITE' AND source_order_id=:order_id ORDER BY source_line_number"""),
+            {"order_id": order_id},
+        ).all()
+    assert len(corrected) == 5
+    assert corrected[2].quantity == 4
+    assert corrected[2].loaded_at != first_lines[2].loaded_at
+    assert all(corrected[index].loaded_at == first_lines[index].loaded_at for index in (0, 1, 3, 4))
+    with engine.connect() as connection:
+        assert connection.execute(
+            text("SELECT fact_inserted_records, loaded_records FROM audit.pipeline_runs WHERE run_id=:run_id"),
+            {"run_id": corrected_run},
+        ).one() == (0, 1)
+
+    _website_order_lines(source_dir, order_id, 6, changed_line=3)
+    added_run = run(source_dir)
+    with engine.connect() as connection:
+        expanded = connection.execute(
+            text("""SELECT source_line_number, loaded_at FROM warehouse.fact_sales
+                    WHERE source_name='WEBSITE' AND source_order_id=:order_id ORDER BY source_line_number"""),
+            {"order_id": order_id},
+        ).all()
+    assert [row.source_line_number for row in expanded] == [1, 2, 3, 4, 5, 6]
+    assert [row.loaded_at for row in expanded[:5]] == [row.loaded_at for row in corrected]
+    with engine.connect() as connection:
+        assert connection.execute(
+            text("SELECT fact_inserted_records, loaded_records FROM audit.pipeline_runs WHERE run_id=:run_id"),
+            {"run_id": added_run},
+        ).one() == (1, 1)
+
+    with engine.connect() as connection:
+        with pytest.raises(IntegrityError), connection.begin_nested():
+            connection.execute(
+                text("""
+                INSERT INTO warehouse.fact_sales
+                    (source_name, source_order_id, source_line_number, date_key, product_key,
+                     customer_key, channel_key, payment_key, sale_status, quantity, unit_price,
+                     gross_amount, discount_amount, net_amount, source_record_hash)
+                SELECT source_name, source_order_id, source_line_number, date_key, product_key,
+                       customer_key, channel_key, payment_key, sale_status, quantity, unit_price,
+                       gross_amount, discount_amount, net_amount, source_record_hash
+                FROM warehouse.fact_sales WHERE source_name='WEBSITE' AND source_order_id=:order_id
+                  AND source_line_number=1
+            """),
+                {"order_id": order_id},
+            )
     assert third_successes == second_successes + 1
 
     from dashboard.app import app

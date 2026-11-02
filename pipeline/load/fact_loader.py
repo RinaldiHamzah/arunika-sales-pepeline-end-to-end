@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from uuid import UUID
+
 from sqlalchemy import text
 from sqlalchemy.engine import Connection
 
@@ -36,6 +37,7 @@ def load_facts(connection: Connection, run_id: UUID) -> int:
 			gross_amount = EXCLUDED.gross_amount, net_amount = EXCLUDED.net_amount,
 			source_record_hash = EXCLUDED.source_record_hash,
 			is_source_active = TRUE, loaded_at = CURRENT_TIMESTAMP
+		WHERE warehouse.fact_sales.source_record_hash IS DISTINCT FROM EXCLUDED.source_record_hash OR warehouse.fact_sales.is_source_active IS DISTINCT FROM TRUE
 	"""),
         {"run_id": str(run_id)},
     )

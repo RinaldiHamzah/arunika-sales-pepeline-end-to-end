@@ -1,101 +1,51 @@
-order_id,order_date,product_name,qty,unit_price,customer_name,customer_city,payment_method,status
-SHP-0001,2026-08-20,WARDAH COLORFIT PERFECT GLOW CUSHION 13N,1,109000,Eka Wulandari,Semarang,Credit Card,cancelled
-SHP-0002,2026-01-14,LABORE-Barrier-Revive-Cream-30ml,3,119000,Citra Lestari,Surabaya,E-Wallet,returned
-SHP-0003,2026-06-27,Emina Bright Stuff Face Wash 100ml,3,27900,Bima Pratama,Bandung,COD,completed
-SHP-0004,2026-04-20,LABORE BiomeProtect Physical Sunscreen SPF 50 30ml,0,129000,Dimas Saputra,Yogyakarta,Transfer Bank,completed
-SHP-0005,2026-02-24, Kahf Face Wash Oil and Comedo Defense 100ml ,1,42900,Eka Wulandari,Semarang,Transfer Bank,completed
-SHP-0006,2026-05-04, Kahf Face Wash Oil and Comedo Defense 100ml ,2,42900,Dimas Saputra,Yogyakarta,Transfer Bank,returned
-SHP-0007,2026-08-12,Emina Sun Battle SPF 50 PA++++ 30ml,3,49900,Citra Lestari,Surabaya,COD,completed
-SHP-0008,2026-06-16,KAHF TRIPLE PROTECTION SUNSCREEN MOISTURIZER SPF 30,2,-50000,Alya Putri,Jakarta,Transfer Bank,completed
-SHP-0009,2026-03-18,Wonderly-Body-Mist-Sweet-Blossom-100ml,1,45900,Bima Pratama,Bandung,COD,completed
-SHP-0010,2026-06-01,Make Over Powerstay Matte Powder Foundation N20,1,179000,Citra Lestari,Surabaya,E-Wallet,completed
-SHP-0011,2026-04-16, Biodef Body Wash Fresh Care 450ml ,1,35900,Alya Putri,Jakarta,E-Wallet,completed
-SHP-0012,2026-08-05, Wardah Colorfit Velvet Matte Lip Mousse 03 ,3,62900,,Yogyakarta,Transfer Bank,completed
-SHP-0013,2026-03-21,Crystallure-Supreme-Revitalizing-Oil-Serum-20ml,1,219000,Alya Putri,Jakarta,Credit Card,completed
-SHP-0014,2026-02-18,Wardah Colorfit Perfect Glow Cushion 13N,1,109000,Eka Wulandari,Semarang,E-Wallet,completed
-SHP-0015,2026-01-13, Wardah Colorfit Perfect Glow Cushion 13N ,3,109000,Eka Wulandari,Semarang,E-Wallet,returned
-SHP-0016,2026-02-07, Wardah Lightening Micellar Water 100ml ,1,28900,Eka Wulandari,,Credit Card,returned
-SHP-0017,2026-05-22, TAVI Urban Shield Sunscreen SPF 50 30ml ,1,89900,Citra Lestari,Surabaya,E-Wallet,returned
-SHP-0018,2026-06-05, Emina Cheek Lit Cream Blush Peach ,1,46900,Bima Pratama,Bandung,COD,cancelled
-SHP-0019,2026-03-10,LABORE BARRIER REVIVE CREAM 30ML,1,119000,Eka Wulandari,Semarang,Credit Card,completed
-SHP-0020,2026-05-20,BIODEF BODY WASH FRESH CARE 450ML,1,35900,Dimas Saputra,Yogyakarta,,completed
-SHP-0021,2026-02-05,Kahf Face Wash Oil and Comedo Defense 100ml,3,42900,Dimas Saputra,Yogyakarta,E-Wallet,returned
-SHP-0022,2026-08-12,Kahf-Face-Wash-Oil-and-Comedo-Defense-100ml,3,42900,Alya Putri,Jakarta,E-Wallet,completed
-SHP-0023,2026-07-09,Emina-Glossy-Stain-01-Autumn-Bell,3,52900,Citra Lestari,Surabaya,Credit Card,completed
-SHP-0024,2026-07-05, Emina Cheek Lit Cream Blush Peach ,3,46900,Bima Pratama,Bandung,E-Wallet,in_progress
-SHP-0025,2026-06-20,TAVI URBAN SHIELD SUNSCREEN SPF 50 30ML,3,89900,Bima Pratama,Bandung,E-Wallet,completed
-SHP-0026,2026-03-21, Wonderly Body Mist Sweet Blossom 100ml ,2,45900,Citra Lestari,Surabaya,COD,returned
-SHP-0027,2026-04-30, Wardah Colorfit Velvet Matte Lip Mousse 03 ,1,62900,Dimas Saputra,Yogyakarta,COD,completed
-SHP-0028,2026-07-14,Brigthning Serumm 30ml,3,179000,Bima Pratama,Bandung,Credit Card,returned
-SHP-0029,2026-06-20, Make Over Powerstay Matte Powder Foundation N20 ,2,179000,Eka Wulandari,Semarang,COD,completed
-SHP-0030,2026-05-04,Wardah-Aloe-Hydramild-Moisturizer-40ml,1,45900,Eka Wulandari,Semarang,COD,cancelled
-SHP-0031,2026-02-20,Make-Over-Powerstay-Weightless-Liquid-Foundation-W22,3,169000,Eka Wulandari,Semarang,E-Wallet,cancelled
-SHP-0032,not-a-date,WARDAH COLORFIT VELVET MATTE LIP MOUSSE 03,2,62900,Alya Putri,Jakarta,Credit Card,returned
-SHP-0033,2026-02-24, Make Over Powerstay Weightless Liquid Foundation W22 ,1,169000,Eka Wulandari,Semarang,Credit Card,completed
-SHP-0034,2026-02-15,Wardah Colorfit Velvet Matte Lip Mousse 03,1,62900,Dimas Saputra,Yogyakarta,COD,completed
-SHP-0035,2026-05-06,LABORE Barrier Revive Cream 30ml,1,119000,Bima Pratama,Bandung,Credit Card,completed
-SHP-0036,2026-06-25,Biodef Body Wash Fresh Care 450ml,3,35900,Dimas Saputra,Yogyakarta,Credit Card,completed
-SHP-0037,2026-04-23,INSTAPERFECT SKINCOVER AIR CUSHION 02 BEIGE,1,149000,Citra Lestari,Surabaya,Transfer Bank,returned
-SHP-0038,2026-02-13, Crystallure Supreme Revitalizing Oil Serum 20ml ,1,219000,Alya Putri,Jakarta,COD,completed
-SHP-0039,2026-05-05,Wardah Colorfit Perfect Glow Cushion 13N,3,109000,Alya Putri,Jakarta,Transfer Bank,completed
-SHP-0040,2026-01-01,Wardah-UV-Shield-Aqua-Fresh-Essence-SPF-50-PA++++-30ml,1,68900,Eka Wulandari,Semarang,E-Wallet,returned
-SHP-0041,2026-04-11, Kahf Triple Protection Sunscreen Moisturizer SPF 30 ,1,54900,Citra Lestari,Surabaya,COD,completed
-SHP-0042,2026-01-14,Wardah UV Shield Aqua Fresh Essence SPF 50 PA++++ 30ml,1,68900,Alya Putri,Jakarta,E-Wallet,completed
-SHP-0043,2026-07-17,Emina-Sun-Battle-SPF-50-PA++++-30ml,1,49900,Alya Putri,Jakarta,E-Wallet,completed
-SHP-0044,2026-07-30,Kahf-Face-Wash-Oil-and-Comedo-Defense-100ml,2,42900,Bima Pratama,Bandung,COD,returned
-SHP-0045,2026-01-27,Wonderly Body Mist Sweet Blossom 100ml,1,45900,Dimas Saputra,Yogyakarta,COD,completed
-SHP-0046,2026-02-04, Biodef Body Wash Fresh Care 450ml ,2,35900,Bima Pratama,Bandung,Transfer Bank,completed
-SHP-0047,2026-04-15,Wardah-UV-Shield-Aqua-Fresh-Essence-SPF-50-PA++++-30ml,1,68900,Bima Pratama,Bandung,Credit Card,completed
-SHP-0048,2026-06-18,WARDAH ALOE HYDRAMILD MOISTURIZER 40ML,1,45900,Alya Putri,Jakarta,E-Wallet,completed
-SHP-0049,2026-08-28,Wardah UV Shield Aqua Fresh Essence SPF 50 PA++++ 30ml,1,68900,Citra Lestari,Surabaya,Transfer Bank,completed
-SHP-0050,2026-06-22,Wardah-Colorfit-Perfect-Glow-Cushion-13N,1,109000,Alya Putri,Jakarta,E-Wallet,completed
-SHP-0006,2026-05-04, Kahf Face Wash Oil and Comedo Defense 100ml ,2,42900,Dimas Saputra,Yogyakarta,Transfer Bank,returned
-SHP-0001,2026-08-20,WARDAH COLORFIT PERFECT GLOW CUSHION 13N,1,109000,Eka Wulandari,Semarang,Credit Card,cancelled
-SHP-0002,2026-01-14,LABORE-Barrier-Revive-Cream-30ml,3,119000,Citra Lestari,Surabaya,E-Wallet,returned
-SHP-0003,2026-06-27,Emina Bright Stuff Face Wash 100ml,3,27900,Bima Pratama,Bandung,COD,completed
-SHP-0004,2026-04-20,LABORE BiomeProtect Physical Sunscreen SPF 50 30ml,0,129000,Dimas Saputra,Yogyakarta,Transfer Bank,completed
-SHP-0005,2026-02-24, Kahf Face Wash Oil and Comedo Defense 100ml ,1,42900,Eka Wulandari,Semarang,Transfer Bank,completed
-SHP-0006,2026-05-04, Kahf Face Wash Oil and Comedo Defense 100ml ,2,42900,Dimas Saputra,Yogyakarta,Transfer Bank,returned
-SHP-0007,2026-08-12,Emina Sun Battle SPF 50 PA++++ 30ml,3,49900,Citra Lestari,Surabaya,COD,completed
-SHP-0008,2026-06-16,KAHF TRIPLE PROTECTION SUNSCREEN MOISTURIZER SPF 30,2,-50000,Alya Putri,Jakarta,Transfer Bank,completed
-SHP-0009,2026-03-18,Wonderly-Body-Mist-Sweet-Blossom-100ml,1,45900,Bima Pratama,Bandung,COD,completed
-SHP-0010,2026-06-01,Make Over Powerstay Matte Powder Foundation N20,1,179000,Citra Lestari,Surabaya,E-Wallet,completed
-SHP-0011,2026-04-16, Biodef Body Wash Fresh Care 450ml ,1,35900,Alya Putri,Jakarta,E-Wallet,completed
-SHP-0012,2026-08-05, Wardah Colorfit Velvet Matte Lip Mousse 03 ,3,62900,,Yogyakarta,Transfer Bank,completed
-SHP-0013,2026-03-21,Crystallure-Supreme-Revitalizing-Oil-Serum-20ml,1,219000,Alya Putri,Jakarta,Credit Card,completed
-SHP-0014,2026-02-18,Wardah Colorfit Perfect Glow Cushion 13N,1,109000,Eka Wulandari,Semarang,E-Wallet,completed
-SHP-0015,2026-01-13, Wardah Colorfit Perfect Glow Cushion 13N ,3,109000,Eka Wulandari,Semarang,E-Wallet,returned
-SHP-0016,2026-02-07, Wardah Lightening Micellar Water 100ml ,1,28900,Eka Wulandari,,Credit Card,returned
-SHP-0017,2026-05-22, TAVI Urban Shield Sunscreen SPF 50 30ml ,1,89900,Citra Lestari,Surabaya,E-Wallet,returned
-SHP-0018,2026-06-05, Emina Cheek Lit Cream Blush Peach ,1,46900,Bima Pratama,Bandung,COD,cancelled
-SHP-0019,2026-03-10,LABORE BARRIER REVIVE CREAM 30ML,1,119000,Eka Wulandari,Semarang,Credit Card,completed
-SHP-0020,2026-05-20,BIODEF BODY WASH FRESH CARE 450ML,1,35900,Dimas Saputra,Yogyakarta,,completed
-SHP-0021,2026-02-05,Kahf Face Wash Oil and Comedo Defense 100ml,3,42900,Dimas Saputra,Yogyakarta,E-Wallet,returned
-SHP-0022,2026-08-12,Kahf-Face-Wash-Oil-and-Comedo-Defense-100ml,3,42900,Alya Putri,Jakarta,E-Wallet,completed
-SHP-0023,2026-07-09,Emina-Glossy-Stain-01-Autumn-Bell,3,52900,Citra Lestari,Surabaya,Credit Card,completed
-SHP-0024,2026-07-05, Emina Cheek Lit Cream Blush Peach ,3,46900,Bima Pratama,Bandung,E-Wallet,in_progress
-SHP-0025,2026-06-20,TAVI URBAN SHIELD SUNSCREEN SPF 50 30ML,3,89900,Bima Pratama,Bandung,E-Wallet,completed
-SHP-0026,2026-03-21, Wonderly Body Mist Sweet Blossom 100ml ,2,45900,Citra Lestari,Surabaya,COD,returned
-SHP-0027,2026-04-30, Wardah Colorfit Velvet Matte Lip Mousse 03 ,1,62900,Dimas Saputra,Yogyakarta,COD,completed
-SHP-0028,2026-07-14,Brigthning Serumm 30ml,3,179000,Bima Pratama,Bandung,Credit Card,returned
-SHP-0029,2026-06-20, Make Over Powerstay Matte Powder Foundation N20 ,2,179000,Eka Wulandari,Semarang,COD,completed
-SHP-0030,2026-05-04,Wardah-Aloe-Hydramild-Moisturizer-40ml,1,45900,Eka Wulandari,Semarang,COD,cancelled
-SHP-0031,2026-02-20,Make-Over-Powerstay-Weightless-Liquid-Foundation-W22,3,169000,Eka Wulandari,Semarang,E-Wallet,cancelled
-SHP-0032,not-a-date,WARDAH COLORFIT VELVET MATTE LIP MOUSSE 03,2,62900,Alya Putri,Jakarta,Credit Card,returned
-SHP-0033,2026-02-24, Make Over Powerstay Weightless Liquid Foundation W22 ,1,169000,Eka Wulandari,Semarang,Credit Card,completed
-SHP-0034,2026-02-15,Wardah Colorfit Velvet Matte Lip Mousse 03,1,62900,Dimas Saputra,Yogyakarta,COD,completed
-SHP-0035,2026-05-06,LABORE Barrier Revive Cream 30ml,1,119000,Bima Pratama,Bandung,Credit Card,completed
-SHP-0036,2026-06-25,Biodef Body Wash Fresh Care 450ml,3,35900,Dimas Saputra,Yogyakarta,Credit Card,completed
-SHP-0037,2026-04-23,INSTAPERFECT SKINCOVER AIR CUSHION 02 BEIGE,1,149000,Citra Lestari,Surabaya,Transfer Bank,returned
-SHP-0038,2026-02-13, Crystallure Supreme Revitalizing Oil Serum 20ml ,1,219000,Alya Putri,Jakarta,COD,completed
-SHP-0039,2026-05-05,Wardah Colorfit Perfect Glow Cushion 13N,3,109000,Alya Putri,Jakarta,Transfer Bank,completed
-SHP-0040,2026-01-01,Wardah-UV-Shield-Aqua-Fresh-Essence-SPF-50-PA++++-30ml,1,68900,Eka Wulandari,Semarang,E-Wallet,returned
-SHP-0041,2026-04-11, Kahf Triple Protection Sunscreen Moisturizer SPF 30 ,1,54900,Citra Lestari,Surabaya,COD,completed
-SHP-0042,2026-01-14,Wardah UV Shield Aqua Fresh Essence SPF 50 PA++++ 30ml,1,68900,Alya Putri,Jakarta,E-Wallet,completed
-SHP-0043,2026-07-17,Emina-Sun-Battle-SPF-50-PA++++-30ml,1,49900,Alya Putri,Jakarta,E-Wallet,completed
-SHP-0044,2026-07-30,Kahf-Face-Wash-Oil-and-Comedo-Defense-100ml,2,42900,Bima Pratama,Bandung,COD,returned
-SHP-0045,2026-01-27,Wonderly Body Mist Sweet Blossom 100ml,1,45900,Dimas Saputra,Yogyakarta,COD,completed
-SHP-0046,2026-02-04, Biodef Body Wash Fresh Care 450ml ,2,35900,Bima Pratama,Bandung,Transfer Bank,completed
-SHP-0047,2026-04-15,Wardah-UV-Shield-Aqua-Fresh-Essence-SPF-50-PA++++-30ml,1,68900,Bima Pratama,Bandung,Credit Card,completed
-SHP-0048,2026-06-18,WARDAH ALOE HYDRAMILD MOISTURIZER 40ML,1,45900,Alya Putri,Jakarta,E-Wallet,completed
-SHP-0049,2026-08-28,Wardah UV Shield Aqua Fresh Essence SPF 50 PA++++ 30ml,1,68900,Citra Lestari,Surabaya,Transfer Bank,completed
+order_id,order_line_id,order_date,product_name,qty,unit_price,customer_name,customer_city,payment_method,status
+SHP-0001,1,2026-07-08,Wonderly Body Mist Sweet Blossom 100ml,2,45900,Dimas Saputra,Yogyakarta,COD,completed
+SHP-0002,1,2026-07-29,Make Over Powerstay Matte Powder Foundation N20,2,179000,Citra Lestari,Surabaya,E-Wallet,returned
+SHP-0002,2,2026-07-29,Emina-Sun-Battle-SPF-50-PA++++-30ml,1,49900,Citra Lestari,Surabaya,E-Wallet,returned
+SHP-0003,1,2026-07-21,Kahf-Face-Wash-Oil-and-Comedo-Defense-100ml,3,42900,Alya Putri,Jakarta,Transfer Bank,returned
+SHP-0003,2,2026-07-21,Instaperfect Skincover Air Cushion 02 Beige,3,149000,Alya Putri,Jakarta,Transfer Bank,returned
+SHP-0003,3,2026-07-21,WARDAH COLORFIT VELVET MATTE LIP MOUSSE 03,2,62900,Alya Putri,Jakarta,Transfer Bank,returned
+SHP-0004,1,2026-05-20,WARDAH ALOE HYDRAMILD MOISTURIZER 40ML,2,45900,Bima Pratama,Bandung,COD,completed
+SHP-0004,2,2026-05-20, Wardah Lightening Micellar Water 100ml ,1,28900,Bima Pratama,Bandung,COD,completed
+SHP-0004,3,2026-05-20, Crystallure Supreme Revitalizing Oil Serum 20ml ,1,219000,Bima Pratama,Bandung,COD,completed
+SHP-0004,4,2026-05-20, Wardah Colorfit Perfect Glow Cushion 13N ,2,109000,Bima Pratama,Bandung,COD,completed
+SHP-0004,5,2026-05-20,Instaperfect-Skincover-Air-Cushion-02-Beige,2,149000,Bima Pratama,Bandung,COD,completed
+SHP-0005,1,2026-03-08,Wardah Colorfit Perfect Glow Cushion 13N,1,109000,Alya Putri,Jakarta,COD,returned
+SHP-0005,2,2026-03-08,LABORE BiomeProtect Physical Sunscreen SPF 50 30ml,1,129000,Alya Putri,Jakarta,COD,returned
+SHP-0005,3,2026-03-08, Make Over Powerstay Weightless Liquid Foundation W22 ,2,169000,Alya Putri,Jakarta,COD,returned
+SHP-0005,4,2026-03-08,Kahf-Face-Wash-Oil-and-Comedo-Defense-100ml,1,42900,Alya Putri,Jakarta,COD,returned
+SHP-0005,5,2026-03-08,Biodef-Body-Wash-Fresh-Care-450ml,1,35900,Alya Putri,Jakarta,COD,returned
+SHP-0005,6,2026-03-08,Wardah-Lightening-Micellar-Water-100ml,1,28900,Alya Putri,Jakarta,COD,returned
+SHP-0005,7,2026-03-08, Make Over Powerstay Weightless Liquid Foundation W22 ,3,169000,Alya Putri,Jakarta,COD,returned
+SHP-0005,8,2026-03-08,Kahf-Triple-Protection-Sunscreen-Moisturizer-SPF-30,3,54900,Alya Putri,Jakarta,COD,returned
+SHP-0005,9,2026-03-08,Crystallure-Supreme-Revitalizing-Oil-Serum-20ml,3,219000,Alya Putri,Jakarta,COD,returned
+SHP-0005,10,2026-03-08,EMINA BRIGHT STUFF FACE WASH 100ML,1,27900,Alya Putri,Jakarta,COD,returned
+SHP-0006,1,2026-08-22,Biodef-Body-Wash-Fresh-Care-450ml,1,35900,Eka Wulandari,Semarang,Credit Card,completed
+SHP-0006,2,2026-08-22,Wardah Colorfit Velvet Matte Lip Mousse 03,0,62900,Eka Wulandari,Semarang,Credit Card,completed
+SHP-0006,3,2026-08-22,LABORE Barrier Revive Cream 30ml,3,119000,Eka Wulandari,Semarang,Credit Card,completed
+SHP-0006,4,2026-08-22,BIODEF BODY WASH FRESH CARE 450ML,1,-50000,Eka Wulandari,Semarang,Credit Card,completed
+SHP-0006,5,2026-08-22, Wardah Aloe Hydramild Moisturizer 40ml ,2,45900,Eka Wulandari,Semarang,Credit Card,completed
+SHP-0006,6,2026-08-22,WARDAH COLORFIT VELVET MATTE LIP MOUSSE 03,1,62900,,Semarang,Credit Card,completed
+SHP-0006,7,2026-08-22,Biodef-Body-Wash-Fresh-Care-450ml,3,35900,Eka Wulandari,Semarang,Credit Card,completed
+SHP-0006,8,2026-08-22,Wardah-Colorfit-Velvet-Matte-Lip-Mousse-03,1,62900,Eka Wulandari,,Credit Card,completed
+SHP-0007,1,2026-01-09,Biodef-Body-Wash-Fresh-Care-450ml,2,35900,Eka Wulandari,Semarang,E-Wallet,returned
+SHP-0007,2,2026-01-09,Biodef-Body-Wash-Fresh-Care-450ml,1,35900,Eka Wulandari,Semarang,,returned
+SHP-0008,1,2026-08-13,Wardah Aloe Hydramild Moisturizer 40ml,1,45900,Alya Putri,Jakarta,Credit Card,cancelled
+SHP-0008,2,2026-08-13, Make Over Powerstay Weightless Liquid Foundation W22 ,2,169000,Alya Putri,Jakarta,Credit Card,in_progress
+SHP-0008,3,2026-08-13,Crystallure Supreme Revitalizing Oil Serum 20ml,1,219000,Alya Putri,Jakarta,Credit Card,cancelled
+SHP-0008,4,2026-08-13,Brigthning Serumm 30ml,1,119000,Alya Putri,Jakarta,Credit Card,cancelled
+SHP-0009,1,2026-06-15,BIODEF BODY WASH FRESH CARE 450ML,1,35900,Dimas Saputra,Yogyakarta,COD,completed
+SHP-0009,2,not-a-date,MAKE OVER POWERSTAY WEIGHTLESS LIQUID FOUNDATION W22,1,169000,Dimas Saputra,Yogyakarta,COD,completed
+SHP-0010,1,2026-06-04,Wardah-Colorfit-Velvet-Matte-Lip-Mousse-03,1,62900,Alya Putri,Jakarta,COD,cancelled
+SHP-0010,2,2026-03-01,Wardah UV Shield Aqua Fresh Essence SPF 50 PA++++ 30ml,2,100,Alya Putri,Jakarta,COD,completed
+SHP-0010,3,2026-06-04,LABORE BARRIER REVIVE CREAM 30ML,3,119000,Alya Putri,Jakarta,COD,cancelled
+SHP-0010,4,2026-06-04,LABORE BiomeProtect Physical Sunscreen SPF 50 30ml,3,129000,Alya Putri,Jakarta,COD,cancelled
+SHP-0010,5,2026-06-04, TAVI Urban Shield Sunscreen SPF 50 30ml ,2,89900,Alya Putri,Jakarta,COD,cancelled
+SHP-0010,6,2026-06-04,EMINA BRIGHT STUFF FACE WASH 100ML,1,27900,Alya Putri,Jakarta,COD,cancelled
+SHP-0010,7,2026-06-04,Kahf Face Wash Oil and Comedo Defense 100ml,1,42900,Alya Putri,Jakarta,COD,cancelled
+SHP-0010,8,2026-06-04,Wonderly Body Mist Sweet Blossom 100ml,3,45900,Alya Putri,Jakarta,COD,cancelled
+SHP-0011,1,2026-06-04, Make Over Powerstay Matte Powder Foundation N20 ,1,179000,Eka Wulandari,Semarang,Credit Card,cancelled
+SHP-0011,2,2026-06-04,KAHF TRIPLE PROTECTION SUNSCREEN MOISTURIZER SPF 30,2,54900,Eka Wulandari,Semarang,Credit Card,cancelled
+SHP-0011,3,2026-06-04,Instaperfect Skincover Air Cushion 02 Beige,3,149000,Eka Wulandari,Semarang,Credit Card,cancelled
+SHP-0011,4,2026-06-04,LABORE-BiomeProtect-Physical-Sunscreen-SPF-50-30ml,1,129000,Eka Wulandari,Semarang,Credit Card,cancelled
+SHP-0011,5,2026-06-04,WARDAH UV SHIELD AQUA FRESH ESSENCE SPF 50 PA++++ 30ML,3,68900,Eka Wulandari,Semarang,Credit Card,cancelled

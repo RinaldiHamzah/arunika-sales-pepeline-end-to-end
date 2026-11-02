@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS raw.shopee_orders (
     ingestion_run_id UUID NOT NULL, source_file_name TEXT NOT NULL,
     source_row_number INTEGER NOT NULL CHECK (source_row_number > 0),
     ingested_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    order_id TEXT, order_date TEXT, product_name TEXT, qty TEXT, unit_price TEXT,
+    order_id TEXT, order_line_id TEXT, order_date TEXT, product_name TEXT, qty TEXT, unit_price TEXT,
     customer_name TEXT, customer_city TEXT, payment_method TEXT, status TEXT,
     source_payload JSONB NOT NULL,
     CONSTRAINT uq_raw_shopee_file_row UNIQUE (ingestion_run_id, source_file_name, source_row_number)
@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS raw.tokopedia_transactions (
     ingestion_run_id UUID NOT NULL, source_file_name TEXT NOT NULL,
     source_row_number INTEGER NOT NULL CHECK (source_row_number > 0),
     ingested_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    transaction_id TEXT, transaction_date TEXT, item_name TEXT, quantity TEXT, price TEXT,
+    transaction_id TEXT, item_sequence TEXT, transaction_date TEXT, item_name TEXT, quantity TEXT, price TEXT,
     buyer_name TEXT, city TEXT, payment TEXT, status TEXT,
     source_payload JSONB NOT NULL,
     CONSTRAINT uq_raw_tokopedia_file_row UNIQUE (ingestion_run_id, source_file_name, source_row_number)
@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS raw.website_transactions (
     ingestion_run_id UUID NOT NULL, source_file_name TEXT NOT NULL,
     source_row_number INTEGER NOT NULL CHECK (source_row_number > 0),
     ingested_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    invoice_no TEXT, created_at TEXT, product_identifier TEXT, quantity TEXT, unit_price TEXT,
+    invoice_no TEXT, line_item_no TEXT, created_at TEXT, product_identifier TEXT, quantity TEXT, unit_price TEXT,
     total_amount TEXT, customer_email TEXT, status TEXT, source_payload JSONB NOT NULL,
     CONSTRAINT uq_raw_website_file_row UNIQUE (ingestion_run_id, source_file_name, source_row_number)
 );
@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS raw.offline_store_sales (
     ingestion_run_id UUID NOT NULL, source_file_name TEXT NOT NULL,
     source_row_number INTEGER NOT NULL CHECK (source_row_number > 0),
     ingested_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    pos_receipt_no TEXT, sold_at TEXT, item_description TEXT, units TEXT, item_price TEXT,
+    pos_receipt_no TEXT, receipt_line_no TEXT, sold_at TEXT, item_description TEXT, units TEXT, item_price TEXT,
     store_name TEXT, store_city TEXT, payment_type TEXT, status TEXT, source_payload JSONB NOT NULL,
     CONSTRAINT uq_raw_offline_file_row UNIQUE (ingestion_run_id, source_file_name, source_row_number)
 );

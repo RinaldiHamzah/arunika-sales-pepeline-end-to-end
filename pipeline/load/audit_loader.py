@@ -84,6 +84,7 @@ def load_quality_audit(connection: Connection, run_id: UUID, results) -> None:
                     "run_id": str(run_id),
                     "source_name": source_name,
                     "source_order_id": record.get("business_key"),
+                    "source_line_number": record.get("source_line_number"),
                     "source_row_number": record.get("source_row_number"),
                     "rejection_reason": record.get("reasons") or "REJECTED",
                     "source_payload": payload,
@@ -104,10 +105,10 @@ def load_quality_audit(connection: Connection, run_id: UUID, results) -> None:
         connection.execute(
             text("""
             INSERT INTO audit.rejected_records
-                (run_id, source_name, source_order_id, source_row_number,
+                (run_id, source_name, source_order_id, source_line_number, source_row_number,
                  rejection_reason, source_payload)
             VALUES
-                (:run_id, :source_name, :source_order_id, :source_row_number,
+                (:run_id, :source_name, :source_order_id, :source_line_number, :source_row_number,
                  :rejection_reason, CAST(:source_payload AS JSONB))
         """),
             rejected_rows,

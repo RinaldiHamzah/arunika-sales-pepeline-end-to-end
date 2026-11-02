@@ -29,8 +29,9 @@ def master(tmp_path):
 
 
 def web(order="00001", **changes):
-    return dict(
+    row = dict(
         invoice_no=order,
+        line_item_no="1",
         created_at="Apr 03, 2026",
         product_identifier="001",
         quantity="2",
@@ -38,8 +39,9 @@ def web(order="00001", **changes):
         total_amount="200.20",
         customer_email="buyer@example.test",
         status="completed",
-        **changes,
     )
+    row.update(changes)
+    return row
 
 
 def test_normalization_preserves_product_specifics():
@@ -83,6 +85,7 @@ def test_semantic_duplicates_and_optional_missing(tmp_path, master):
 def test_internal_clean_data_excludes_source_only_customer_id(tmp_path, master):
     row = {
         "order_id": "SHP-1",
+        "order_line_id": "1",
         "order_date": "03/04/2026",
         "product_name": "001",
         "qty": "1",

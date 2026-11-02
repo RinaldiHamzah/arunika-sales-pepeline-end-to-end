@@ -11,6 +11,7 @@ PROCESSED_DIR = ROOT / "data" / "processed"
 
 SALES_COLUMNS = [
     "order_id",
+    "line_number",
     "product_id",
     "product_name",
     "kategori",
@@ -54,7 +55,9 @@ def main() -> int:
         print(f"Processed folder not found: {PROCESSED_DIR}")
         return 1
 
-    files = [path for path in sorted(PROCESSED_DIR.glob("*.csv")) if path.name not in {"summary.csv", "quality_issues.csv"}]
+    files = [
+        path for path in sorted(PROCESSED_DIR.glob("*.csv")) if path.name not in {"summary.csv", "quality_issues.csv"}
+    ]
     if not files:
         print(f"No processed export CSV files found in {PROCESSED_DIR}")
         return 1

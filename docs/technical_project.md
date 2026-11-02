@@ -85,47 +85,47 @@ Semua sumber canonical berada di `data/source/`. Pipeline menggunakan allowlist 
 
 | Source | File | Grain source | Identifier utama | Format tanggal contoh | Peran |
 | --- | --- | --- | --- | --- | --- |
-| Shopee | `data/source/shopee.csv` | Satu transaksi/order | `order_id` | `YYYY-MM-DD` | Marketplace |
-| Tokopedia | `data/source/tokopedia.csv` | Satu transaksi/order | `transaction_id` | `DD/MM/YYYY` | Marketplace |
-| Website | `data/source/website.csv` | Satu invoice/order | `invoice_no` | ISO datetime | Direct channel |
-| Offline Store | `data/source/offline.csv` | Satu struk POS | `pos_receipt_no` | `DD-Mon-YYYY` | Toko fisik |
+| Shopee | `data/source/shopee.csv` | Satu item per baris order | `order_id` + `order_line_id` | `YYYY-MM-DD` | Marketplace |
+| Tokopedia | `data/source/tokopedia.csv` | Satu item per baris order | `transaction_id` + `item_sequence` | `DD/MM/YYYY` | Marketplace |
+| Website | `data/source/website.csv` | Satu item per baris invoice | `invoice_no` + `line_item_no` | ISO datetime | Direct channel |
+| Offline Store | `data/source/offline.csv` | Satu item per baris struk | `pos_receipt_no` + `receipt_line_no` | `DD-Mon-YYYY` | Toko fisik |
 | Product Master | `data/source/product.csv` | Satu SKU produk | `sku` | Tidak berlaku | Referensi produk |
 
 ### 2.2 Shopee
 
 ```csv
-order_id,order_date,product_name,qty,unit_price,customer_name,customer_city,payment_method,status
-SHP-0001,2026-08-20,WARDAH COLORFIT PERFECT GLOW CUSHION 13N,1,109000,Eka Wulandari,Semarang,Credit Card,cancelled
+order_id,order_line_id,order_date,product_name,qty,unit_price,customer_name,customer_city,payment_method,status
+SHP-0001,1,2026-07-08,Wonderly Body Mist Sweet Blossom 100ml,2,45900,Dimas Saputra,Yogyakarta,COD,completed
 ```
 
-Mapping utama: `order_id → order_id`, `order_date → order_date`, `product_name → product_input`, `qty → quantity`, dan `unit_price → unit_price`.
+Mapping utama: `order_id → order_id`, `order_line_id → line_number`, `order_date → order_date`, `product_name → product_input`, `qty → quantity`, dan `unit_price → unit_price`.
 
 ### 2.3 Tokopedia
 
 ```csv
-transaction_id,transaction_date,item_name,quantity,price,buyer_name,city,payment,status
-TKP-0101,19/02/2026,CRYSTALLURE SUPREME REVITALIZING OIL SERUM 20ML,3,219000,Citra Lestari,Surabaya,E-Wallet,completed
+transaction_id,item_sequence,transaction_date,item_name,quantity,price,buyer_name,city,payment,status
+TKP-0101,1,14/02/2026,Wonderly-Body-Mist-Sweet-Blossom-100ml,2,45900,Eka Wulandari,Semarang,E-Wallet,cancelled
 ```
 
-Mapping utama: `transaction_id → order_id`, `transaction_date → order_date`, `item_name → product_input`, dan `price → unit_price`.
+Mapping utama: `transaction_id → order_id`, `item_sequence → line_number`, `transaction_date → order_date`, `item_name → product_input`, dan `price → unit_price`.
 
 ### 2.4 Website
 
 ```csv
-invoice_no,created_at,product_identifier,quantity,unit_price,total_amount,customer_email,status
-WEB-0201,2026-01-09T10:30:00,WRD-SKC-001,1,68900,68900,eka.wulandari@example.test,cancelled
+invoice_no,line_item_no,created_at,product_identifier,quantity,unit_price,total_amount,customer_email,status
+WEB-0201,1,2026-03-03T10:30:00,EMN-SKC-001,1,27900,27900,alya.putri@example.test,returned
 ```
 
-Website menggunakan SKU pada `product_identifier`. Kolom `total_amount` divalidasi terhadap `quantity × unit_price`.
+Website menggunakan SKU pada `product_identifier` dan `line_item_no` sebagai nomor item. Kolom `total_amount` divalidasi terhadap `quantity × unit_price`.
 
 ### 2.5 Offline Store
 
 ```csv
-pos_receipt_no,sold_at,item_description,units,item_price,store_name,store_city,payment_type,status
-POS-0301,02-May-2026,TAVI Urban Shield Sunscreen SPF 50 30ml,1,89900,Paragon Beauty Store,Jakarta,E-Wallet,returned
+pos_receipt_no,receipt_line_no,sold_at,item_description,units,item_price,store_name,store_city,payment_type,status
+POS-0301,1,20-Mar-2026,WARDAH LIGHTENING MICELLAR WATER 100ML,1,28900,Arunika Beauty Store,Jakarta,Credit Card,completed
 ```
 
-Mapping utama: `pos_receipt_no → order_id`, `sold_at → order_date`, `item_description → product_input`, `units → quantity`, dan `item_price → unit_price`.
+Mapping utama: `pos_receipt_no → order_id`, `receipt_line_no → line_number`, `sold_at → order_date`, `item_description → product_input`, `units → quantity`, dan `item_price → unit_price`.
 
 ### 2.6 Product Master
 
@@ -365,7 +365,7 @@ ERD lengkap, termasuk Raw dan Audit, tersedia pada `docs/erd.md` dan dapat diper
 
 | Tabel | Grain | Primary/unique key | Foreign key | Alasan |
 | --- | --- | --- | --- | --- |
-| `fact_sales` | Satu produk dalam satu transaksi source | `sales_key`; UK `(source_name, source_order_id, source_line_number)` | Seluruh dimension key | Pusat measurement penjualan dan idempotensi lintas kanal. |
+| `fact_sales` | Satu baris item dalam satu transaksi source | `sales_key`; UK `(source_name, source_order_id, source_line_number)` | Seluruh dimension key | Pusat measurement penjualan dan idempotensi lintas kanal. |
 | `dim_date` | Satu tanggal | `date_key`; `full_date` unique | — | Analisis waktu tanpa parsing tanggal berulang. |
 | `dim_product` | Satu SKU canonical | `product_key`; `sku` unique | — | Konsistensi produk, brand, kategori, dan harga referensi. |
 | `dim_customer` | Satu natural key customer | `customer_key`; `customer_nk` unique | — | Analisis customer/kota meskipun atribut source berbeda. |
@@ -923,7 +923,7 @@ Checksum file mempercepat deteksi source tidak berubah, payload hash menentukan 
 
 ### 17.4 Asumsi
 
-- grain transaksi source saat ini satu produk per order dan `source_line_number = 1`;
+- grain transaksi source adalah satu baris item per order; satu order dapat mempunyai banyak item dengan nomor item yang berbeda;
 - order ID hanya unik di dalam source, sehingga source menjadi bagian business key;
 - source belum menyediakan diskon; `discount_amount = 0`;
 - `COMPLETED` digunakan untuk net sales dan unit terjual;

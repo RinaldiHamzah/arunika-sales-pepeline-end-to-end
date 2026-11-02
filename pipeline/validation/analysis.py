@@ -1,7 +1,9 @@
 """Antarmuka notebook."""
 
 from pathlib import Path
+
 import pandas as pd
+
 from pipeline.validation.contracts import CHANNEL_LABELS, CLEAN_PRODUCT_COLUMNS, CLEAN_SALES_COLUMNS
 from pipeline.validation.data_quality import ROOT, SPECS, analyze, run_quality
 
@@ -20,6 +22,7 @@ CHECKS = {
         "INVALID_STATUS",
         "PRICE_DIFFERS_FROM_MASTER",
         "INVALID_EMAIL",
+        "INVALID_LINE_NUMBER",
         "UNKNOWN_PAYMENT",
     },
     "date": {"INVALID_DATE"},
@@ -33,12 +36,14 @@ def validate_sales_contract(data: pd.DataFrame) -> pd.DataFrame:
         raise ValueError(f"Clean sales schema must be exactly: {SALES_COLUMNS}")
     if "customer_id" in data.columns:
         raise ValueError("customer_id is not part of the clean sales contract")
-    if data["order_id"].isna().any() or data["product_id"].isna().any():
-        raise ValueError("Clean sales requires non-null order_id and product_id")
+    if data["order_id"].isna().any() or data["product_id"].isna().any() or data["line_number"].isna().any():
+        raise ValueError("Clean sales requires non-null order_id, line_number and product_id")
     if not pd.api.types.is_datetime64_any_dtype(data["tanggal_order"]):
         raise TypeError("tanggal_order must be datetime64 before CSV export")
     if str(data["quantity"].dtype) != "Int64":
         raise TypeError("quantity must use nullable integer (Int64) dtype")
+    if str(data["line_number"].dtype) != "Int64" or data["line_number"].le(0).any():
+        raise TypeError("line_number must be a positive nullable integer (Int64)")
     return data
 
 

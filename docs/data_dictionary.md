@@ -19,10 +19,10 @@ Kolom khusus sumber tetap disimpan sebagai `TEXT`. Dengan begitu, nilai yang tid
 
 | Tabel | Field source-specific utama | Fungsi |
 | --- | --- | --- |
-| `raw.shopee_orders` | `order_id`, `order_date`, `product_name`, `qty`, `unit_price`, `customer_name`, `customer_city`, `payment_method`, `status` | Payload marketplace Shopee. |
-| `raw.tokopedia_transactions` | `transaction_id`, `transaction_date`, `item_name`, `quantity`, `price`, `buyer_name`, `city`, `payment`, `status` | Payload marketplace Tokopedia. |
-| `raw.website_transactions` | `invoice_no`, `created_at`, `product_identifier`, `quantity`, `unit_price`, `total_amount`, `customer_email`, `status` | Payload transaksi website. |
-| `raw.offline_store_sales` | `pos_receipt_no`, `sold_at`, `item_description`, `units`, `item_price`, `store_name`, `store_city`, `payment_type`, `status` | Payload POS toko offline. |
+| `raw.shopee_orders` | `order_id`, `order_line_id`, `order_date`, `product_name`, `qty`, `unit_price`, `customer_name`, `customer_city`, `payment_method`, `status` | Payload marketplace Shopee. |
+| `raw.tokopedia_transactions` | `transaction_id`, `item_sequence`, `transaction_date`, `item_name`, `quantity`, `price`, `buyer_name`, `city`, `payment`, `status` | Payload marketplace Tokopedia. |
+| `raw.website_transactions` | `invoice_no`, `line_item_no`, `created_at`, `product_identifier`, `quantity`, `unit_price`, `total_amount`, `customer_email`, `status` | Payload transaksi website. |
+| `raw.offline_store_sales` | `pos_receipt_no`, `receipt_line_no`, `sold_at`, `item_description`, `units`, `item_price`, `store_name`, `store_city`, `payment_type`, `status` | Payload POS toko offline. |
 | `raw.product_master` | `sku`, `product_name`, `brand`, `category`, `price` | Referensi master produk. |
 
 ## Staging
@@ -36,7 +36,7 @@ Kolom khusus sumber tetap disimpan sebagai `TEXT`. Dengan begitu, nilai yang tid
 | `source_name` | VARCHAR(30) | UK gabungan | Channel canonical source. |
 | `source_raw_record_id` | BIGINT |  | Identitas raw record untuk lineage. |
 | `source_order_id` | TEXT | UK gabungan | Order ID source. |
-| `source_line_number` | INTEGER | UK gabungan | Line item source; saat ini umumnya `1`. |
+| `source_line_number` | INTEGER | UK gabungan | Nomor item dalam order dari sumber; wajib positif dan tidak memiliki default. |
 | `order_date` | DATE |  | Tanggal transaksi canonical. |
 | `product_input` | TEXT |  | Nama/SKU produk sebelum mapping. |
 | `mapped_sku` | VARCHAR(30) |  | SKU Product Master hasil mapping. |
@@ -70,7 +70,7 @@ Kolom khusus sumber tetap disimpan sebagai `TEXT`. Dengan begitu, nilai yang tid
 
 ## Fact sales
 
-`warehouse.fact_sales` memiliki grain **satu produk dalam satu transaksi source**.
+`warehouse.fact_sales` memiliki grain **satu baris item dalam satu transaksi source**.
 
 | Field | Tipe | Key | Fungsi |
 | --- | --- | --- | --- |
@@ -98,7 +98,7 @@ Kolom khusus sumber tetap disimpan sebagai `TEXT`. Dengan begitu, nilai yang tid
 | `audit.source_ingestions` | Satu source file pada satu run | `source_ingestion_id` PK; `run_id` FK | Checksum, path, format, jumlah record. |
 | `audit.source_snapshots` | Snapshot terbaru per pipeline/source | `(pipeline_name, source_name)` PK | Payload hash untuk incremental. |
 | `audit.data_quality_results` | Satu rule/source/run | `quality_result_id` PK; `run_id` FK | Jumlah kegagalan per rule dan severity. |
-| `audit.rejected_records` | Satu baris transaksi yang ditolak dalam satu run | `rejected_record_id` PK; `run_id` FK | Payload asli dan alasan penolakan. |
+| `audit.rejected_records` | Satu baris transaksi yang ditolak dalam satu run | `rejected_record_id` PK; `run_id` FK | Payload asli, `source_order_id`, `source_line_number` jika valid, dan alasan penolakan. |
 | `audit.pipeline_watermarks` | Watermark per pipeline/source | `(pipeline_name, source_name)` PK | Run sukses dan waktu proses terakhir. |
 
 Kolom `audit.pipeline_runs.report_summary` bertipe `JSONB`. Nilainya dapat `NULL` pada run lama. Pada run baru, kolom ini menyimpan ringkasan untuk run tersebut: bagian `raw`, `quality_staging`, dan `warehouse`. Dashboard dan email membaca ringkasan yang sama agar angka laporan konsisten.

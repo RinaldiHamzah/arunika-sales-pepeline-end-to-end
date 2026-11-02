@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS audit.rejected_records (
     run_id UUID NOT NULL REFERENCES audit.pipeline_runs(run_id) ON DELETE CASCADE,
     source_name VARCHAR(30) NOT NULL,
     source_order_id TEXT,
+    source_line_number INTEGER,
     source_row_number INTEGER,
     rejection_reason TEXT NOT NULL,
     source_payload JSONB NOT NULL,

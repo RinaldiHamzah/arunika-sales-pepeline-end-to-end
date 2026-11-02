@@ -300,7 +300,7 @@ Schema PostgreSQL dibagi menjadi beberapa area:
 | --- | --- | --- |
 | `raw` | `shopee_orders`, `tokopedia_transactions`, `website_transactions`, `offline_store_sales`, `product_master` | Satu baris sumber per ingestion. `raw_record_id` adalah PK; `ingestion_run_id` menghubungkan record ke run audit. Nilai sumber dan payload asli disimpan sebelum validasi. |
 | `staging` | `stg_sales` | Satu line transaksi canonical yang lolos validasi. `staging_sales_id` adalah PK; kombinasi source, order ID, dan nomor baris menjadi business key. Menyimpan `source_raw_record_id` untuk lineage. |
-| `warehouse` | `fact_sales`, `dim_date`, `dim_product`, `dim_customer`, `dim_channel`, `dim_payment` | Star schema untuk analitik. Grain fact adalah satu produk pada satu transaksi source. `sales_key` adalah PK; `date_key`, `product_key`, `customer_key`, `channel_key`, dan `payment_key` adalah FK. Business key fact adalah `(source_name, source_order_id, source_line_number)`. |
+| `warehouse` | `fact_sales`, `dim_date`, `dim_product`, `dim_customer`, `dim_channel`, `dim_payment` | Star schema untuk analitik. Grain fact adalah satu baris item transaksi source. `sales_key` adalah PK; `date_key`, `product_key`, `customer_key`, `channel_key`, dan `payment_key` adalah FK. Business key fact adalah `(source_name, source_order_id, source_line_number)`. |
 | `audit` | `pipeline_runs`, `pipeline_stage_runs`, `source_ingestions`, `source_snapshots`, `data_quality_results`, `rejected_records`, `pipeline_watermarks` | Satu baris per run, tahap, source, rule, record rejected, atau snapshot sesuai fungsi tabel. Menyimpan hasil operasional, durasi, kualitas, dan jejak incremental. |
 
 Pada staging, `source_raw_record_id` adalah referensi lineage yang dijaga pipeline; foreign key warehouse ke seluruh dimensi ditegakkan oleh PostgreSQL. Detail PK, FK, tipe kolom, dan grain setiap tabel ada pada [Kamus Data](docs/data_dictionary.md).
@@ -325,8 +325,8 @@ SQL dalam `database/schema/` digunakan saat volume PostgreSQL baru dibuat. Untuk
 
 ### Asumsi bisnis
 
-- Grain `fact_sales` adalah satu produk pada satu transaksi source. Source sample saat ini umumnya satu produk per order sehingga `source_line_number = 1`.
-- Business key transaksi memakai `(source_name, source_order_id, source_line_number)` karena ID order dapat berulang antar-kanal. Source saat ini belum menyediakan line ID stabil, sehingga nomor baris transaksi canonical ditetapkan `1`.
+- Grain `fact_sales` adalah satu baris item pada satu transaksi source. Satu order dapat memuat 1 hingga N item, termasuk SKU yang sama pada nomor item berbeda.
+- Business key transaksi memakai `(source_name, source_order_id, source_line_number)`. Nomor item berasal dari kolom native setiap source dan wajib integer positif; `source_record_hash` hanya mendeteksi perubahan isi. CSV contoh menyediakan pesanan 1, 2, 3, 5, dan 10 item serta pesanan acak 1–10 item.
 - Penjualan bersih dashboard adalah `net_amount` dengan status `COMPLETED` saja.
 - Penjualan kotor dashboard adalah `gross_amount` seluruh status: `CANCELLED`, `COMPLETED`, dan `RETURNED`.
 - Source belum menyediakan diskon; `discount_amount` saat ini bernilai nol dan `net_amount` setara gross pada order yang sama.

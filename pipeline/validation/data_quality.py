@@ -10,14 +10,18 @@ import re
 from dataclasses import dataclass
 from hashlib import sha256
 from pathlib import Path
+
 import pandas as pd
 
 from pipeline.validation.contracts import (
     INTERNAL_SALES_COLUMNS,
     META_COLUMNS,
     PRODUCT_RAW_COLUMNS,
+    SOURCE_NAMES,
     SOURCE_SPECS,
-    VALID_STATUSES,)
+    VALID_STATUSES,
+    order_line_key,
+)
 from pipeline.validation.rules import clean_text, match_key, number, parse_date
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -136,7 +140,12 @@ def analyze(path, source, products=None, selected_row_numbers=None, captured=Non
             mapping = SPECS[source]
             row = {col: None for col in SALES_COLUMNS}
             row.update({key: clean_text(raw[col]) for key, col in mapping.items()})
-            row["line_number"] = 1
+            line_value = row["line_number"]
+            if line_value is None or not line_value.isdecimal() or not 0 < int(line_value) <= 2147483647:
+                issue("INVALID_LINE_NUMBER", mapping["line_number"])
+                row["line_number"] = None
+            else:
+                row["line_number"] = int(line_value)
             if not row["order_id"]:
                 issue("MISSING_REQUIRED", mapping["order_id"])
             row["order_date"], err = parse_date(row["order_date"], source)
@@ -193,7 +202,11 @@ def analyze(path, source, products=None, selected_row_numbers=None, captured=Non
                 if not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", row["customer_email"]):
                     issue("INVALID_EMAIL", mapping["customer_email"], "WARNING")
                     row["customer_email"] = None
-            key = row["order_id"]
+            key = (
+                order_line_key(SOURCE_NAMES[source], row["order_id"], row["line_number"])
+                if row["order_id"] and row["line_number"] is not None
+                else None
+            )
         row.update(meta)
         candidates.append({"row": row, "errors": errors, "raw": raw, "key": key})
 
@@ -228,7 +241,8 @@ def analyze(path, source, products=None, selected_row_numbers=None, captured=Non
             )
         record = {
             **meta,
-            "business_key": key,
+            "business_key": key[1] if source != "product" and key else key,
+            "source_line_number": row["line_number"] if source != "product" else None,
             "reasons": "|".join(errors),
             "raw_payload": json.dumps(candidate["raw"], ensure_ascii=False),
         }
@@ -250,7 +264,7 @@ def analyze(path, source, products=None, selected_row_numbers=None, captured=Non
             seen.add(key)
             clean.append(row)
     columns = PRODUCT_COLUMNS + META if source == "product" else SALES_COLUMNS
-    evidence_cols = META + ["business_key", "reasons", "raw_payload"]
+    evidence_cols = META + ["business_key", "source_line_number", "reasons", "raw_payload"]
     summary = dict(
         source=source,
         source_sha256=checksum,

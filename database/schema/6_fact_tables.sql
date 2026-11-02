@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS warehouse.fact_sales (
     sales_key BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     source_name VARCHAR(30) NOT NULL CHECK (source_name IN ('SHOPEE', 'TOKOPEDIA', 'WEBSITE', 'OFFLINE_STORE')),
     source_order_id TEXT NOT NULL,
-    source_line_number INTEGER NOT NULL DEFAULT 1 CHECK (source_line_number > 0),
+    source_line_number INTEGER NOT NULL CHECK (source_line_number > 0),
     date_key INTEGER NOT NULL REFERENCES warehouse.dim_date(date_key),
     product_key BIGINT NOT NULL REFERENCES warehouse.dim_product(product_key),
     customer_key BIGINT REFERENCES warehouse.dim_customer(customer_key),

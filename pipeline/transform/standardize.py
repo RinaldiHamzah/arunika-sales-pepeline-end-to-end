@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import hashlib
 import json
-import pandas as pd
-from pipeline.validation.contracts import CHANNEL_LABELS
 
-SOURCE_NAMES = {source: label.upper().replace(" ", "_") for source, label in CHANNEL_LABELS.items()}
+import pandas as pd
+
+from pipeline.validation.contracts import SOURCE_NAMES, order_line_key
+
 _HASH_EXCLUDED = {"source_file", "source_row_number", "source_sha256"}
 
 
@@ -32,12 +33,9 @@ def filter_incremental_results(results, existing_keys):
         clean = result.clean.copy()
         if not clean.empty:
             source_name = SOURCE_NAMES[source]
-            keys = list(
-                zip(
-                    [source_name] * len(clean),
-                    clean["order_id"],
-                    clean["line_number"].astype(int),
-                ))
+            keys = [
+                order_line_key(source_name, row["order_id"], row["line_number"]) for row in clean.to_dict("records")
+            ]
             hashes = [source_record_hash(row) for row in clean.to_dict("records")]
             clean = clean[
                 [
@@ -51,7 +49,8 @@ def filter_incremental_results(results, existing_keys):
             duplicates=result.duplicates,
             issues=result.issues,
             profile=result.profile,
-            summary=result.summary,)
+            summary=result.summary,
+        )
     return filtered
 
 
@@ -88,5 +87,6 @@ def clean_results_to_staging(results) -> pd.DataFrame:
                     "unit_price": record["unit_price"],
                     "source_total_amount": record.get("source_total_amount"),
                     "source_record_hash": source_record_hash(record),
-                })
+                }
+            )
     return pd.DataFrame(rows)

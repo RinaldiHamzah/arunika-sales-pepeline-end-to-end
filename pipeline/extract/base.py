@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from hashlib import sha256
 from pathlib import Path
+
 import pandas as pd
 
 
@@ -39,13 +40,24 @@ def raw_payload_hash(payload: dict) -> str:
 
 
 def filter_unseen_rows(source: ExtractedSource, known_hashes: set[str]) -> ExtractedSource:
-    """Kembalikan hanya baris dengan payload yang belum pernah dimuat."""
+    """Ambil delta, termasuk versi lama yang berbagi key dengan perubahan dalam snapshot."""
     if source.frame.empty:
         return source
+    from pipeline.validation.contracts import SOURCE_NAMES, SOURCE_SPECS
+
+    source_key = next((key for key, value in SOURCE_NAMES.items() if value == source.source_name), None)
+    spec = SOURCE_SPECS.get(source_key) if source_key else None
+    rows = list(zip(source.row_numbers, source.frame.to_dict(orient="records")))
+    changed = {number for number, row in rows if raw_payload_hash(row) not in known_hashes}
+    changed_keys = (
+        {(row.get(spec["order_id"]), row.get(spec["line_number"])) for number, row in rows if number in changed}
+        if spec
+        else set()
+    )
     selected = [
         (row_number, row)
-        for row_number, row in zip(source.row_numbers, source.frame.to_dict(orient="records"))
-        if raw_payload_hash(row) not in known_hashes
+        for row_number, row in rows
+        if row_number in changed or (spec and (row.get(spec["order_id"]), row.get(spec["line_number"])) in changed_keys)
     ]
     return replace(
         source,

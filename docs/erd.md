@@ -45,7 +45,7 @@ View berikut adalah objek baca saja. View tidak ditampilkan sebagai tabel pada E
 | `raw.offline_store_sales` | Satu baris mentah CSV toko offline dalam satu ingestion run. |
 | `raw.product_master` | Satu baris master produk dalam satu ingestion run. |
 | `staging.stg_sales` | Satu line item transaksi canonical yang valid. |
-| `warehouse.fact_sales` | Satu produk dalam satu transaksi source. Business key: `(source_name, source_order_id, source_line_number)`. |
+| `warehouse.fact_sales` | Satu baris item dalam satu transaksi source. Business key: `(source_name, source_order_id, source_line_number)`. |
 | `warehouse.dim_date` | Satu tanggal kalender. |
 | `warehouse.dim_product` | Satu SKU produk canonical. |
 | `warehouse.dim_customer` | Satu customer natural key per source. |

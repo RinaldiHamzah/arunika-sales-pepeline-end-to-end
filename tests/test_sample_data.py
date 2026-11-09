@@ -8,7 +8,7 @@ import pytest
 from pipeline.transform.standardize import clean_results_to_staging, filter_incremental_results, source_record_hash
 from pipeline.validation.contracts import SOURCE_NAMES, SOURCE_SPECS, order_line_key
 from pipeline.validation.data_quality import analyze
-from scripts.generate_sample_data import FIXED_ITEM_COUNTS, records
+from scripts.generate_sample_data import FIXED_ITEM_COUNTS, order_promotions, records
 
 
 def _save(path, rows):
@@ -56,6 +56,21 @@ def test_generator_is_deterministic_and_has_required_order_sizes():
     for order_id, size in counts.items():
         assert [row["line_number"] for row in first if row["id"] == order_id] == list(range(1, size + 1))
     assert len({row["id"] for row in first}) < len(first)
+    assert any(row["discount_amount"] > 0 for row in first)
+    assert all(
+        row["discount_amount"] <= row["qty"] * row["price"] for row in first if row["qty"] > 0 and row["price"] > 0
+    )
+    assert all(bool(row["promo_code"]) == (row["discount_amount"] > 0) for row in first)
+
+
+def test_generator_places_order_level_promos_in_separate_source():
+    promotions = order_promotions(records(1), "SHOPEE")
+
+    assert promotions
+    assert all(row["source_name"] == "SHOPEE" for row in promotions)
+    assert len({(row["source_name"], row["order_id"]) for row in promotions}) == len(promotions)
+    assert all(row["promo_code"] in {"ARUNIKA10", "ARUNIKA15"} for row in promotions)
+    assert all(float(row["discount_amount"]) > 0 for row in promotions)
 
 
 def test_contracts_have_native_line_identifier_for_each_source():

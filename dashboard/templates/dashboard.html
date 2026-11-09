@@ -100,6 +100,11 @@
               <small>Total order CANCELLED, COMPLETED, dan RETURNED</small>
             </article>
             <article class="kpi-card">
+              <span>Diskon Pesanan Selesai</span>
+              <strong id="metric-discount">—</strong>
+              <small>Jumlah diskon pada order COMPLETED</small>
+            </article>
+            <article class="kpi-card">
               <span>Pesanan Selesai</span>
               <strong id="metric-orders">—</strong>
               <small>Transaksi unik berstatus COMPLETED</small>
@@ -169,6 +174,15 @@
                 <span id="city-coverage">Lokasi diketahui</span>
               </div>
               <div id="city-list" class="rank-list"></div>
+            </article>
+            <article class="panel">
+              <div class="panel-title">
+                <div><p class="eyebrow">Promo</p><h3>Diskon per Kode Promo</h3></div>
+                <span>Order COMPLETED</span>
+              </div>
+              <div class="chart-container chart-small" aria-live="polite">
+                <canvas id="promo-chart"></canvas>
+              </div>
             </article>
           </div>
         </section>

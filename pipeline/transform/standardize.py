@@ -4,17 +4,26 @@ from __future__ import annotations
 
 import hashlib
 import json
+from decimal import Decimal, InvalidOperation
 
 import pandas as pd
 
 from pipeline.validation.contracts import SOURCE_NAMES, order_line_key
 
-_HASH_EXCLUDED = {"source_file", "source_row_number", "source_sha256"}
+_HASH_EXCLUDED = {"source_file", "source_row_number", "source_sha256", "net_amount"}
 
 
 def source_record_hash(record: dict) -> str:
     """Hash isi yang stabil untuk mendeteksi koreksi pada business key yang sudah ada."""
     values = {key: value for key, value in record.items() if key not in _HASH_EXCLUDED}
+    discount = values.get("discount_amount")
+    try:
+        if discount is None or Decimal(str(discount)) == 0:
+            values.pop("discount_amount", None)
+    except InvalidOperation:
+        pass
+    if not values.get("promo_code"):
+        values.pop("promo_code", None)
     return hashlib.sha256(json.dumps(values, sort_keys=True, default=str, ensure_ascii=False).encode()).hexdigest()
 
 
@@ -85,6 +94,9 @@ def clean_results_to_staging(results) -> pd.DataFrame:
                     "sale_status": record["status"],
                     "quantity": int(record["quantity"]),
                     "unit_price": record["unit_price"],
+                    "discount_amount": record["discount_amount"],
+                    "net_amount": record["net_amount"],
+                    "promo_code": record["promo_code"],
                     "source_total_amount": record.get("source_total_amount"),
                     "source_record_hash": source_record_hash(record),
                 }

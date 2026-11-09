@@ -80,6 +80,33 @@ def test_semantic_duplicates_and_optional_missing(tmp_path, master):
     assert result.clean["customer_email"].isna().all()
     assert result.clean["quantity"].dtype == "Int64"
     assert result.clean.iloc[0]["gross_amount"] == Decimal("200.20")
+    assert result.clean.iloc[0]["discount_amount"] == Decimal("0.00")
+    assert result.clean.iloc[0]["net_amount"] == Decimal("200.20")
+
+
+def test_discount_is_validated_and_net_amount_is_calculated_per_item(tmp_path, master):
+    discounted = web(discount_amount="20.00", promo_code="BEAUTY20", total_amount="180.20")
+    gross_total = web("00002", discount_amount="20.00", promo_code="BEAUTY20", total_amount="200.20")
+    result = analyze(save(tmp_path / "web.csv", [discounted, gross_total]), "website", master)
+
+    assert len(result.clean) == 2
+    assert result.clean.net_amount.tolist() == [Decimal("180.20"), Decimal("180.20")]
+    assert result.clean.promo_code.tolist() == ["BEAUTY20", "BEAUTY20"]
+    assert result.clean.discount_amount.tolist() == [Decimal("20.00"), Decimal("20.00")]
+
+
+@pytest.mark.parametrize(
+    ("discount", "reason"),
+    [("-1.00", "NEGATIVE_AMOUNT"), ("200.21", "DISCOUNT_EXCEEDS_GROSS"), ("1.005", "INVALID_MONEY_PRECISION_OR_RANGE")],
+)
+def test_invalid_discount_is_rejected(tmp_path, master, discount, reason):
+    result = analyze(
+        save(tmp_path / "web.csv", [web(discount_amount=discount, total_amount="200.20")]),
+        "website",
+        master,
+    )
+    assert result.clean.empty
+    assert any(item.endswith(f":{reason}") for item in result.rejected.reasons.iloc[0].split("|"))
 
 
 def test_internal_clean_data_excludes_source_only_customer_id(tmp_path, master):

@@ -15,7 +15,11 @@ RAW_TABLES = {
 }
 
 
-def _raw_record_ids(connection: Connection, run_id: UUID) -> dict[tuple[str, int], int]:
+def _raw_record_ids(connection: Connection, run_id: UUID, rows) -> dict[tuple[str, int], int]:
+    requested = {
+        (row["source_name"], int(row["source_row_number"]))
+        for row in rows
+    }
     records = {}
     for source_name, table in RAW_TABLES.items():
         rows = connection.execute(
@@ -23,14 +27,35 @@ def _raw_record_ids(connection: Connection, run_id: UUID) -> dict[tuple[str, int
             {"run_id": str(run_id)},
         ).mappings()
         records.update({(source_name, row["source_row_number"]): row["raw_record_id"] for row in rows})
+
+    # Data yang tidak berubah tidak dimuat ulang ke Raw pada run berikutnya.
+    # Saat enrichment promo mengubah baris Staging, gunakan referensi Raw terbaru
+    # untuk baris sumber yang sama; record Raw tetap menjadi sumber lineage.
+    for source_name, source_row_number in requested - records.keys():
+        table = RAW_TABLES.get(source_name)
+        if table is None:
+            continue
+        row = connection.execute(
+            text(f"""
+                SELECT raw_record_id
+                FROM {table}
+                WHERE source_row_number = :source_row_number
+                ORDER BY raw_record_id DESC
+                LIMIT 1
+            """),
+            {"source_row_number": source_row_number},
+        ).mappings().first()
+        if row is not None:
+            records[(source_name, source_row_number)] = row["raw_record_id"]
     return records
 
 
 def load_staging(connection: Connection, run_id: UUID, rows) -> int:
     """Masukkan baris bersih satu kali untuk run ingestion dan kembalikan kandidat yang ditambahkan."""
-    raw_ids = _raw_record_ids(connection, run_id)
+    source_rows = rows.to_dict("records")
+    raw_ids = _raw_record_ids(connection, run_id, source_rows)
     records = []
-    for row in rows.to_dict("records"):
+    for row in source_rows:
         raw_id = raw_ids.get((row["source_name"], row["source_row_number"]))
         if raw_id is None:
             raise ValueError(f"Raw record not found for {row['source_name']} row {row['source_row_number']}")
@@ -44,12 +69,12 @@ def load_staging(connection: Connection, run_id: UUID, rows) -> int:
             ingestion_run_id, source_name, source_raw_record_id, source_order_id,
             source_line_number, order_date, product_input, mapped_sku, customer_nk,
             customer_name, city, payment_method, sale_status, quantity, unit_price,
-            source_total_amount, source_record_hash
+            discount_amount, promo_code, source_total_amount, source_record_hash
         ) VALUES (
             :ingestion_run_id, :source_name, :source_raw_record_id, :source_order_id,
             :source_line_number, :order_date, :product_input, :mapped_sku, :customer_nk,
             :customer_name, :city, :payment_method, :sale_status, :quantity, :unit_price,
-            :source_total_amount, :source_record_hash
+            :discount_amount, :promo_code, :source_total_amount, :source_record_hash
         ) ON CONFLICT (source_name, source_order_id, source_line_number) DO UPDATE SET
             ingestion_run_id = EXCLUDED.ingestion_run_id,
             source_raw_record_id = EXCLUDED.source_raw_record_id,
@@ -58,6 +83,7 @@ def load_staging(connection: Connection, run_id: UUID, rows) -> int:
             customer_name = EXCLUDED.customer_name, city = EXCLUDED.city,
             payment_method = EXCLUDED.payment_method, sale_status = EXCLUDED.sale_status,
             quantity = EXCLUDED.quantity, unit_price = EXCLUDED.unit_price,
+            discount_amount = EXCLUDED.discount_amount, promo_code = EXCLUDED.promo_code,
             source_total_amount = EXCLUDED.source_total_amount,
             source_record_hash = EXCLUDED.source_record_hash,
             transformed_at = CURRENT_TIMESTAMP

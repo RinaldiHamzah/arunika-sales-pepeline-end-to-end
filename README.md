@@ -276,9 +276,11 @@ data/source/shopee.csv
 data/source/tokopedia.csv
 data/source/website.csv
 data/source/offline.csv
+data/source/promo_master.csv
+data/source/order_promotions.csv
 ```
 
-CSV dapat ditambahkan melalui dashboard atau ditempatkan langsung di folder sumber. Nama kolom harus sesuai dengan kontrak setiap sumber. Jika header diubah, perbarui extractor dan pengujian yang terkait.
+CSV transaksi dapat ditambahkan melalui dashboard atau ditempatkan langsung di folder sumber. Informasi promo dipisahkan menjadi `promo_master.csv` (aturan/katalog) dan `order_promotions.csv` (promo yang benar-benar diterapkan pada order). Format header tersedia di folder sumber. Nilai `discount_amount` harus berasal dari sumber transaksi; pipeline mengalokasikannya secara proporsional ke item order dan memeriksa bahwa totalnya tidak melebihi nilai kotor order. Nilai diskon master mendokumentasikan aturan, bukan dipakai untuk menebak diskon aktual.
 
 Data di repository hanya untuk simulasi; data tersebut bukan katalog atau harga resmi Arunika.
 
@@ -298,9 +300,9 @@ Schema PostgreSQL dibagi menjadi beberapa area:
 
 | Schema | Tabel penting | Grain, key, dan fungsi |
 | --- | --- | --- |
-| `raw` | `shopee_orders`, `tokopedia_transactions`, `website_transactions`, `offline_store_sales`, `product_master` | Satu baris sumber per ingestion. `raw_record_id` adalah PK; `ingestion_run_id` menghubungkan record ke run audit. Nilai sumber dan payload asli disimpan sebelum validasi. |
+| `raw` | `shopee_orders`, `tokopedia_transactions`, `website_transactions`, `offline_store_sales`, `product_master`, `promo_master`, `order_promotions` | Satu baris sumber per ingestion. `raw_record_id` adalah PK; `ingestion_run_id` menghubungkan record ke run audit. Nilai sumber dan payload asli disimpan sebelum validasi. |
 | `staging` | `stg_sales` | Satu line transaksi canonical yang lolos validasi. `staging_sales_id` adalah PK; kombinasi source, order ID, dan nomor baris menjadi business key. Menyimpan `source_raw_record_id` untuk lineage. |
-| `warehouse` | `fact_sales`, `dim_date`, `dim_product`, `dim_customer`, `dim_channel`, `dim_payment` | Star schema untuk analitik. Grain fact adalah satu baris item transaksi source. `sales_key` adalah PK; `date_key`, `product_key`, `customer_key`, `channel_key`, dan `payment_key` adalah FK. Business key fact adalah `(source_name, source_order_id, source_line_number)`. |
+| `warehouse` | `fact_sales`, `dim_date`, `dim_product`, `dim_customer`, `dim_channel`, `dim_payment`, `dim_promotion` | Star schema untuk analitik. Grain fact adalah satu baris item transaksi source. `sales_key` adalah PK; `date_key`, `product_key`, `customer_key`, `channel_key`, dan `payment_key` adalah FK. Business key fact adalah `(source_name, source_order_id, source_line_number)`. |
 | `audit` | `pipeline_runs`, `pipeline_stage_runs`, `source_ingestions`, `source_snapshots`, `data_quality_results`, `rejected_records`, `pipeline_watermarks` | Satu baris per run, tahap, source, rule, record rejected, atau snapshot sesuai fungsi tabel. Menyimpan hasil operasional, durasi, kualitas, dan jejak incremental. |
 
 Pada staging, `source_raw_record_id` adalah referensi lineage yang dijaga pipeline; foreign key warehouse ke seluruh dimensi ditegakkan oleh PostgreSQL. Detail PK, FK, tipe kolom, dan grain setiap tabel ada pada [Kamus Data](docs/data_dictionary.md).
@@ -329,7 +331,8 @@ SQL dalam `database/schema/` digunakan saat volume PostgreSQL baru dibuat. Untuk
 - Business key transaksi memakai `(source_name, source_order_id, source_line_number)`. Nomor item berasal dari kolom native setiap source dan wajib integer positif; `source_record_hash` hanya mendeteksi perubahan isi. CSV contoh menyediakan pesanan 1, 2, 3, 5, dan 10 item serta pesanan acak 1–10 item.
 - Penjualan bersih dashboard adalah `net_amount` dengan status `COMPLETED` saja.
 - Penjualan kotor dashboard adalah `gross_amount` seluruh status: `CANCELLED`, `COMPLETED`, dan `RETURNED`.
-- Source belum menyediakan diskon; `discount_amount` saat ini bernilai nol dan `net_amount` setara gross pada order yang sama.
+- CSV lama tanpa kolom diskon tetap didukung; kolom hilang atau kosong diperlakukan sebagai diskon nol, sehingga metrik diskon hanya selengkap data yang dilaporkan sumber.
+- Pemakaian promo dicocokkan dengan `(source_name, order_id)`. Versi ini mendukung satu promo per order; nilai diskon aktual order dialokasikan proporsional ke gross tiap item dan total alokasi dijaga tetap sama dengan nilai order.
 - Transaksi yang hilang dari file source tidak dihapus otomatis dari warehouse. Koreksi dengan business key sama dan hash berbeda di-upsert.
 - CSV dalam repository adalah data sample/simulasi, bukan data operasional atau harga resmi.
 

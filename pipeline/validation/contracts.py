@@ -62,6 +62,13 @@ SOURCE_SPECS = MappingProxyType(
     }
 )
 
+OPTIONAL_SOURCE_SPECS = MappingProxyType(
+    {
+        source: MappingProxyType({"discount_amount": "discount_amount", "promo_code": "promo_code"})
+        for source in SOURCE_SPECS
+    }
+)
+
 PRODUCT_RAW_COLUMNS = ("sku", "product_name", "brand", "category", "price")
 META_COLUMNS = ("source", "source_file", "source_row_number", "source_sha256")
 INTERNAL_SALES_COLUMNS = (
@@ -76,6 +83,9 @@ INTERNAL_SALES_COLUMNS = (
     "quantity",
     "unit_price",
     "gross_amount",
+    "discount_amount",
+    "net_amount",
+    "promo_code",
     "source_total_amount",
     "customer_name",
     "customer_email",
@@ -103,6 +113,9 @@ CLEAN_SALES_COLUMNS = (
     "status",
     "customer_email",
     "harga_satuan",
+    "discount_amount",
+    "net_amount",
+    "promo_code",
 )
 
 VALID_STATUSES = frozenset({"COMPLETED", "CANCELLED", "RETURNED"})
@@ -135,7 +148,10 @@ DISPOSITION_RULES = MappingProxyType(
 RAW_COLUMNS = MappingProxyType(
     {
         "product": PRODUCT_RAW_COLUMNS,
-        **{source: tuple(spec.values()) for source, spec in SOURCE_SPECS.items()},
+        **{
+            source: tuple(spec.values()) + tuple(OPTIONAL_SOURCE_SPECS[source].values())
+            for source, spec in SOURCE_SPECS.items()
+        },
     }
 )
 
@@ -143,3 +159,10 @@ RAW_COLUMNS = MappingProxyType(
 def raw_column_mapping(source):
     """Kembalikan pemetaan identitas yang digunakan saat memuat tabel CSV raw."""
     return {column: column for column in RAW_COLUMNS[source]}
+
+
+def required_raw_columns(source):
+    """Kembalikan kolom sumber yang wajib tersedia pada CSV."""
+    if source == "product":
+        return PRODUCT_RAW_COLUMNS
+    return tuple(SOURCE_SPECS[source].values())

@@ -16,13 +16,14 @@ import pandas as pd
 from pipeline.validation.contracts import (
     INTERNAL_SALES_COLUMNS,
     META_COLUMNS,
+    OPTIONAL_SOURCE_SPECS,
     PRODUCT_RAW_COLUMNS,
     SOURCE_NAMES,
     SOURCE_SPECS,
     VALID_STATUSES,
     order_line_key,
 )
-from pipeline.validation.rules import clean_text, match_key, number, parse_date
+from pipeline.validation.rules import clean_text, match_key, nonnegative_money, number, parse_date
 
 ROOT = Path(__file__).resolve().parents[2]
 SPECS = {source: dict(spec) for source, spec in SOURCE_SPECS.items()}
@@ -78,6 +79,8 @@ def frame(rows, columns):
             "price",
             "unit_price",
             "gross_amount",
+            "discount_amount",
+            "net_amount",
             "source_total_amount",
         }:
             result[col] = result[col].astype("string")
@@ -140,6 +143,8 @@ def analyze(path, source, products=None, selected_row_numbers=None, captured=Non
             mapping = SPECS[source]
             row = {col: None for col in SALES_COLUMNS}
             row.update({key: clean_text(raw[col]) for key, col in mapping.items()})
+            optional_mapping = OPTIONAL_SOURCE_SPECS[source]
+            row.update({key: clean_text(raw.get(col)) for key, col in optional_mapping.items()})
             line_value = row["line_number"]
             if line_value is None or not line_value.isdecimal() or not 0 < int(line_value) <= 2147483647:
                 issue("INVALID_LINE_NUMBER", mapping["line_number"])
@@ -173,11 +178,23 @@ def analyze(path, source, products=None, selected_row_numbers=None, captured=Non
             row.pop("product_input", None)
             if row["quantity"] is not None and row["unit_price"] is not None:
                 row["gross_amount"] = row["quantity"] * row["unit_price"]
+            row["discount_amount"], err = nonnegative_money(row["discount_amount"])
+            if err:
+                issue(err, optional_mapping["discount_amount"])
+            row["promo_code"] = clean_text(row["promo_code"])
+            if row["gross_amount"] is not None and row["discount_amount"] is not None:
+                if row["discount_amount"] > row["gross_amount"]:
+                    issue("DISCOUNT_EXCEEDS_GROSS", optional_mapping["discount_amount"])
+                else:
+                    row["net_amount"] = row["gross_amount"] - row["discount_amount"]
             if "source_total_amount" in mapping:
                 row["source_total_amount"], err = number(row["source_total_amount"])
                 if err:
                     issue(err, mapping["source_total_amount"])
-                elif row["gross_amount"] is not None and row["source_total_amount"] != row["gross_amount"]:
+                elif row["gross_amount"] is not None and row["source_total_amount"] not in {
+                    row["gross_amount"],
+                    row["net_amount"],
+                }:
                     issue("AMOUNT_MISMATCH", mapping["source_total_amount"])
             for col in [
                 "customer_name",

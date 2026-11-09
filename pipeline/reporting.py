@@ -75,7 +75,7 @@ def _quality_section(rule: object, field: object) -> str:
         return "unmapped_product"
     if field_name in {"qty", "quantity", "units"}:
         return "invalid_quantity"
-    if field_name in {"price", "unit_price", "item_price", "total_amount"}:
+    if field_name in {"price", "unit_price", "item_price", "total_amount", "discount_amount"}:
         return "invalid_price"
     if rule_name in {"INVALID_NUMBER", "INVALID_INTEGER", "INVALID_MONEY_PRECISION_OR_RANGE"}:
         return "type_cast_failure"

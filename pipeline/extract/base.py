@@ -34,8 +34,20 @@ class ExtractedSource:
 def raw_payload_hash(payload: dict) -> str:
     """Hitung hash baris sumber apa adanya sebelum validasi untuk mendeteksi perubahan dengan aman."""
     import json
+    from decimal import Decimal, InvalidOperation
 
-    canonical = json.dumps(payload, sort_keys=True, ensure_ascii=False, default=str, separators=(",", ":"))
+    values = dict(payload)
+    # Kolom baru yang kosong/nol tidak membuat seluruh snapshot lama tampak berubah.
+    promo_code = str(values.get("promo_code") or "").strip()
+    if not promo_code:
+        values.pop("promo_code", None)
+    discount = str(values.get("discount_amount") or "").strip()
+    try:
+        if not discount or Decimal(discount) == 0:
+            values.pop("discount_amount", None)
+    except InvalidOperation:
+        pass
+    canonical = json.dumps(values, sort_keys=True, ensure_ascii=False, default=str, separators=(",", ":"))
     return sha256(canonical.encode("utf-8")).hexdigest()
 
 
@@ -82,16 +94,18 @@ def extract_delimited(
     ):
         frame = pd.DataFrame(columns=list(column_mapping), dtype="string")
         source_records = int(snapshot["source_records"])
+        active_mapping = column_mapping
     else:
         frame, _ = read_source(file_path, payload=payload)
         source_records = len(frame)
+        active_mapping = {column: target for column, target in column_mapping.items() if column in frame.columns}
     return ExtractedSource(
         source_name,
         raw_table,
         file_path,
         "CSV",
         frame,
-        column_mapping,
+        active_mapping,
         captured_checksum=checksum,
         source_records=source_records,
     )

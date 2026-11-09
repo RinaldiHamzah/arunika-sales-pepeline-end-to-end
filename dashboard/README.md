@@ -34,7 +34,7 @@ Transaksi mengikuti filter terakhir yang diterapkan pada Ringkasan. Gunakan pagi
 ### Pengaturan dan token administrator
 
 1. Masukkan token pada area **Token Administrator**.
-2. Pilih sumber data dan unggah CSV pada Langkah 1.
+2. Pilih sumber data dan unggah CSV pada Langkah 1. Kontrak header lama tetap diterima; untuk mencatat promo, tambahkan `discount_amount` dan `promo_code` di akhir header. Saat file lama pertama kali menerima batch, dashboard menyimpan ulang sumber dengan header lengkap sambil mempertahankan baris sebelumnya.
 3. Jalankan pipeline pada Langkah 2.
 4. Klik **Check Status** untuk memuat riwayat pipeline.
 

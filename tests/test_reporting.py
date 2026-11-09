@@ -158,6 +158,23 @@ def test_noop_is_success_with_explicit_explanation():
     assert "tanpa data baru atau perubahan" in outcome_message(report)
 
 
+def test_report_includes_return_event_counts_when_present():
+    body = format_pipeline_report(
+        {
+            "status": "SUCCESS",
+            "report_summary": {
+                "raw": {},
+                "returns": {"raw_records_inserted": 4, "loaded_events": 3, "rejected_events": 1},
+            },
+        }
+    )
+
+    assert "RETUR & REFUND" in body
+    assert "Event baru ke Raw: 4" in body
+    assert "Event valid dimuat ke Warehouse: 3" in body
+    assert "Event ditolak: 1" in body
+
+
 def test_run_summary_separates_run_metrics_from_table_inventory():
     summary = run_report_summary(
         {"source_records": 120, "extracted_records": 20},

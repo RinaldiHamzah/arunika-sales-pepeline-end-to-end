@@ -19,7 +19,7 @@ Raw menyimpan perubahan yang diterima pada suatu run; tabel raw bukan salinan ba
 
 Grain `warehouse.fact_sales` adalah satu baris item dalam satu transaksi sumber. Identitasnya ditentukan oleh `(source_name, source_order_id, source_line_number)`. Nomor item berasal dari kolom native CSV, divalidasi sebagai integer positif, dan tidak diisi otomatis oleh database. Satu order dapat berisi banyak item, termasuk SKU yang sama pada dua nomor item berbeda.
 
-`fact_sales` menyimpan jumlah unit, harga, penjualan kotor, diskon, penjualan bersih, status, hash sumber, serta foreign key ke dimensi. Dimensi menyediakan konteks tanggal, produk, customer, kanal, dan pembayaran. Skema ini memisahkan ukuran transaksi dari atribut deskriptif agar query analitik dapat mengelompokkan penjualan berdasarkan waktu, produk, atau kanal.
+`fact_sales` menyimpan jumlah unit, harga, penjualan kotor, diskon aktual per baris item, kode promo jika tersedia, penjualan bersih, status, hash sumber, serta foreign key ke dimensi. Kolom promo membantu meringkas diskon per kode; data master kampanye belum dimodelkan. Dimensi menyediakan konteks tanggal, produk, customer, kanal, dan metode pembayaran.
 
 Tabel transaksi utama:
 

@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import json
 from uuid import UUID
+
 from sqlalchemy import text
 from sqlalchemy.engine import Connection
+
 from pipeline.config import settings
 from pipeline.extract.base import ExtractedSource, raw_payload_hash
+from pipeline.validation.contracts import SOURCE_NAMES, required_raw_columns
 
 
 def load_source_snapshots(connection):
@@ -37,7 +40,8 @@ def save_source_snapshots(connection, run_id, sources, previous):
         hashes = (
             old.get("payload_hashes", [])
             if old.get("file_checksum_sha256") == source.checksum_sha256
-            else [raw_payload_hash(row) for row in source.frame.to_dict("records")])
+            else [raw_payload_hash(row) for row in source.frame.to_dict("records")]
+        )
         connection.execute(
             text("""
             INSERT INTO audit.source_snapshots
@@ -56,10 +60,18 @@ def save_source_snapshots(connection, run_id, sources, previous):
                 "hashes": json.dumps(sorted(set(hashes))),
                 "run_id": run_id,
                 "source_records": source.source_records if source.source_records is not None else len(source.frame),
-            },)
+            },
+        )
+
 
 def load_raw(connection: Connection, run_id: UUID, source: ExtractedSource) -> int:
-    missing = set(source.column_mapping) - set(source.frame.columns)
+    source_key = next((key for key, value in SOURCE_NAMES.items() if value == source.source_name), None)
+    if source.source_name == "PRODUCT_MASTER":
+        source_key = "product"
+    if source_key is None:
+        raise ValueError(f"Unsupported raw source: {source.source_name}")
+    required = set(required_raw_columns(source_key))
+    missing = required - set(source.frame.columns)
     if missing:
         raise ValueError(f"{source.source_name} is missing expected columns: {sorted(missing)}")
 
@@ -90,7 +102,8 @@ def load_raw(connection: Connection, run_id: UUID, source: ExtractedSource) -> i
                 "source_file_name": source.file_path.name,
                 "source_row_number": source_row_number,
                 "source_payload": json.dumps(row, default=str, ensure_ascii=False),
-            })
+            }
+        )
         records.append(record)
     if records:
         connection.execute(statement, records)
@@ -108,5 +121,6 @@ def load_raw(connection: Connection, run_id: UUID, source: ExtractedSource) -> i
             "checksum": source.checksum_sha256,
             "source_format": source.source_format,
             "records": len(records),
-        },)
+        },
+    )
     return len(records)

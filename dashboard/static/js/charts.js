@@ -68,7 +68,7 @@ function productRankColor(item, index) {
   return PRODUCT_RANK_COLORS[Math.min(index - 1, PRODUCT_RANK_COLORS.length - 1)];
 }
 
-function horizontalChart(items, colors, formatter = money) {
+function horizontalChart(items, colors, formatter = money, datasetLabel = 'Penjualan bersih') {
   const backgroundColor = items.map((item, index) => {
     if (typeof colors === 'function') return colors(item, index);
     return Array.isArray(colors) ? colors[index % colors.length] : colors;
@@ -77,7 +77,7 @@ function horizontalChart(items, colors, formatter = money) {
     type: 'bar',
     data: {
       labels: items.map(item => item.label),
-      datasets: [{ data: items.map(item => item.value), backgroundColor, borderRadius: 5 }],
+      datasets: [{ label: datasetLabel, data: items.map(item => item.value), backgroundColor, borderRadius: 5 }],
     },
     options: {
       indexAxis: 'y', responsive: true, maintainAspectRatio: false,
@@ -143,5 +143,7 @@ export function renderCharts(data) {
     (charts.status || []).map(item => ({ ...item, value: item.orders })),
     item => STATUS_COLORS[item.label] || colorForLabel(item.label),
     number,
+    'Pesanan',
   ));
+  drawChart('promo', horizontalChart(charts.promo || [], item => colorForLabel(item.label), money, 'Total diskon'));
 }

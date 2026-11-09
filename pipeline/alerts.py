@@ -144,6 +144,7 @@ def format_pipeline_report(report):
         run_summary = run_report_summary(report)
     raw = run_summary.get("raw") or {}
     product_master = raw.get("product_master") or {}
+    returns = run_summary.get("returns") or {}
     quality_staging = run_summary.get("quality_staging")
     warehouse = run_summary.get("warehouse") or {}
 
@@ -167,6 +168,16 @@ def format_pipeline_report(report):
         f"Master Produk dimuat ke Raw Layer: {product_master.get('inserted_to_raw', 0)}",
         "",
     ]
+    if any(returns.get(key, 0) for key in ("raw_records_inserted", "loaded_events", "rejected_events")):
+        lines.extend(
+            [
+                "RETUR & REFUND",
+                f"Event baru ke Raw: {returns.get('raw_records_inserted', 0)}",
+                f"Event valid dimuat ke Warehouse: {returns.get('loaded_events', 0)}",
+                f"Event ditolak: {returns.get('rejected_events', 0)}",
+                "",
+            ]
+        )
     if quality_staging and raw.get("new_or_changed", report.get("extracted_records", 0)):
         lines.extend(["", "DATA QUALITY"])
         findings = []

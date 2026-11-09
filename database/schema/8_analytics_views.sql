@@ -20,7 +20,8 @@ SELECT
     f.gross_amount,
     f.discount_amount,
     f.net_amount,
-    f.loaded_at
+    f.loaded_at,
+    f.promo_code
 FROM warehouse.fact_sales f
 JOIN warehouse.dim_date d ON d.date_key = f.date_key
 JOIN warehouse.dim_product p ON p.product_key = f.product_key
@@ -222,3 +223,21 @@ SELECT
     COALESCE(q.warning_issue_records, 0) AS warning_issue_records
 FROM source_metrics m
 LEFT JOIN quality_summary q ON q.run_id = m.run_id AND q.source_name = m.source_name;
+
+CREATE OR REPLACE VIEW warehouse.v_return_refund_kpi AS
+SELECT
+    date_trunc('month', return_date)::DATE AS return_month,
+    source_name,
+    COUNT(DISTINCT return_id) AS return_requests,
+    COUNT(*) AS return_line_events,
+    COUNT(*) FILTER (WHERE return_status IN ('APPROVED', 'PROCESSED')) AS approved_return_lines,
+    COALESCE(
+        SUM(quantity_returned) FILTER (WHERE return_status IN ('APPROVED', 'PROCESSED')),
+        0
+    ) AS approved_return_units,
+    COALESCE(
+        SUM(refund_amount) FILTER (WHERE refund_status = 'PROCESSED'),
+        0
+    ) AS processed_refund_amount
+FROM warehouse.fact_returns
+GROUP BY date_trunc('month', return_date)::DATE, source_name;

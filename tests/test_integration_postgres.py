@@ -123,7 +123,7 @@ def test_full_pipeline_and_incremental_acceptance():
     runtime_root.mkdir(exist_ok=True)
     source_dir = Path(tempfile.mkdtemp(dir=runtime_root)) / "source"
     source_dir.mkdir()
-    for name in ("product.csv", "shopee.csv", "tokopedia.csv", "website.csv", "offline.csv"):
+    for name in ("product.csv", "shopee.csv", "tokopedia.csv", "website.csv", "offline.csv", "returns.csv"):
         shutil.copy2(ROOT / "data" / "source" / name, source_dir / name)
     engine = get_engine()
     _reset_isolated_database(engine)
@@ -135,10 +135,11 @@ def test_full_pipeline_and_incremental_acceptance():
             WHERE (table_schema, table_name) IN
               (('raw', 'shopee_orders'), ('staging', 'stg_sales'),
                ('warehouse', 'fact_sales'), ('warehouse', 'dim_product'),
-               ('audit', 'pipeline_runs'))
+               ('audit', 'pipeline_runs'), ('raw', 'return_events'),
+               ('warehouse', 'fact_returns'))
         """)
         ).scalar_one()
-        if required != 5:
+        if required != 7:
             pytest.fail("Database schema is not initialized; load database/schema/*.sql first")
 
     run(source_dir)
@@ -169,6 +170,7 @@ def test_full_pipeline_and_incremental_acceptance():
                         ('warehouse', 'v_sales_channel_kpi'),
                         ('warehouse', 'v_top_product_kpi'),
                         ('warehouse', 'v_sales_status_kpi'),
+                        ('warehouse', 'v_return_refund_kpi'),
                         ('audit', 'v_data_quality_by_rule'),
                         ('audit', 'v_data_quality_report')
                     )
@@ -182,6 +184,7 @@ def test_full_pipeline_and_incremental_acceptance():
         "v_sales_channel_kpi",
         "v_top_product_kpi",
         "v_sales_status_kpi",
+        "v_return_refund_kpi",
         "v_data_quality_by_rule",
         "v_data_quality_report",
     } <= analytics_views

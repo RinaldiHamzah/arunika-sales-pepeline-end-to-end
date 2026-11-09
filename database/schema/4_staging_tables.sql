@@ -17,13 +17,17 @@ CREATE TABLE IF NOT EXISTS staging.stg_sales (
     quantity INTEGER NOT NULL CHECK (quantity > 0),
     unit_price NUMERIC(14,2) NOT NULL CHECK (unit_price >= 0),
     gross_amount NUMERIC(16,2) GENERATED ALWAYS AS (quantity * unit_price) STORED,
+    discount_amount NUMERIC(16,2) NOT NULL DEFAULT 0 CHECK (discount_amount >= 0),
+    net_amount NUMERIC(16,2) GENERATED ALWAYS AS (quantity * unit_price - discount_amount) STORED,
+    promo_code TEXT,
     source_total_amount NUMERIC(16,2),
     source_record_hash CHAR(64) NOT NULL,
     is_valid BOOLEAN NOT NULL DEFAULT TRUE,
     validation_notes JSONB NOT NULL DEFAULT '[]'::jsonb,
     transformed_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_stg_sales_source_line UNIQUE (source_name, source_order_id, source_line_number),
-    CONSTRAINT chk_stg_source_total_nonnegative CHECK (source_total_amount IS NULL OR source_total_amount >= 0)
+    CONSTRAINT chk_stg_source_total_nonnegative CHECK (source_total_amount IS NULL OR source_total_amount >= 0),
+    CONSTRAINT chk_stg_discount_not_above_gross CHECK (discount_amount <= quantity * unit_price)
 );
 
 ALTER TABLE staging.stg_sales ADD COLUMN IF NOT EXISTS source_record_hash CHAR(64);

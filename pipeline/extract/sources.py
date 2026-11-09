@@ -7,7 +7,7 @@ from pipeline.extract.base import extract_delimited
 from pipeline.validation.contracts import raw_column_mapping
 
 
-def extract_all(source_dir: Path, snapshots=None):
+def extract_all(source_dir: Path, snapshots=None, *, force_refresh: bool = False):
     if snapshots is not None:
         definitions = [
             ("shopee", "SHOPEE", "raw.shopee_orders"),
@@ -17,7 +17,13 @@ def extract_all(source_dir: Path, snapshots=None):
             ("product", "PRODUCT_MASTER", "raw.product_master"),
         ]
         return [
-            extract_delimited(name, table, source_dir / f"{key}.csv", raw_column_mapping(key), snapshots.get(name))
+            extract_delimited(
+                name,
+                table,
+                source_dir / f"{key}.csv",
+                raw_column_mapping(key),
+                None if force_refresh and name != "PRODUCT_MASTER" else snapshots.get(name),
+            )
             for key, name, table in definitions
         ]
     return [

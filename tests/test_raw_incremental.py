@@ -46,6 +46,20 @@ def test_filter_unseen_rows_skips_unchanged_snapshot():
     assert incremental.row_numbers == ()
 
 
+def test_empty_discount_columns_do_not_change_legacy_payload_hash():
+    legacy = {"invoice_no": "WEB-001", "line_item_no": "1", "quantity": "2"}
+    upgraded = {**legacy, "discount_amount": "0.00", "promo_code": ""}
+
+    assert raw_payload_hash(legacy) == raw_payload_hash(upgraded)
+
+
+def test_discount_change_is_detected_by_payload_hash():
+    original = {"invoice_no": "WEB-001", "line_item_no": "1", "discount_amount": "0.00"}
+    changed = {**original, "discount_amount": "10.00", "promo_code": "TENOFF"}
+
+    assert raw_payload_hash(original) != raw_payload_hash(changed)
+
+
 def test_changed_duplicate_rechecks_unchanged_sibling():
     original = {"invoice_no": "WEB-001", "line_item_no": "2", "quantity": "1"}
     changed = {**original, "quantity": "5"}

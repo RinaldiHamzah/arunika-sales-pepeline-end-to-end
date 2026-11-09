@@ -9,7 +9,7 @@ Kebijakan ini menjaga agar angka di dashboard dapat ditelusuri kembali ke sumber
 Transaksi memakai kolom berikut:
 
 ```text
-order_id,line_number,product_id,product_name,kategori,quantity,total_harga,tanggal_order,kota,channel,status,customer_email,harga_satuan
+order_id,line_number,product_id,product_name,kategori,quantity,total_harga,tanggal_order,kota,channel,status,customer_email,harga_satuan,discount_amount,net_amount,promo_code
 ```
 
 Setiap baris transaksi bersih mewakili satu item dalam order. Business key internalnya adalah `(source, order_id, line_number)`. `line_number` berasal dari kolom item masing-masing sumber, bukan nomor baris file dan bukan nilai default. `customer_id` tidak disertakan karena tidak tersedia di semua sumber.
@@ -33,7 +33,10 @@ product_id,product_name,brand,kategori,harga_satuan
 | Duplikat konflik | Business key sama, tetapi isi berbeda. | Semua versi ditolak agar sistem tidak memilih data secara sembarang. |
 | Quantity | Bilangan bulat positif dalam batas `INTEGER`. | Nol, negatif, pecahan, atau nonnumerik ditolak. |
 | Harga dan total | Nilai uang positif, maksimal dua desimal. | Nilai tidak valid ditolak. |
-| Total Website | `total_amount` harus sama dengan `quantity × unit_price`. | Missing atau mismatch ditolak. |
+| Diskon item | `discount_amount` harus bernilai nol atau positif, maksimal dua desimal, dan tidak melebihi gross item. | Nilai negatif, format salah, atau diskon lebih besar dari gross ditolak. |
+| Master promo | Kode unik, nama, tipe `fixed`/`percentage`, nilai, rentang tanggal, dan status divalidasi dari `promo_master.csv`. | Baris tidak valid atau kode duplikat menghentikan ingestion dengan informasi baris. |
+| Penggunaan promo | `order_promotions.csv` menghubungkan kanal + `order_id` dengan kode master dan diskon aktual. | Kode tak dikenal, order tak ditemukan, penggunaan ganda per order, tanggal di luar periode, atau diskon melebihi gross menghentikan ingestion. |
+| Total Website | `total_amount` harus sama dengan gross atau net item yang dihitung. | Missing atau mismatch ditolak. |
 | Status | Hanya `COMPLETED`, `CANCELLED`, `RETURNED`. | Status lain ditolak. |
 | Tanggal | Format setiap sumber dibaca sesuai aturan lalu diubah ke `YYYY-MM-DD`. | Tanggal yang tidak mungkin atau format yang tidak dikenali ditolak. |
 | Produk | SKU atau nama dinormalisasi dan dicocokkan dengan master. | Produk yang tidak ditemukan ditolak dengan alasan `UNMAPPED_PRODUCT`. |
@@ -48,6 +51,9 @@ product_id,product_name,brand,kategori,harga_satuan
 - Nama produk memakai kapitalisasi Product Master; pipeline tidak memakai `.title()`.
 - Identifier disimpan sebagai string agar leading zero tidak hilang.
 - Quantity memakai integer nullable, tanggal memakai datetime, dan uang memakai `Decimal`.
+- `gross_amount = quantity × unit_price`; `net_amount = gross_amount - discount_amount`.
+- Kolom diskon dan promo boleh tidak ada pada CSV lama. Untuk kompatibilitas, kolom yang tidak tersedia atau kosong diperlakukan sebagai diskon `0.00` tanpa kode promo; nilai ini bukan bukti bahwa kanal telah menyediakan data promosi lengkap.
+- Diskon aktual tingkat order dialokasikan proporsional ke gross item; pembulatan dijaga agar jumlah alokasi sama persis dengan nilai order. Versi ini mendukung satu kode promo per order.
 - Kota kosong tidak ditebak. Kota hanya diperkaya dari customer natural key yang sama dan sudah terverifikasi.
 
 ## Disposisi record
@@ -80,6 +86,19 @@ Warehouse memakai business key `(source_name, source_order_id, source_line_numbe
 - Dua item pada order yang sama tetap terpisah selama nomor item berbeda, termasuk bila SKU-nya sama.
 - Transaksi yang hilang dari source tidak dihapus otomatis.
 - Transaksi yang datang terlambat tetap diterima menggunakan tanggal transaksinya.
+
+## Validasi retur dan refund
+
+File `data/source/returns.csv` diproses sebagai event terpisah dari transaksi penjualan. Kolom header-nya harus sesuai kontrak pada [kamus data](data_dictionary.md). Setiap event harus menyebut kanal, ID retur, nomor item retur, order dan nomor item asal, tanggal ISO, alasan, status, serta quantity yang positif.
+
+- `return_status` dibatasi ke `PENDING`, `APPROVED`, `REJECTED`, atau `PROCESSED`; `refund_status` ke `NOT_APPLICABLE`, `PENDING`, `PROCESSED`, atau `FAILED`.
+- Nilai refund hanya dicatat jika `refund_status=PROCESSED`, harus nonnegatif dan maksimal dua desimal. Refund kumulatif tidak boleh melebihi `net_amount` item penjualan.
+- Order dan item asal harus ditemukan di `warehouse.fact_sales`; retur tidak dapat merujuk ke penjualan `CANCELLED`.
+- Quantity kumulatif dari event yang tidak ditolak tidak boleh melebihi quantity terjual.
+- Event valid di-upsert ke `warehouse.fact_returns` dengan business key `(source_name, return_id, return_line_number)`. Payload baru/berubah disimpan lebih dulu di `raw.return_events`.
+- Baris invalid, referensi penjualan yang tidak ditemukan, duplikat business key dalam file, atau pelanggaran batas kuantitas/refund dicatat pada `audit.rejected_records` serta `audit.data_quality_results`.
+
+Baris `RET-DEMO-*` pada `returns.csv` adalah **data simulasi untuk pengujian/demo**, bukan bukti retur bisnis aktual. Data tersebut dipasangkan ke baris transaksi contoh yang tersedia agar alur end-to-end dapat diuji. Untuk simulasi `PROCESSED`, refund dihitung proporsional dari net item setelah diskon berdasarkan quantity yang diretur. Ganti dengan nilai aktual dari sumber retur sebelum menggunakan metriknya sebagai laporan bisnis.
 
 ## Output dan perintah
 

@@ -43,6 +43,19 @@ CREATE TABLE IF NOT EXISTS warehouse.dim_payment (
     payment_method VARCHAR(60) NOT NULL UNIQUE
 );
 
+CREATE TABLE IF NOT EXISTS warehouse.dim_promotion (
+    promo_code TEXT PRIMARY KEY,
+    promo_name TEXT NOT NULL,
+    discount_type TEXT NOT NULL CHECK (discount_type IN ('fixed', 'percentage')),
+    discount_value NUMERIC(16,2) NOT NULL CHECK (discount_value > 0),
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL CHECK (end_date >= start_date),
+    status TEXT NOT NULL CHECK (status IN ('active', 'expired', 'paused')),
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Anggota kanal bersifat tetap; ETL hanya perlu menentukan key-nya.
 INSERT INTO warehouse.dim_channel (channel_code, channel_name, channel_type)
 VALUES

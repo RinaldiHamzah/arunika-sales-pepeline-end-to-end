@@ -42,6 +42,24 @@ def number(value, integer=False):
     return result.quantize(Decimal(".01")), None
 
 
+def nonnegative_money(value):
+    """Ubah nilai diskon menjadi desimal dua angka yang boleh bernilai nol."""
+    value = clean_text(value)
+    if value is None:
+        return Decimal("0.00"), None
+    try:
+        result = Decimal(value)
+        if not result.is_finite():
+            raise InvalidOperation
+    except InvalidOperation:
+        return None, "INVALID_NUMBER"
+    if result < 0:
+        return None, "NEGATIVE_AMOUNT"
+    if result > Decimal("999999999999.99") or result != result.quantize(Decimal(".01")):
+        return None, "INVALID_MONEY_PRECISION_OR_RANGE"
+    return result.quantize(Decimal(".01")), None
+
+
 def parse_date(value, source):
     value = clean_text(value)
     if value is None:

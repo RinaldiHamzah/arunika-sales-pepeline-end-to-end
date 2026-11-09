@@ -58,3 +58,17 @@ def test_changed_record_is_reprocessed_when_hash_differs():
     filtered = filter_incremental_results({"website": mutated}, existing)["website"].clean
     assert len(filtered) == len(changed)
     assert source_record_hash(filtered.iloc[0].to_dict()) != old_hash
+
+
+def test_empty_promo_fields_do_not_change_legacy_business_hash():
+    legacy = {"order_id": "WEB-1", "line_number": 1, "quantity": 2, "unit_price": 100}
+    upgraded = {**legacy, "discount_amount": 0, "net_amount": 200, "promo_code": None}
+
+    assert source_record_hash(legacy) == source_record_hash(upgraded)
+
+
+def test_discount_change_is_a_business_record_correction():
+    legacy = {"order_id": "WEB-1", "line_number": 1, "quantity": 2, "unit_price": 100}
+    discounted = {**legacy, "discount_amount": 10, "net_amount": 190, "promo_code": "TENOFF"}
+
+    assert source_record_hash(legacy) != source_record_hash(discounted)

@@ -51,9 +51,12 @@ def query_dashboard_analytics(engine, start, end, channels, statuses, categories
     source = f"FROM warehouse.v_sales_detail WHERE {where}"
     completed_source = f"{source} AND status = 'COMPLETED'"
     with engine.connect() as connection:
-        metrics = connection.execute(text(f"""
+        metrics = (
+            connection.execute(
+                text(f"""
             SELECT COALESCE(SUM(gross_amount), 0) AS gross_sales,
                    COALESCE(SUM(net_amount) FILTER (WHERE status = 'COMPLETED'), 0) AS net_sales,
+                   COALESCE(SUM(discount_amount) FILTER (WHERE status = 'COMPLETED'), 0) AS discount_total,
                    COUNT(DISTINCT source_name || '|' || order_id) FILTER (WHERE status = 'COMPLETED') AS completed_orders,
                    COALESCE(SUM(quantity) FILTER (WHERE status = 'COMPLETED'), 0) AS completed_units,
                    COUNT(DISTINCT source_name || '|' || order_id) AS total_orders,
@@ -61,49 +64,106 @@ def query_dashboard_analytics(engine, start, end, channels, statuses, categories
                    COUNT(*) FILTER (WHERE NOT ({usable_city})) AS unresolved_city_records,
                    COUNT(*) AS total_records
             {source}
-        """), params).mappings().one()
+        """),
+                params,
+            )
+            .mappings()
+            .one()
+        )
         charts = {
-            "month": connection.execute(text(f"""
+            "month": connection.execute(
+                text(f"""
                 SELECT TO_CHAR(order_date, 'YYYY-MM') AS label,
                        COALESCE(SUM(net_amount) FILTER (WHERE status = 'COMPLETED'), 0) AS net,
                        COALESCE(SUM(gross_amount), 0) AS gross
                 {source} GROUP BY TO_CHAR(order_date, 'YYYY-MM') ORDER BY label
-            """), params).mappings().all(),
-            "channel": connection.execute(text(f"""
+            """),
+                params,
+            )
+            .mappings()
+            .all(),
+            "channel": connection.execute(
+                text(f"""
                 SELECT channel_name AS label, COALESCE(SUM(net_amount), 0) AS value
                 {completed_source} GROUP BY channel_name ORDER BY value DESC, label
-            """), params).mappings().all(),
-            "product": connection.execute(text(f"""
+            """),
+                params,
+            )
+            .mappings()
+            .all(),
+            "product": connection.execute(
+                text(f"""
                 SELECT product_name AS label, COALESCE(SUM(quantity), 0) AS quantity,
                        COALESCE(SUM(net_amount), 0) AS net_sales
                 {completed_source} GROUP BY product_name ORDER BY quantity DESC, label LIMIT 10
-            """), params).mappings().all(),
-            "status": connection.execute(text(f"""
+            """),
+                params,
+            )
+            .mappings()
+            .all(),
+            "status": connection.execute(
+                text(f"""
                 SELECT status AS label, COUNT(*) AS orders, COALESCE(SUM(net_amount), 0) AS net_sales
                 {source} GROUP BY status ORDER BY label
-            """), params).mappings().all(),
-            "category": connection.execute(text(f"""
+            """),
+                params,
+            )
+            .mappings()
+            .all(),
+            "category": connection.execute(
+                text(f"""
                 SELECT COALESCE(NULLIF(TRIM(category), ''), 'Uncategorized') AS label,
                        COALESCE(SUM(net_amount), 0) AS value
                 {completed_source}
                 GROUP BY COALESCE(NULLIF(TRIM(category), ''), 'Uncategorized') ORDER BY value DESC, label
-            """), params).mappings().all(),
-            "city": connection.execute(text(f"""
+            """),
+                params,
+            )
+            .mappings()
+            .all(),
+            "city": connection.execute(
+                text(f"""
                 SELECT city AS label, COALESCE(SUM(net_amount), 0) AS value
                 {completed_source} AND {usable_city} GROUP BY city ORDER BY value DESC, label LIMIT 6
-            """), params).mappings().all(),
-            "brand": connection.execute(text(f"""
+            """),
+                params,
+            )
+            .mappings()
+            .all(),
+            "brand": connection.execute(
+                text(f"""
                 SELECT COALESCE(NULLIF(TRIM(brand), ''), 'Unknown brand') AS label,
                        COALESCE(SUM(net_amount), 0) AS value
                 {completed_source}
                 GROUP BY COALESCE(NULLIF(TRIM(brand), ''), 'Unknown brand') ORDER BY value DESC, label LIMIT 7
-            """), params).mappings().all(),
-            "sku": connection.execute(text(f"""
+            """),
+                params,
+            )
+            .mappings()
+            .all(),
+            "sku": connection.execute(
+                text(f"""
                 SELECT COALESCE(NULLIF(TRIM(product_id), ''), 'Unknown SKU') AS label,
                        COALESCE(SUM(net_amount), 0) AS value
                 {completed_source}
                 GROUP BY COALESCE(NULLIF(TRIM(product_id), ''), 'Unknown SKU') ORDER BY value DESC, label LIMIT 7
-            """), params).mappings().all(),
+            """),
+                params,
+            )
+            .mappings()
+            .all(),
+            "promo": connection.execute(
+                text(f"""
+                SELECT promo_code AS label,
+                       COALESCE(SUM(discount_amount), 0) AS value,
+                       COUNT(DISTINCT source_name || '|' || order_id) AS orders
+                {completed_source} AND promo_code IS NOT NULL AND TRIM(promo_code) <> ''
+                GROUP BY promo_code ORDER BY value DESC, label LIMIT 10
+            """),
+                params,
+            )
+            .mappings()
+            .all(),
         }
     return dict(metrics), {name: serializable(rows) for name, rows in charts.items()}
 
@@ -113,42 +173,81 @@ def query_dashboard_data(engine, start, end, channels, statuses, categories, bra
     where, params = build_filter_clause(start, end, channels, statuses, categories, brands, products)
     completed_where = " AND ".join([where, "status = 'COMPLETED'"])
     with engine.begin() as connection:
-        detail = connection.execute(text(f"""
+        detail = (
+            connection.execute(
+                text(f"""
             SELECT sales_key, source_name, order_id, order_date, product_id, product_name,
-                   category, brand, channel_name, status, city, quantity, gross_amount, net_amount
+                   category, brand, channel_name, status, city, quantity, gross_amount,
+                   discount_amount, net_amount, promo_code
             FROM warehouse.v_sales_detail WHERE {where} ORDER BY order_date DESC, sales_key DESC
-        """), params).mappings().all()
-        options = connection.execute(text("""
+        """),
+                params,
+            )
+            .mappings()
+            .all()
+        )
+        options = (
+            connection.execute(
+                text("""
             SELECT DISTINCT channel_name, category, status, brand, product_id
             FROM warehouse.v_sales_detail ORDER BY channel_name, category, status
-        """)).mappings().all()
-        latest = connection.execute(text("""
+        """)
+            )
+            .mappings()
+            .all()
+        )
+        latest = (
+            connection.execute(
+                text("""
             SELECT run_id, status, started_at, ended_at, duration_seconds,
                    extracted_records, rejected_records, duplicate_records,
                    incremental_records, fact_inserted_records
             FROM audit.pipeline_runs ORDER BY started_at DESC LIMIT 1
-        """)).mappings().one_or_none()
-        success_rate = connection.execute(text("""
+        """)
+            )
+            .mappings()
+            .one_or_none()
+        )
+        success_rate = connection.execute(
+            text("""
             SELECT COALESCE(100.0 * AVG((status = 'SUCCESS')::int), 0) FROM audit.pipeline_runs
-        """)).scalar_one()
-        freshness = connection.execute(text("""
+        """)
+        ).scalar_one()
+        freshness = (
+            connection.execute(
+                text("""
             SELECT source_name, MAX(extracted_at) AS last_ingested_at
             FROM audit.source_ingestions GROUP BY source_name ORDER BY source_name
-        """)).mappings().all()
+        """)
+            )
+            .mappings()
+            .all()
+        )
         previous = _previous_period(connection, params, completed_where, start, end)
         stages = []
         if latest:
-            stages = connection.execute(text("""
+            stages = (
+                connection.execute(
+                    text("""
                 SELECT stage_name, status, started_at, ended_at, duration_seconds, records_processed
                 FROM audit.pipeline_stage_runs WHERE run_id = :run_id ORDER BY started_at
-            """), {"run_id": latest["run_id"]}).mappings().all()
-    return detail, options, {
-        "latest_run": latest,
-        "success_rate": success_rate,
-        "freshness": freshness,
-        "stages": stages,
-        "previous": previous,
-    }
+            """),
+                    {"run_id": latest["run_id"]},
+                )
+                .mappings()
+                .all()
+            )
+    return (
+        detail,
+        options,
+        {
+            "latest_run": latest,
+            "success_rate": success_rate,
+            "freshness": freshness,
+            "stages": stages,
+            "previous": previous,
+        },
+    )
 
 
 def _previous_period(connection, params, completed_where, start, end):
@@ -159,11 +258,18 @@ def _previous_period(connection, params, completed_where, start, end):
         previous_end = current_start - timedelta(days=1)
         previous_start = previous_end - timedelta(days=period_days - 1)
         previous_params = dict(params, start=previous_start.isoformat(), end=previous_end.isoformat())
-        return connection.execute(text(f"""
+        return (
+            connection.execute(
+                text(f"""
             SELECT COALESCE(SUM(net_amount), 0) AS net_sales,
                    COALESCE(SUM(gross_amount), 0) AS gross_sales,
                    COUNT(DISTINCT source_name || '|' || order_id) AS orders
             FROM warehouse.v_sales_detail WHERE {completed_where}
-        """), previous_params).mappings().one()
+        """),
+                previous_params,
+            )
+            .mappings()
+            .one()
+        )
     except (TypeError, ValueError):
         return {"net_sales": 0, "gross_sales": 0, "orders": 0}

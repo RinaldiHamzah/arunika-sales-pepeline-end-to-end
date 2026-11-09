@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import csv
+import os
+import tempfile
 from io import StringIO
 from pathlib import Path
 
-from pipeline.validation.contracts import RAW_COLUMNS
+from pipeline.validation.contracts import RAW_COLUMNS, required_raw_columns
 
 SOURCE_DIR = Path(__file__).resolve().parents[2] / "data" / "source"
 SOURCE_FILES = {
@@ -29,15 +31,47 @@ def append_csv_batch(source_key: str, payload: bytes) -> int:
 
     reader = csv.DictReader(StringIO(decoded))
     expected = list(RAW_COLUMNS[source_key])
-    if reader.fieldnames != expected:
-        raise ValueError(f"Header {source_key}.csv harus persis: {', '.join(expected)}")
+    required = list(required_raw_columns(source_key))
+    if reader.fieldnames not in (required, expected):
+        raise ValueError(
+            f"Header {source_key}.csv harus berupa kontrak lama ({', '.join(required)}) "
+            f"atau kontrak lengkap ({', '.join(expected)})."
+        )
     rows = list(reader)
+    if any(None in row or any(value is None for value in row.values()) for row in rows):
+        raise ValueError("Jumlah kolom pada satu atau lebih baris CSV tidak sesuai dengan header.")
     if not rows:
         raise ValueError("CSV tidak memiliki baris transaksi.")
 
     target = SOURCE_DIR / SOURCE_FILES[source_key]
     if not target.exists():
         raise ValueError(f"Source target tidak ditemukan: {target.name}")
-    with target.open("a", newline="", encoding="utf-8") as file:
-        csv.DictWriter(file, fieldnames=expected).writerows(rows)
+    with target.open("r", newline="", encoding="utf-8-sig") as file:
+        existing = csv.DictReader(file)
+        if existing.fieldnames not in (required, expected):
+            raise ValueError(f"Header berkas sumber {target.name} tidak sesuai kontrak yang didukung.")
+        existing_rows = list(existing)
+    if any(None in row or any(value is None for value in row.values()) for row in existing_rows):
+        raise ValueError(f"Berkas sumber {target.name} memiliki baris dengan jumlah kolom tidak sesuai.")
+
+    for row in [*existing_rows, *rows]:
+        for column in expected:
+            row.setdefault(column, "")
+
+    temporary_path = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w", newline="", encoding="utf-8", dir=target.parent, suffix=".tmp", delete=False
+        ) as file:
+            temporary_path = Path(file.name)
+            writer = csv.DictWriter(file, fieldnames=expected)
+            writer.writeheader()
+            writer.writerows(existing_rows)
+            writer.writerows(rows)
+            file.flush()
+            os.fsync(file.fileno())
+        os.replace(temporary_path, target)
+    finally:
+        if temporary_path is not None and temporary_path.exists():
+            temporary_path.unlink()
     return len(rows)

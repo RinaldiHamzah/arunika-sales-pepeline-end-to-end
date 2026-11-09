@@ -56,9 +56,12 @@ def records(offset: int) -> list[dict]:
         order_date = date(2026, 1, 1) + timedelta(days=rng.randrange(240))
         payment = rng.choice(["Transfer Bank", "E-Wallet", "Credit Card", "COD"])
         status = rng.choice(["completed", "completed", "completed", "cancelled", "returned"])
+        discount_rate = rng.choice([0, 0, 0, 10, 15])
         for line_number in range(1, count + 1):
             sku, product, _brand, _category, price = rng.choice(PRODUCTS)
             variants = [product, product.upper(), product.replace(" ", "-"), f" {product} "]
+            quantity = rng.choice([1, 1, 2, 3])
+            discount_amount = round(price * quantity * discount_rate / 100)
             result.append(
                 {
                     "id": offset + order_index,
@@ -66,8 +69,10 @@ def records(offset: int) -> list[dict]:
                     "date": order_date,
                     "sku": sku,
                     "name": rng.choice(variants),
-                    "qty": rng.choice([1, 1, 2, 3]),
+                    "qty": quantity,
                     "price": price,
+                    "discount_amount": discount_amount,
+                    "promo_code": f"ARUNIKA{discount_rate}" if discount_rate else "",
                     "customer_id": customer_id,
                     "customer": customer,
                     "city": city,
@@ -80,7 +85,11 @@ def records(offset: int) -> list[dict]:
 
     # Cacat kualitas dibuat secara terkontrol, satu untuk setiap jenis pada tiap sumber.
     result[22]["qty"] = 0
+    result[22]["discount_amount"] = 0
+    result[22]["promo_code"] = ""
     result[24]["price"] = -50000
+    result[24]["discount_amount"] = 0
+    result[24]["promo_code"] = ""
     result[26]["customer"] = ""
     result[28]["city"] = ""
     result[30]["payment"] = ""
@@ -92,6 +101,8 @@ def records(offset: int) -> list[dict]:
     result[38]["price"] = 100
     result[38]["sku"] = PRODUCTS[0][0]
     result[38]["name"] = PRODUCTS[0][1]
+    result[38]["discount_amount"] = 0
+    result[38]["promo_code"] = ""
     result[38]["date"] = date(2026, 3, 1)
     result[38]["status"] = "completed"
     result.append(result[38].copy())  # Duplikat persis, terpisah dari lima pesanan acuan.
@@ -106,6 +117,48 @@ def write(name: str, fields: list[str], rows: list[dict], convert) -> None:
         writer = csv.DictWriter(f, fieldnames=fields)
         writer.writeheader()
         writer.writerows(convert(r) for r in rows)
+
+
+def order_promotions(rows: list[dict], source_name: str) -> list[dict]:
+    """Bentuk contoh redemption tingkat order dari transaksi sintetis yang layak."""
+    allowed_names = {
+        "".join(char for char in variant.casefold() if char.isalnum())
+        for _sku, product, _brand, _category, _price in PRODUCTS
+        for variant in (product, product.upper(), product.replace(" ", "-"), f" {product} ")
+    }
+    grouped = {}
+    for row in rows:
+        grouped.setdefault(row["id"], []).append(row)
+    redemptions = []
+    for order_id, items in grouped.items():
+        codes = {row["promo_code"] for row in items}
+        if len(codes) != 1 or not next(iter(codes)):
+            continue
+        code = next(iter(codes))
+        line_numbers = [row["line_number"] for row in items]
+        if len(set(line_numbers)) != len(line_numbers):
+            continue
+        if any(
+            row["qty"] <= 0
+            or row["price"] <= 0
+            or not isinstance(row["date"], date)
+            or row["status"] not in {"completed", "cancelled", "returned"}
+            or "".join(char for char in row["name"].casefold() if char.isalnum()) not in allowed_names
+            or row.get("source_total_amount") is not None
+            for row in items
+        ):
+            continue
+        amount = sum(row["discount_amount"] for row in items)
+        if amount > 0:
+            redemptions.append(
+                {
+                    "source_name": source_name,
+                    "order_id": f"{ {'SHOPEE': 'SHP', 'TOKOPEDIA': 'TKP', 'WEBSITE': 'WEB', 'OFFLINE_STORE': 'POS'}[source_name] }-{order_id:04}",
+                    "promo_code": code,
+                    "discount_amount": f"{amount:.2f}",
+                }
+            )
+    return redemptions
 
 
 def format_date(value, pattern: str):
@@ -131,6 +184,8 @@ def main() -> None:
             "customer_city",
             "payment_method",
             "status",
+            "discount_amount",
+            "promo_code",
         ],
         shopee_rows,
         lambda r: {
@@ -144,6 +199,8 @@ def main() -> None:
             "customer_city": r["city"],
             "payment_method": r["payment"],
             "status": r["status"],
+            "discount_amount": "0.00",
+            "promo_code": "",
         },
     )
 
@@ -160,6 +217,8 @@ def main() -> None:
             "city",
             "payment",
             "status",
+            "discount_amount",
+            "promo_code",
         ],
         tokopedia_rows,
         lambda r: {
@@ -173,6 +232,8 @@ def main() -> None:
             "city": r["city"],
             "payment": r["payment"],
             "status": r["status"],
+            "discount_amount": "0.00",
+            "promo_code": "",
         },
     )
 
@@ -188,6 +249,8 @@ def main() -> None:
             "total_amount",
             "customer_email",
             "status",
+            "discount_amount",
+            "promo_code",
         ],
         website_rows,
         lambda r: {
@@ -200,6 +263,8 @@ def main() -> None:
             "total_amount": r.get("source_total_amount", r["qty"] * r["price"]),
             "customer_email": r["customer_email"],
             "status": r["status"],
+            "discount_amount": "0.00",
+            "promo_code": "",
         },
     )
 
@@ -216,6 +281,8 @@ def main() -> None:
             "store_city",
             "payment_type",
             "status",
+            "discount_amount",
+            "promo_code",
         ],
         offline_rows,
         lambda r: {
@@ -229,6 +296,8 @@ def main() -> None:
             "store_city": r["city"],
             "payment_type": r["payment"],
             "status": r["status"],
+            "discount_amount": "0.00",
+            "promo_code": "",
         },
     )
 
@@ -236,6 +305,39 @@ def main() -> None:
         "product.csv",
         ["sku", "product_name", "brand", "category", "price"],
         [dict(zip(["sku", "product_name", "brand", "category", "price"], product)) for product in PRODUCTS],
+        lambda r: r,
+    )
+
+    write(
+        "promo_master.csv",
+        ["promo_code", "promo_name", "discount_type", "discount_value", "start_date", "end_date", "status"],
+        [
+            {
+                "promo_code": f"ARUNIKA{rate}",
+                "promo_name": f"Contoh promo {rate}%",
+                "discount_type": "percentage",
+                "discount_value": rate,
+                "start_date": "2026-01-01",
+                "end_date": "2026-12-31",
+                "status": "active",
+            }
+            for rate in (10, 15)
+        ],
+        lambda r: r,
+    )
+    write(
+        "order_promotions.csv",
+        ["source_name", "order_id", "promo_code", "discount_amount"],
+        [
+            redemption
+            for name, rows in (
+                ("SHOPEE", shopee_rows),
+                ("TOKOPEDIA", tokopedia_rows),
+                ("WEBSITE", website_rows),
+                ("OFFLINE_STORE", offline_rows),
+            )
+            for redemption in order_promotions(rows, name)
+        ],
         lambda r: r,
     )
 

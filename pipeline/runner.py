@@ -23,10 +23,14 @@ from pipeline.extract.sources import extract_all
 from pipeline.load.audit_loader import load_quality_audit, load_stage_runs, update_watermarks
 from pipeline.load.dimension_loader import load_dimensions
 from pipeline.load.fact_loader import load_facts
+from pipeline.load.promotion_loader import load_promotion_dimension, load_promotion_raw
 from pipeline.load.raw_loader import load_raw, load_source_snapshots, save_source_snapshots
+from pipeline.load.return_loader import load_return_events, load_return_raw
 from pipeline.load.staging_loader import load_staging
 from pipeline.logger import get_logger
+from pipeline.promotions import apply_order_promotions, extract_promotion_sources, snapshot_source
 from pipeline.reporting import outcome_message, quality_staging_summary, run_report_summary, summarize_sources
+from pipeline.returns import extract_return_events
 from pipeline.transform.standardize import SOURCE_NAMES, clean_results_to_staging, filter_incremental_results
 from pipeline.validation.data_quality import run_quality
 
@@ -155,6 +159,7 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
     run_started_at = datetime.now(APP_TIMEZONE)
     stages = []
     report_metrics = {}
+    snapshot_sources = []
     source_dir = Path(source_dir) if source_dir else SOURCE_DIR
     run_id = begin_run(engine, settings.pipeline_name, reserved_run_id, orchestration_run_id)
 
@@ -221,7 +226,7 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
             )
             # CSV yang disusun ulang tetapi isinya sama tetap mendapat checksum terbaru.
             # Tidak ada baris yang dimuat ke raw karena seluruh payload sudah tercatat.
-            save_source_snapshots(connection, run_id, scanned_sources, snapshots)
+            save_source_snapshots(connection, run_id, snapshot_sources, snapshots)
             load_stage_runs(connection, run_id, stages)
             connection.execute(
                 text("""
@@ -276,15 +281,60 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
     try:
         with engine.connect() as connection:
             snapshots = stage("snapshot_lookup", lambda: load_source_snapshots(connection))
-        scanned_sources = stage("source_scan", lambda: extract_all(source_dir, snapshots))
-        known_hashes = {
+        promo_sources = stage("promotion_scan", lambda: extract_promotion_sources(source_dir))
+        return_source = stage(
+            "return_scan", lambda: extract_return_events(source_dir, snapshots.get("RETURN_EVENTS"))
+        )
+        promo_changed = any(
+            snapshots.get(source.source_name, {}).get("file_checksum_sha256") != source.checksum_sha256
+            for source in promo_sources
+        )
+        promotion_checksum = ":".join(source.checksum_sha256 for source in promo_sources)
+        scanned_sources = stage("source_scan", lambda: extract_all(source_dir, snapshots, force_refresh=promo_changed))
+        effective_scanned_sources, promotion_master = stage(
+            "promotion_match", lambda: apply_order_promotions(scanned_sources, promo_sources)
+        )
+        raw_hashes = {
             source.source_name: set(snapshots.get(source.source_name, {}).get("payload_hashes", []))
             for source in scanned_sources
         }
+        raw_deltas = stage(
+            "raw_incremental_extract",
+            lambda: [filter_unseen_rows(source, raw_hashes[source.source_name]) for source in scanned_sources],
+        )
+        effective_hashes = {
+            source.source_name: set(
+                snapshots.get(f"{source.source_name}_EFFECTIVE", snapshots.get(source.source_name, {})).get(
+                    "payload_hashes", []
+                )
+            )
+            for source in effective_scanned_sources
+        }
         sources = stage(
             "incremental_extract",
-            lambda: [filter_unseen_rows(source, known_hashes[source.source_name]) for source in scanned_sources],
+            lambda: [
+                filter_unseen_rows(source, effective_hashes[source.source_name]) for source in effective_scanned_sources
+            ],
         )
+        promo_deltas = [
+            source
+            for source in promo_sources
+            if snapshots.get(source.source_name, {}).get("file_checksum_sha256") != source.checksum_sha256
+        ]
+        return_source_hashes = set(snapshots.get("RETURN_EVENTS", {}).get("payload_hashes", []))
+        return_delta = stage(
+            "return_incremental_extract", lambda: filter_unseen_rows(return_source, return_source_hashes)
+        )
+        snapshot_sources = [
+            *scanned_sources,
+            *[
+                snapshot_source(source, effective=True, promotion_checksum=promotion_checksum)
+                for source in effective_scanned_sources
+                if source.source_name != "PRODUCT_MASTER"
+            ],
+            *promo_sources,
+            return_source,
+        ]
         stages[-1]["records_processed"] = sum(len(source.frame) for source in sources)
         extracted_count = sum(len(source.frame) for source in sources if source.source_name != "PRODUCT_MASTER")
         report_metrics = {
@@ -311,7 +361,7 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
         # Kelima sumber, termasuk Product Master, tidak berubah. Pemeriksaan
         # snapshot sudah cukup; jangan jalankan pemeriksaan kualitas, staging,
         # atau kueri gudang data hanya untuk memastikan tidak ada pekerjaan.
-        if not any(len(source.frame) for source in sources):
+        if not any(len(source.frame) for source in sources) and not promo_changed and return_delta.frame.empty:
             return finish_incremental_noop()
 
         # Raw adalah lapisan pendaratan yang tidak diubah. Simpan setiap payload
@@ -319,8 +369,18 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
         # mengubah penafsirannya. Record tidak valid tetap dapat ditelusuri di raw
         # dan bukti audit, tetapi tidak diteruskan ke staging.
         with engine.begin() as connection:
-            loaded_count = stage("raw_load", lambda: sum(load_raw(connection, run_id, source) for source in sources))
+            loaded_count = stage("raw_load", lambda: sum(load_raw(connection, run_id, source) for source in raw_deltas))
             stages[-1]["records_processed"] = loaded_count
+            promotion_raw_count = stage(
+                "promotion_raw_load", lambda: load_promotion_raw(connection, run_id, promo_deltas)
+            )
+            stages[-1]["records_processed"] = promotion_raw_count
+            return_raw_count = 0
+            if not return_delta.frame.empty:
+                return_raw_count = stage(
+                    "return_raw_load", lambda: load_return_raw(connection, run_id, return_delta)
+                )
+                stages[-1]["records_processed"] = return_raw_count
             raw_total_after = raw_transaction_total(connection)
             raw_product_master_total_after = raw_product_master_total(connection)
 
@@ -335,7 +395,7 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
                 if source.source_name == "PRODUCT_MASTER"
                 else source.source_name.lower().replace("_store", "")
             ): (source.frame.copy(), source.checksum_sha256)
-            for source in scanned_sources
+            for source in effective_scanned_sources
         }
         quality_results = stage(
             "validate",
@@ -348,7 +408,7 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
         )
         staging_rows = stage("transform", lambda: clean_results_to_staging(incremental_results))
         stages[-1]["records_processed"] = len(staging_rows)
-        product_source = next(source for source in sources if source.source_name == "PRODUCT_MASTER")
+        product_source = next(source for source in raw_deltas if source.source_name == "PRODUCT_MASTER")
         product_rows = quality_results["product"].clean
         # Seluruh Product Master tetap tersedia untuk pemetaan penjualan, tetapi
         # hanya baris raw dengan payload berubah yang di-upsert ke dimensi.
@@ -373,7 +433,13 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
         with engine.begin() as connection:
             staged_count = stage("staging_load", lambda: load_staging(connection, run_id, staging_rows))
             stages[-1]["records_processed"] = staged_count
-            dimension_counts = stage("dimension_load", lambda: load_dimensions(connection, product_delta, staging_rows))
+            dimension_counts = stage(
+                "dimension_load",
+                lambda: {
+                    **load_dimensions(connection, product_delta, staging_rows),
+                    "promotions": load_promotion_dimension(connection, promotion_master),
+                },
+            )
             stages[-1]["records_processed"] = sum(dimension_counts.values())
             fact_inserted_count = sum(
                 (
@@ -386,6 +452,12 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
             )
             fact_count = stage("fact_load", lambda: load_facts(connection, run_id))
             stages[-1]["records_processed"] = fact_count
+            return_summary = {"loaded": 0, "rejected": 0}
+            if not return_delta.frame.empty:
+                return_summary = stage(
+                    "return_validation_load", lambda: load_return_events(connection, run_id, return_delta)
+                )
+                stages[-1]["records_processed"] = return_summary["loaded"] + return_summary["rejected"]
             incremental_count = len(staging_rows)
             fact_skipped_count = max(valid_count - incremental_count, 0)
             report_metrics["outcome_message"] = outcome_message(
@@ -413,7 +485,9 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
                 # Laporan merangkum alur transaksi. Product Master juga dimuat
                 # ke raw, tetapi merupakan data referensi, bukan transaksi,
                 # sehingga tidak dihitung dalam jumlah ini.
-                raw_inserted_records=extracted_count,
+                raw_inserted_records=sum(
+                    len(source.frame) for source in raw_deltas if source.source_name != "PRODUCT_MASTER"
+                ),
                 raw_transaction_total=raw_total_after,
                 raw_product_master_total=raw_product_master_total_after,
                 raw_inserted_product_master_records=len(product_source.frame),
@@ -426,7 +500,12 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
                 inserted_facts=fact_inserted_count,
                 facts_written=fact_count,
             )
-            save_source_snapshots(connection, run_id, scanned_sources, snapshots)
+            report_metrics["report_summary"]["returns"] = {
+                "raw_records_inserted": return_raw_count,
+                "loaded_events": return_summary["loaded"],
+                "rejected_events": return_summary["rejected"],
+            }
+            save_source_snapshots(connection, run_id, snapshot_sources, snapshots)
             load_quality_audit(connection, run_id, quality_results)
             update_watermarks(connection, run_id, quality_results)
             load_stage_runs(connection, run_id, stages)

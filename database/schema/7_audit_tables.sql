@@ -139,8 +139,20 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_raw_offline_run') THEN
         ALTER TABLE raw.offline_store_sales ADD CONSTRAINT fk_raw_offline_run FOREIGN KEY (ingestion_run_id) REFERENCES audit.pipeline_runs(run_id);
     END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_raw_return_events_run') THEN
+        ALTER TABLE raw.return_events ADD CONSTRAINT fk_raw_return_events_run FOREIGN KEY (ingestion_run_id) REFERENCES audit.pipeline_runs(run_id);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_fact_returns_run') THEN
+        ALTER TABLE warehouse.fact_returns ADD CONSTRAINT fk_fact_returns_run FOREIGN KEY (ingestion_run_id) REFERENCES audit.pipeline_runs(run_id);
+    END IF;
     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_raw_product_run') THEN
         ALTER TABLE raw.product_master ADD CONSTRAINT fk_raw_product_run FOREIGN KEY (ingestion_run_id) REFERENCES audit.pipeline_runs(run_id);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_raw_promo_master_run') THEN
+        ALTER TABLE raw.promo_master ADD CONSTRAINT fk_raw_promo_master_run FOREIGN KEY (ingestion_run_id) REFERENCES audit.pipeline_runs(run_id);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_raw_order_promotions_run') THEN
+        ALTER TABLE raw.order_promotions ADD CONSTRAINT fk_raw_order_promotions_run FOREIGN KEY (ingestion_run_id) REFERENCES audit.pipeline_runs(run_id);
     END IF;
     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_stg_sales_run') THEN
         ALTER TABLE staging.stg_sales ADD CONSTRAINT fk_stg_sales_run FOREIGN KEY (ingestion_run_id) REFERENCES audit.pipeline_runs(run_id);

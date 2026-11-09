@@ -8,7 +8,7 @@ Diagram lengkap dapat dilihat pada [arsitektur pipeline end-to-end](images/end-t
 
 ```mermaid
 flowchart LR
-    A[CSV source] --> B[Extract dan Checksum]
+    A[CSV transaksi, produk, promo, dan retur] --> B[Extract dan Checksum]
     B --> C[Incremental Filter]
     C --> D[Raw Layer dan Payload Data]
     D --> E[Data Quality]
@@ -19,6 +19,10 @@ flowchart LR
     I --> J[Warehouse Layer]
     J --> K[SQL Analytics Views]
     K --> L[Dashboard]
+    A --> R[Raw Return Events]
+    R --> S[Validasi Retur dan Refund]
+    S --> T[warehouse.fact_returns]
+    T --> U[Audit Retur/Refund]
     M[Airflow / UI / CLI] --> B
 ```
 
@@ -51,13 +55,15 @@ Biaya lookup ini mengikuti jumlah kandidat valid pada run saat ini, bukan jumlah
 
 ## Transformasi utama
 
-1. Nama kolom dari setiap sumber dipetakan ke kolom standar seperti `order_id`, `line_number`, `order_date`, `product_name`, `quantity`, `unit_price`, dan `status`. Nomor item berasal dari `order_line_id` (Shopee), `item_sequence` (Tokopedia), `line_item_no` (Website), atau `receipt_line_no` (Offline).
+1. Nama kolom dari setiap sumber dipetakan ke kolom standar seperti `order_id`, `line_number`, `order_date`, `product_name`, `quantity`, `unit_price`, `discount_amount`, `promo_code`, dan `status`. Nomor item berasal dari `order_line_id` (Shopee), `item_sequence` (Tokopedia), `line_item_no` (Website), atau `receipt_line_no` (Offline).
 2. Teks dinormalisasi dengan Unicode NFKC, whitespace konsisten, dan identifier disimpan sebagai string agar leading zero tidak hilang.
 3. Tanggal diparse sesuai kontrak masing-masing source lalu disimpan sebagai `DATE`.
 4. Quantity menjadi integer positif dan uang menjadi nilai `NUMERIC`/`Decimal`.
 5. Nama atau SKU produk dicocokkan dengan Product Master untuk memperoleh `mapped_sku`, merek, dan kategori.
 6. Email pelanggan atau kombinasi nama dan kota digunakan untuk membentuk natural key pelanggan pada dimensi.
 7. Baris yang lolos validasi dimuat ke `staging.stg_sales`. Pipeline kemudian menentukan surrogate key dimensi dan memuat atau memperbarui fact berdasarkan business key dan hash.
+
+Informasi promosi berasal dari dua file pendamping: `promo_master.csv` berisi aturan dan periode kode promo, sedangkan `order_promotions.csv` mencatat kode serta nilai diskon aktual per kombinasi kanal dan order. Pipeline memeriksa kode, periode, order, dan batas nilai diskon, lalu membagi diskon order secara proporsional ke baris item. Nilai aturan persentase/fixed pada master tidak dipakai untuk merekonstruksi potongan aktual.
 
 ## Incremental loading
 
@@ -70,6 +76,8 @@ Business key sama, hash berubah → koreksi/upsert warehouse
 Business key dan hash sama      → tidak menulis fact ulang
 Baris hilang dari source        → tidak dihapus otomatis
 ```
+
+Perubahan pada file promo memicu pemindaian ulang kanal agar perubahan atau penghapusan penerapan promo pada order yang sudah ada dapat menjadi koreksi fact.
 
 Jika seluruh payload pada semua source, termasuk Product Master, identik, run ditutup dengan status `SUCCESS` segera setelah `snapshot_lookup`, `source_scan`, dan `incremental_extract`. Pada jalur ini tidak ada stage `raw_load`, `validate`, `transform`, `staging_load`, `dimension_load`, atau `fact_load`; laporan run mencatat seluruh metrik pemrosesan sebagai `0` dan menjelaskan bahwa tidak ada data baru atau perubahan.
 

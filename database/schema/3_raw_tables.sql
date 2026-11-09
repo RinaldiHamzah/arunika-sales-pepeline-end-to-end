@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS raw.shopee_orders (
     ingested_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     order_id TEXT, order_line_id TEXT, order_date TEXT, product_name TEXT, qty TEXT, unit_price TEXT,
     customer_name TEXT, customer_city TEXT, payment_method TEXT, status TEXT,
+    discount_amount TEXT, promo_code TEXT,
     source_payload JSONB NOT NULL,
     CONSTRAINT uq_raw_shopee_file_row UNIQUE (ingestion_run_id, source_file_name, source_row_number)
 );
@@ -19,6 +20,7 @@ CREATE TABLE IF NOT EXISTS raw.tokopedia_transactions (
     ingested_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     transaction_id TEXT, item_sequence TEXT, transaction_date TEXT, item_name TEXT, quantity TEXT, price TEXT,
     buyer_name TEXT, city TEXT, payment TEXT, status TEXT,
+    discount_amount TEXT, promo_code TEXT,
     source_payload JSONB NOT NULL,
     CONSTRAINT uq_raw_tokopedia_file_row UNIQUE (ingestion_run_id, source_file_name, source_row_number)
 );
@@ -29,7 +31,8 @@ CREATE TABLE IF NOT EXISTS raw.website_transactions (
     source_row_number INTEGER NOT NULL CHECK (source_row_number > 0),
     ingested_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     invoice_no TEXT, line_item_no TEXT, created_at TEXT, product_identifier TEXT, quantity TEXT, unit_price TEXT,
-    total_amount TEXT, customer_email TEXT, status TEXT, source_payload JSONB NOT NULL,
+    total_amount TEXT, customer_email TEXT, status TEXT,
+    discount_amount TEXT, promo_code TEXT, source_payload JSONB NOT NULL,
     CONSTRAINT uq_raw_website_file_row UNIQUE (ingestion_run_id, source_file_name, source_row_number)
 );
 
@@ -39,7 +42,8 @@ CREATE TABLE IF NOT EXISTS raw.offline_store_sales (
     source_row_number INTEGER NOT NULL CHECK (source_row_number > 0),
     ingested_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     pos_receipt_no TEXT, receipt_line_no TEXT, sold_at TEXT, item_description TEXT, units TEXT, item_price TEXT,
-    store_name TEXT, store_city TEXT, payment_type TEXT, status TEXT, source_payload JSONB NOT NULL,
+    store_name TEXT, store_city TEXT, payment_type TEXT, status TEXT,
+    discount_amount TEXT, promo_code TEXT, source_payload JSONB NOT NULL,
     CONSTRAINT uq_raw_offline_file_row UNIQUE (ingestion_run_id, source_file_name, source_row_number)
 );
 
@@ -50,6 +54,38 @@ CREATE TABLE IF NOT EXISTS raw.product_master (
     ingested_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     sku TEXT, product_name TEXT, brand TEXT, category TEXT, price TEXT, source_payload JSONB NOT NULL,
     CONSTRAINT uq_raw_product_master_file_row UNIQUE (ingestion_run_id, source_file_name, source_row_number)
+);
+
+CREATE TABLE IF NOT EXISTS raw.promo_master (
+    raw_record_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    ingestion_run_id UUID NOT NULL,
+    source_file_name TEXT NOT NULL, source_row_number INTEGER NOT NULL CHECK (source_row_number > 0),
+    ingested_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    promo_code TEXT, promo_name TEXT, discount_type TEXT, discount_value TEXT,
+    start_date TEXT, end_date TEXT, status TEXT, source_payload JSONB NOT NULL,
+    CONSTRAINT uq_raw_promo_master_file_row UNIQUE (ingestion_run_id, source_file_name, source_row_number)
+);
+
+CREATE TABLE IF NOT EXISTS raw.order_promotions (
+    raw_record_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    ingestion_run_id UUID NOT NULL,
+    source_file_name TEXT NOT NULL, source_row_number INTEGER NOT NULL CHECK (source_row_number > 0),
+    ingested_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    source_name TEXT, order_id TEXT, promo_code TEXT, discount_amount TEXT,
+    source_payload JSONB NOT NULL,
+    CONSTRAINT uq_raw_order_promotions_file_row UNIQUE (ingestion_run_id, source_file_name, source_row_number)
+);
+
+CREATE TABLE IF NOT EXISTS raw.return_events (
+    raw_record_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    ingestion_run_id UUID NOT NULL,
+    source_file_name TEXT NOT NULL, source_row_number INTEGER NOT NULL CHECK (source_row_number > 0),
+    ingested_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    source_name TEXT, return_id TEXT, return_line_number TEXT,
+    order_id TEXT, order_line_number TEXT, return_date TEXT,
+    return_reason TEXT, return_status TEXT, quantity_returned TEXT,
+    refund_amount TEXT, refund_status TEXT, source_payload JSONB NOT NULL,
+    CONSTRAINT uq_raw_return_file_row UNIQUE (ingestion_run_id, source_file_name, source_row_number)
 );
 
 -- Penyesuaian kompatibilitas untuk basis data yang dibuat dengan kontrak sumber lama.

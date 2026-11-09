@@ -90,12 +90,13 @@ Semua sumber canonical berada di `data/source/`. Pipeline menggunakan allowlist 
 | Website | `data/source/website.csv` | Satu item per baris invoice | `invoice_no` + `line_item_no` | ISO datetime | Direct channel |
 | Offline Store | `data/source/offline.csv` | Satu item per baris struk | `pos_receipt_no` + `receipt_line_no` | `DD-Mon-YYYY` | Toko fisik |
 | Product Master | `data/source/product.csv` | Satu SKU produk | `sku` | Tidak berlaku | Referensi produk |
+| Return Events | `data/source/returns.csv` | Satu item dalam satu event retur | `source_name` + `return_id` + `return_line_number` | `YYYY-MM-DD` | Referensi item penjualan, status retur, jumlah unit, dan refund aktual |
 
 ### 2.2 Shopee
 
 ```csv
-order_id,order_line_id,order_date,product_name,qty,unit_price,customer_name,customer_city,payment_method,status
-SHP-0001,1,2026-07-08,Wonderly Body Mist Sweet Blossom 100ml,2,45900,Dimas Saputra,Yogyakarta,COD,completed
+order_id,order_line_id,order_date,product_name,qty,unit_price,customer_name,customer_city,payment_method,status,discount_amount,promo_code
+SHP-0001,1,2026-07-08,Wonderly Body Mist Sweet Blossom 100ml,2,45900,Dimas Saputra,Yogyakarta,COD,completed,0.00,
 ```
 
 Mapping utama: `order_id → order_id`, `order_line_id → line_number`, `order_date → order_date`, `product_name → product_input`, `qty → quantity`, dan `unit_price → unit_price`.
@@ -103,8 +104,8 @@ Mapping utama: `order_id → order_id`, `order_line_id → line_number`, `order_
 ### 2.3 Tokopedia
 
 ```csv
-transaction_id,item_sequence,transaction_date,item_name,quantity,price,buyer_name,city,payment,status
-TKP-0101,1,14/02/2026,Wonderly-Body-Mist-Sweet-Blossom-100ml,2,45900,Eka Wulandari,Semarang,E-Wallet,cancelled
+transaction_id,item_sequence,transaction_date,item_name,quantity,price,buyer_name,city,payment,status,discount_amount,promo_code
+TKP-0101,1,14/02/2026,Wonderly-Body-Mist-Sweet-Blossom-100ml,2,45900,Eka Wulandari,Semarang,E-Wallet,cancelled,0.00,
 ```
 
 Mapping utama: `transaction_id → order_id`, `item_sequence → line_number`, `transaction_date → order_date`, `item_name → product_input`, dan `price → unit_price`.
@@ -112,17 +113,17 @@ Mapping utama: `transaction_id → order_id`, `item_sequence → line_number`, `
 ### 2.4 Website
 
 ```csv
-invoice_no,line_item_no,created_at,product_identifier,quantity,unit_price,total_amount,customer_email,status
-WEB-0201,1,2026-03-03T10:30:00,EMN-SKC-001,1,27900,27900,alya.putri@example.test,returned
+invoice_no,line_item_no,created_at,product_identifier,quantity,unit_price,total_amount,customer_email,status,discount_amount,promo_code
+WEB-0201,1,2026-03-03T10:30:00,EMN-SKC-001,1,27900,27900,alya.putri@example.test,returned,0.00,
 ```
 
-Website menggunakan SKU pada `product_identifier` dan `line_item_no` sebagai nomor item. Kolom `total_amount` divalidasi terhadap `quantity × unit_price`.
+Website menggunakan SKU pada `product_identifier` dan `line_item_no` sebagai nomor item. `discount_amount` dan `promo_code` mencatat nilai per item. `total_amount` harus sesuai gross atau net yang dihitung.
 
 ### 2.5 Offline Store
 
 ```csv
-pos_receipt_no,receipt_line_no,sold_at,item_description,units,item_price,store_name,store_city,payment_type,status
-POS-0301,1,20-Mar-2026,WARDAH LIGHTENING MICELLAR WATER 100ML,1,28900,Arunika Beauty Store,Jakarta,Credit Card,completed
+pos_receipt_no,receipt_line_no,sold_at,item_description,units,item_price,store_name,store_city,payment_type,status,discount_amount,promo_code
+POS-0301,1,20-Mar-2026,WARDAH LIGHTENING MICELLAR WATER 100ML,1,28900,Arunika Beauty Store,Jakarta,Credit Card,completed,0.00,
 ```
 
 Mapping utama: `pos_receipt_no → order_id`, `receipt_line_no → line_number`, `sold_at → order_date`, `item_description → product_input`, `units → quantity`, dan `item_price → unit_price`.
@@ -204,11 +205,12 @@ File sumber diagram yang dapat diedit tersedia pada `docs/diagrams/ingestion_pro
 
 | Source | Tabel Raw | Kolom bisnis utama |
 | --- | --- | --- |
-| Shopee | `raw.shopee_orders` | `order_id`, `order_date`, `product_name`, `qty`, `unit_price` |
-| Tokopedia | `raw.tokopedia_transactions` | `transaction_id`, `transaction_date`, `item_name`, `quantity`, `price` |
-| Website | `raw.website_transactions` | `invoice_no`, `created_at`, `product_identifier`, `quantity`, `unit_price`, `total_amount` |
-| Offline | `raw.offline_store_sales` | `pos_receipt_no`, `sold_at`, `item_description`, `units`, `item_price` |
+| Shopee | `raw.shopee_orders` | `order_id`, `order_date`, `product_name`, `qty`, `unit_price`, `discount_amount`, `promo_code` |
+| Tokopedia | `raw.tokopedia_transactions` | `transaction_id`, `transaction_date`, `item_name`, `quantity`, `price`, `discount_amount`, `promo_code` |
+| Website | `raw.website_transactions` | `invoice_no`, `created_at`, `product_identifier`, `quantity`, `unit_price`, `total_amount`, `discount_amount`, `promo_code` |
+| Offline | `raw.offline_store_sales` | `pos_receipt_no`, `sold_at`, `item_description`, `units`, `item_price`, `discount_amount`, `promo_code` |
 | Product | `raw.product_master` | `sku`, `product_name`, `brand`, `category`, `price` |
+| Return Events | `raw.return_events` | `source_name`, `return_id`, `order_id`, `order_line_number`, status retur/refund, quantity, refund amount |
 
 Semua tabel Raw memiliki `raw_record_id`, `ingestion_run_id`, `source_file_name`, `source_row_number`, `ingested_at`, dan `source_payload`. Business ID sengaja tidak dibuat unik di Raw karena duplikat harus tetap dapat diamati sebagai bukti kualitas.
 
@@ -247,8 +249,9 @@ LIMIT 20;
 | Missing value | Order ID, tanggal, produk, quantity, harga, dan status wajib tersedia. | Field wajib kosong membuat record ditolak; field opsional kosong menjadi `null` dan warning. |
 | Duplicate | Business key sama diperiksa setelah standardisasi. | Duplikat identik: satu dipertahankan; duplikat konflik: semua versi ditolak. |
 | Invalid quantity | Harus integer positif dan tidak melebihi batas PostgreSQL `INTEGER`. | Nol, negatif, pecahan, infinity, atau nonnumerik ditolak. |
-| Invalid price/amount | Nilai uang harus positif dan maksimal dua desimal. | Record ditolak. |
-| Website total | `total_amount = quantity × unit_price`. | Missing atau mismatch ditolak. |
+| Harga/amount | Harga dan total transaksi harus positif, maksimal dua desimal. | Record ditolak jika tidak valid. |
+| Diskon | `discount_amount` per item harus nonnegatif, maksimal dua desimal, dan tidak melebihi gross item. `promo_code` opsional. | Nilai salah ditolak; gross, diskon, dan net disimpan terpisah. |
+| Website total | `total_amount` harus cocok dengan gross atau net item. | Missing atau mismatch ditolak. |
 | Invalid status | Hanya `COMPLETED`, `CANCELLED`, `RETURNED`. | Nilai lain ditolak. |
 | Invalid date | Format harus sesuai kontrak source dan menjadi tanggal kalender valid. | Gagal parse atau tanggal tidak mungkin ditolak. |
 | Data type | Identifier string, quantity integer, uang Decimal, tanggal date. | Cast failure dicatat dan record ditolak jika field wajib. |
@@ -303,6 +306,8 @@ File sumber diagram yang dapat diedit menggunakan Draw.io tersedia pada `docs/di
 - tanggal source diubah ke `DATE` standar `YYYY-MM-DD`;
 - quantity menjadi integer positif;
 - harga dan amount menjadi `Decimal`/`NUMERIC`;
+- `discount_amount` dipetakan per baris item dan `net_amount` dihitung sebagai gross dikurangi diskon; `promo_code` dipertahankan bila sumber menyediakannya;
+- `promo_master.csv` menyimpan aturan kode, sedangkan `order_promotions.csv` mencatat kode dan diskon aktual per `(source_name, order_id)`; diskon order dialokasikan proporsional ke gross item;
 - kota dan metode pembayaran dinormalisasi melalui mapping yang terkontrol;
 - customer natural key dibentuk dari identitas yang tersedia;
 - `source_record_hash` dihitung untuk membedakan record identik dari koreksi.
@@ -359,6 +364,8 @@ Warehouse menggunakan **star schema** karena kebutuhan utama sistem adalah agreg
 
 File sumber diagram yang dapat diedit menggunakan Draw.io tersedia pada `docs/diagrams/erd.drawio`.
 
+Retur dan refund disimpan terpisah dari fact penjualan. `warehouse.fact_returns` menghubungkan setiap event ke baris fact penjualan asal. Baris `RET-DEMO-*` di `returns.csv` adalah data simulasi untuk pengujian/demo, bukan bukti retur bisnis aktual. Untuk simulasi berstatus `PROCESSED`, refund dihitung proporsional dari net item setelah diskon sesuai quantity retur; gunakan nilai refund aktual sebelum melaporkan metrik sebagai angka bisnis.
+
 ERD lengkap, termasuk Raw dan Audit, tersedia pada `docs/erd.md` dan dapat diperiksa melalui repository proyek.
 
 ### 7.2 Grain, PK, FK, dan alasan desain
@@ -366,6 +373,7 @@ ERD lengkap, termasuk Raw dan Audit, tersedia pada `docs/erd.md` dan dapat diper
 | Tabel | Grain | Primary/unique key | Foreign key | Alasan |
 | --- | --- | --- | --- | --- |
 | `fact_sales` | Satu baris item dalam satu transaksi source | `sales_key`; UK `(source_name, source_order_id, source_line_number)` | Seluruh dimension key | Pusat measurement penjualan dan idempotensi lintas kanal. |
+| `fact_returns` | Satu item dalam satu event retur | `return_key`; UK `(source_name, return_id, return_line_number)` | FK ke item `fact_sales` asal dan payload `raw.return_events` | Mencatat retur parsial/refund tanpa menimpa nilai penjualan. |
 | `dim_date` | Satu tanggal | `date_key`; `full_date` unique | — | Analisis waktu tanpa parsing tanggal berulang. |
 | `dim_product` | Satu SKU canonical | `product_key`; `sku` unique | — | Konsistensi produk, brand, kategori, dan harga referensi. |
 | `dim_customer` | Satu natural key customer | `customer_key`; `customer_nk` unique | — | Analisis customer/kota meskipun atribut source berbeda. |
@@ -405,7 +413,8 @@ Kamus data lengkap berada pada `docs/data_dictionary.md`. Ringkasan field inti d
 | `customer_nk`, `customer_name`, `city` | TEXT | — | Atribut customer canonical. |
 | `payment_method`, `sale_status` | VARCHAR | — | Pembayaran dan status canonical. |
 | `quantity` | INTEGER | — | Unit tervalidasi. |
-| `unit_price`, `gross_amount`, `source_total_amount` | NUMERIC | — | Nilai transaksi. |
+| `unit_price`, `gross_amount`, `discount_amount`, `net_amount`, `source_total_amount` | NUMERIC | — | Nilai transaksi; net dihitung sebagai gross dikurangi diskon. |
+| `promo_code` | TEXT | — | Kode promo dari sumber bila tersedia. |
 | `source_record_hash` | CHAR(64) | — | Deteksi perubahan record. |
 | `is_valid`, `validation_notes` | BOOLEAN/JSONB | — | Status dan catatan validasi. |
 
@@ -423,8 +432,11 @@ Kamus data lengkap berada pada `docs/data_dictionary.md`. Ringkasan field inti d
 | `fact_sales.quantity` | INTEGER | — | Unit transaksi. |
 | `fact_sales.unit_price` | NUMERIC(14,2) | — | Harga satuan source. |
 | `fact_sales.gross_amount` | NUMERIC(16,2) | — | `quantity × unit_price`. |
-| `fact_sales.discount_amount` | NUMERIC(16,2) | — | Diskon; baseline source belum memilikinya. |
+| `fact_sales.discount_amount` | NUMERIC(16,2) | — | Diskon aktual per item; kolom yang tidak tersedia pada format legacy diperlakukan sebagai nol. |
 | `fact_sales.net_amount` | NUMERIC(16,2) | — | Gross dikurangi diskon. |
+| `fact_sales.promo_code` | TEXT | — | Kode promo dari sumber. |
+| `dim_promotion.promo_code` | TEXT | PK | Kode promo dan aturan yang berasal dari master. |
+| `dim_promotion.promo_name`, `discount_type`, `discount_value`, `start_date`, `end_date`, `status`, `is_active` | TEXT/NUMERIC/DATE/BOOLEAN | — | Definisi dan periode promo; bukan sumber perhitungan diskon aktual. |
 | `fact_sales.source_record_hash` | CHAR(64) | — | Deteksi koreksi/idempotensi. |
 | `dim_date.date_key` | INTEGER | PK | Tanggal format `YYYYMMDD`. |
 | `dim_product.product_key`, `sku` | BIGINT/VARCHAR | PK/UK | Identitas produk canonical. |
@@ -603,6 +615,7 @@ Jika SMTP gagal, `send_pipeline_report` mengembalikan `False`; wrapper Airflow k
 | `warehouse.v_sales_channel_kpi` | KPI per channel. |
 | `warehouse.v_top_product_kpi` | Revenue, unit, dan order per produk. |
 | `warehouse.v_sales_status_kpi` | Order, unit, gross, dan net per status. |
+| `warehouse.v_return_refund_kpi` | Jumlah request/baris retur, unit retur yang disetujui/diproses, dan refund aktual per bulan dan kanal. |
 | `audit.v_data_quality_by_rule` | Temuan per rule/source/run. |
 | `audit.v_data_quality_report` | Ringkasan kualitas per source/run. |
 
@@ -641,6 +654,11 @@ LIMIT 10;
 SELECT *
 FROM warehouse.v_sales_status_kpi
 ORDER BY sale_status;
+
+-- Retur dan refund yang tercatat; belum menghasilkan angka jika belum ada data sumber retur.
+SELECT *
+FROM warehouse.v_return_refund_kpi
+ORDER BY return_month, source_name;
 ```
 
 Hasil aktual mengikuti isi warehouse pada saat query dijalankan. Definisi SQL dapat diperiksa pada `database/schema/8_analytics_views.sql`.
@@ -919,13 +937,14 @@ Star schema dipilih karena kebutuhan utama berupa agregasi berulang berdasarkan 
 
 ### 17.3 Incremental strategy
 
-Checksum file mempercepat deteksi source tidak berubah, payload hash menentukan baris baru/berubah, dan business key plus record hash melindungi Warehouse dari duplicate write. Lookup fact dibatasi pada key kandidat run, bukan membaca seluruh fact ke memori.
+Checksum file mempercepat deteksi source tidak berubah, payload hash menentukan baris baru/berubah, dan business key plus record hash melindungi Warehouse dari duplicate write. Perubahan file promo memicu pemindaian ulang kanal agar perubahan atau penghapusan promo pada order lama diterapkan sebagai koreksi fact. Lookup fact dibatasi pada key kandidat run, bukan membaca seluruh fact ke memori.
 
 ### 17.4 Asumsi
 
 - grain transaksi source adalah satu baris item per order; satu order dapat mempunyai banyak item dengan nomor item yang berbeda;
 - order ID hanya unik di dalam source, sehingga source menjadi bagian business key;
-- source belum menyediakan diskon; `discount_amount = 0`;
+- CSV lama yang belum memiliki kolom diskon tetap diterima; nilai kosong diperlakukan sebagai `discount_amount = 0` dan tidak membuktikan bahwa sumber telah melaporkan diskon secara lengkap;
+- satu promo per order didukung pada versi ini; nilai diskon aktual wajib berasal dari sumber dan dialokasikan ke item secara proporsional, bukan dihitung dari `discount_value` pada master;
 - `COMPLETED` digunakan untuk net sales dan unit terjual;
 - gross sales mencakup semua status;
 - transaksi yang hilang dari file tidak otomatis dihapus;

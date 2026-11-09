@@ -15,13 +15,13 @@ def load_facts(connection: Connection, run_id: UUID) -> int:
 		INSERT INTO warehouse.fact_sales (
 			source_name, source_order_id, source_line_number, date_key, product_key,
 			customer_key, channel_key, payment_key, sale_status, quantity, unit_price,
-			gross_amount, discount_amount, net_amount, source_record_hash, is_source_active
+			gross_amount, discount_amount, net_amount, promo_code, source_record_hash, is_source_active
 		)
 		SELECT
 			s.source_name, s.source_order_id, s.source_line_number,
 			d.date_key, p.product_key, c.customer_key, ch.channel_key, pm.payment_key,
 			s.sale_status, s.quantity, s.unit_price, s.gross_amount,
-			0, s.gross_amount, s.source_record_hash, TRUE
+			s.discount_amount, s.net_amount, s.promo_code, s.source_record_hash, TRUE
 		FROM staging.stg_sales s
 		JOIN warehouse.dim_date d ON d.full_date = s.order_date
 		JOIN warehouse.dim_product p ON p.sku = s.mapped_sku
@@ -34,7 +34,8 @@ def load_facts(connection: Connection, run_id: UUID) -> int:
 			customer_key = EXCLUDED.customer_key, channel_key = EXCLUDED.channel_key,
 			payment_key = EXCLUDED.payment_key, sale_status = EXCLUDED.sale_status,
 			quantity = EXCLUDED.quantity, unit_price = EXCLUDED.unit_price,
-			gross_amount = EXCLUDED.gross_amount, net_amount = EXCLUDED.net_amount,
+			gross_amount = EXCLUDED.gross_amount, discount_amount = EXCLUDED.discount_amount,
+			net_amount = EXCLUDED.net_amount, promo_code = EXCLUDED.promo_code,
 			source_record_hash = EXCLUDED.source_record_hash,
 			is_source_active = TRUE, loaded_at = CURRENT_TIMESTAMP
 		WHERE warehouse.fact_sales.source_record_hash IS DISTINCT FROM EXCLUDED.source_record_hash OR warehouse.fact_sales.is_source_active IS DISTINCT FROM TRUE

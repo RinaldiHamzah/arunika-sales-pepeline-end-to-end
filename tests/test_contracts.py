@@ -5,6 +5,7 @@ from pipeline.validation.contracts import (
     BUSINESS_KEY,
     CLEAN_PRODUCT_COLUMNS,
     CLEAN_SALES_COLUMNS,
+    OPTIONAL_SOURCE_SPECS,
     RAW_COLUMNS,
     SOURCE_SPECS,
     VALID_STATUSES,
@@ -31,7 +32,10 @@ def test_contract_definitions_are_shared_by_pipeline_interfaces():
 
 def test_raw_source_contract_and_business_rules_are_explicit():
     assert set(SOURCE_SPECS) == {"shopee", "tokopedia", "website", "offline"}
-    assert all(tuple(spec.values()) == RAW_COLUMNS[source] for source, spec in SOURCE_SPECS.items())
+    assert all(
+        tuple(spec.values()) + tuple(OPTIONAL_SOURCE_SPECS[source].values()) == RAW_COLUMNS[source]
+        for source, spec in SOURCE_SPECS.items()
+    )
     assert BUSINESS_KEY == ("source", "order_id", "line_number")
     assert VALID_STATUSES == {"COMPLETED", "CANCELLED", "RETURNED"}
     assert "customer_id" not in CLEAN_SALES_COLUMNS

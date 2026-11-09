@@ -29,6 +29,7 @@ export function filteredTransactionRows() {
     row.channel_name,
     row.category,
     row.status,
+    row.promo_code,
   ].some(value => String(value ?? '').toLocaleLowerCase('id-ID').includes(query)));
 }
 
@@ -47,9 +48,11 @@ export function renderTransactions() {
       <td>${escapeHtml(row.category)}</td>
       <td>${statusBadge(row.status)}</td>
       <td>${number(row.quantity)}</td>
+      <td>${money(row.discount_amount)}</td>
+      <td>${escapeHtml(row.promo_code || '—')}</td>
       <td>${money(row.net_amount)}</td>
     </tr>
-  `).join('') : `<tr><td colspan="8" class="empty">${state.transactionSearch ? 'Tidak ada transaksi yang sesuai pencarian.' : 'Tidak ada transaksi. Coba ubah periode atau reset filter di Overview.'}</td></tr>`;
+  `).join('') : `<tr><td colspan="10" class="empty">${state.transactionSearch ? 'Tidak ada transaksi yang sesuai pencarian.' : 'Tidak ada transaksi. Coba ubah periode atau reset filter di Overview.'}</td></tr>`;
   labelTableCells();
   $('row-count').textContent = state.transactionSearch
     ? `${number(filteredRows.length)} dari ${number(state.rows.length)} Transaksi`
@@ -63,6 +66,7 @@ function renderMetrics(metrics) {
   const values = {
     'metric-sales': money(metrics.net_sales),
     'metric-gross': money(metrics.gross_sales),
+    'metric-discount': money(metrics.discount_total),
     'metric-orders': number(metrics.orders),
     'metric-units': number(metrics.units),
     'metric-aov': money(metrics.average_order_value),

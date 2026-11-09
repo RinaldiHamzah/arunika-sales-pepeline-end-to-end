@@ -118,7 +118,7 @@ source_name,return_id,return_line_number,order_id,order_line_number,return_date,
 ```
 
 `source_name` mencegah benturan ID order antarkanal; `order_line_number` menghubungkan event ke item tertentu, bukan hanya ke order. Tanggal wajib berformat `YYYY-MM-DD`. Baris tidak valid, tidak memiliki penjualan pasangan, atau melampaui batas quantity/net amount dicatat ke `audit.rejected_records` dan `audit.data_quality_results`.
-| `is_source_active`, `loaded_at` | BOOLEAN, TIMESTAMPTZ |  | Status source dan waktu warehouse load. |
+| `is_source_active`, `loaded_at` | BOOLEAN, TIMESTAMPTZ |  | Penanda apakah business key masih ada pada snapshot sumber penuh dan waktu warehouse load. Baris tidak aktif tetap disimpan untuk audit. |
 
 ## Audit dan observability
 
@@ -128,6 +128,7 @@ source_name,return_id,return_line_number,order_id,order_line_number,return_date,
 | `audit.pipeline_stage_runs` | Satu stage pada satu run | `stage_run_id` PK; `run_id` FK | Durasi dan error tiap tahap. |
 | `audit.source_ingestions` | Satu source file pada satu run | `source_ingestion_id` PK; `run_id` FK | Checksum, path, format, jumlah record. |
 | `audit.source_snapshots` | Snapshot terbaru per pipeline/source | `(pipeline_name, source_name)` PK | Payload hash untuk incremental. |
+| `audit.source_reconciliations` | Satu source pada satu run | `reconciliation_id` PK; `(run_id, source_name)` unik | Status kelengkapan snapshot, business key yang ditemukan, serta jumlah fact yang dinonaktifkan. |
 | `audit.data_quality_results` | Satu rule/source/run | `quality_result_id` PK; `run_id` FK | Jumlah kegagalan per rule dan severity. |
 | `audit.rejected_records` | Satu baris transaksi yang ditolak dalam satu run | `rejected_record_id` PK; `run_id` FK | Payload asli, `source_order_id`, `source_line_number` jika valid, dan alasan penolakan. |
 | `audit.pipeline_watermarks` | Watermark per pipeline/source | `(pipeline_name, source_name)` PK | Run sukses dan waktu proses terakhir. |

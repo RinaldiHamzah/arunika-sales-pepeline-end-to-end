@@ -452,6 +452,7 @@ Kamus data lengkap berada pada `docs/data_dictionary.md`. Ringkasan field inti d
 | `pipeline_stage_runs` | Satu stage pada satu run | Stage, status, durasi, records processed, error. |
 | `source_ingestions` | Satu source pada satu run | File, path, checksum, format, extracted records. |
 | `source_snapshots` | Snapshot terakhir per source | File checksum, payload hashes, source records, run ID. |
+| `source_reconciliations` | Satu source pada satu run | Kelengkapan snapshot, jumlah key teramati, status rekonsiliasi, dan baris yang dinonaktifkan. |
 | `pipeline_watermarks` | Satu source per pipeline | Run sukses terakhir, waktu proses, business key. |
 | `data_quality_results` | Satu rule/source/run | Severity, failed records, details. |
 | `rejected_records` | Satu record ditolak | Source, order, row, reason, payload. |
@@ -522,7 +523,15 @@ Penanganan record:
 | Business key dan hash sama | Fact tidak ditulis ulang. |
 | Duplikat dalam kandidat validasi | Dicatat sebagai duplicate. |
 | Business key sama dengan isi konflik | Semua versi dikarantina. |
-| Baris hilang dari source | Tidak dihapus otomatis dari warehouse. |
+| Baris hilang dari snapshot penuh | Fact dipertahankan untuk audit, tetapi `is_source_active` diubah menjadi `FALSE` dan baris dikeluarkan dari view analitik. Jika muncul lagi, baris yang sama diaktifkan kembali oleh upsert. |
+
+### 9.3 Rekonsiliasi baris yang hilang dari sumber
+
+CSV kanal diperlakukan sebagai **snapshot lengkap**. Saat checksum file berubah, pipeline memindai seluruh file dan membandingkan business key `(source_name, source_order_id, source_line_number)` dengan fact aktif. Baris yang tidak lagi ada pada snapshot ditandai `is_source_active = FALSE`; fact tidak dihapus sehingga histori dan foreign key retur tetap terjaga. View Warehouse dan Dashboard hanya menyajikan fact aktif.
+
+Rekonsiliasi hanya dilakukan jika seluruh file berhasil dibaca dan business key dapat ditentukan untuk setiap baris. Jika snapshot tidak lengkap atau ada baris dengan order/nomor item yang tidak dapat dikenali, rekonsiliasi sumber tersebut dilewati dengan status `SKIPPED`; data lama tidak dinonaktifkan secara spekulatif. Status, jumlah key, dan jumlah fact yang dinonaktifkan disimpan di `audit.source_reconciliations` serta ringkasan run.
+
+**Catatan operasional:** mekanisme ini aman untuk file yang memang merupakan snapshot lengkap. Jangan gunakan rekonsiliasi ini pada file delta/harian yang hanya berisi transaksi baru; file delta harus digabungkan menjadi snapshot penuh terlebih dahulu.
 
 ---
 

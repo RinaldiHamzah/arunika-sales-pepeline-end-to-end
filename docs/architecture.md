@@ -40,6 +40,7 @@ Dashboard menggunakan `warehouse.v_sales_detail` untuk menyajikan data sesuai fi
 | --- | --- | --- | --- |
 | Extract | CSV source | frame source, checksum, nomor baris | checksum SHA-256, `source_row_number`, dan ID item asli |
 | Incremental | frame source + snapshot sukses terakhir | hanya payload baru/berubah | `audit.source_snapshots.payload_hashes` |
+| Rekonsiliasi | snapshot CSV lengkap + fact aktif | fact yang hilang ditandai tidak aktif, bukan dihapus | `audit.source_reconciliations`, `fact_sales.is_source_active` |
 | Raw load | payload source asli | `raw.*` | `ingestion_run_id`, file, baris, JSON payload |
 | Validation | raw-equivalent delta | valid, duplicate, rejected | rule, severity, alasan, payload rejected |
 | Transform | record valid | schema canonical | tanggal typed, SKU mapped, customer natural key |

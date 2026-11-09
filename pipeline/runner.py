@@ -22,7 +22,7 @@ from pipeline.extract.base import filter_unseen_rows
 from pipeline.extract.sources import extract_all
 from pipeline.load.audit_loader import load_quality_audit, load_stage_runs, update_watermarks
 from pipeline.load.dimension_loader import load_dimensions
-from pipeline.load.fact_loader import load_facts
+from pipeline.load.fact_loader import load_facts, reconcile_source_snapshot
 from pipeline.load.promotion_loader import load_promotion_dimension, load_promotion_raw
 from pipeline.load.raw_loader import load_raw, load_source_snapshots, save_source_snapshots
 from pipeline.load.return_loader import load_return_events, load_return_raw
@@ -61,7 +61,7 @@ def raw_product_master_total(connection) -> int:
     return int(connection.execute(RAW_PRODUCT_MASTER_COUNT).scalar_one())
 
 
-def existing_fact_hashes(engine, quality_results) -> dict[tuple[str, str, int], str]:
+def existing_fact_hashes(engine, quality_results) -> dict[tuple[str, str, int], str | None]:
     """Ambil hash gudang data hanya untuk key kandidat valid pada run ini."""
     source_names = []
     order_ids = []
@@ -81,7 +81,8 @@ def existing_fact_hashes(engine, quality_results) -> dict[tuple[str, str, int], 
         rows = connection.execute(
             text("""
                 SELECT fact.source_name, fact.source_order_id, fact.source_line_number,
-                       fact.source_record_hash
+                       CASE WHEN fact.is_source_active THEN fact.source_record_hash ELSE NULL END
+                           AS source_record_hash
                 FROM warehouse.fact_sales AS fact
                 JOIN unnest(
                     CAST(:source_names AS VARCHAR[]),
@@ -452,6 +453,25 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
             )
             fact_count = stage("fact_load", lambda: load_facts(connection, run_id))
             stages[-1]["records_processed"] = fact_count
+            channel_names = set(SOURCE_NAMES.values())
+            reconciliation_sources = [
+                source
+                for source in effective_scanned_sources
+                if source.source_name in channel_names
+                and (
+                    source.source_records is None
+                    or len(source.frame) == source.source_records
+                    or snapshots.get(source.source_name, {}).get("file_checksum_sha256")
+                    != source.checksum_sha256
+                )
+            ]
+            reconciliation = stage(
+                "source_reconciliation",
+                lambda: reconcile_source_snapshot(connection, run_id, reconciliation_sources),
+            )
+            stages[-1]["records_processed"] = sum(
+                item["deactivated_records"] for item in reconciliation
+            )
             return_summary = {"loaded": 0, "rejected": 0}
             if not return_delta.frame.empty:
                 return_summary = stage(
@@ -505,6 +525,7 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
                 "loaded_events": return_summary["loaded"],
                 "rejected_events": return_summary["rejected"],
             }
+            report_metrics["report_summary"]["source_reconciliation"] = reconciliation
             save_source_snapshots(connection, run_id, snapshot_sources, snapshots)
             load_quality_audit(connection, run_id, quality_results)
             update_watermarks(connection, run_id, quality_results)

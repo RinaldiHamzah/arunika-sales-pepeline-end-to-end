@@ -27,7 +27,8 @@ JOIN warehouse.dim_date d ON d.date_key = f.date_key
 JOIN warehouse.dim_product p ON p.product_key = f.product_key
 JOIN warehouse.dim_channel c ON c.channel_key = f.channel_key
 LEFT JOIN warehouse.dim_customer cu ON cu.customer_key = f.customer_key
-LEFT JOIN warehouse.dim_payment pm ON pm.payment_key = f.payment_key;
+LEFT JOIN warehouse.dim_payment pm ON pm.payment_key = f.payment_key
+WHERE f.is_source_active;
 
 CREATE OR REPLACE VIEW warehouse.v_sales_by_month AS
 SELECT d.year_number, d.month_number, d.month_name, f.sale_status AS status,
@@ -35,6 +36,7 @@ SELECT d.year_number, d.month_number, d.month_name, f.sale_status AS status,
        SUM(f.gross_amount) AS gross_sales, SUM(f.net_amount) AS net_sales
 FROM warehouse.fact_sales f
 JOIN warehouse.dim_date d ON d.date_key = f.date_key
+WHERE f.is_source_active
 GROUP BY d.year_number, d.month_number, d.month_name, f.sale_status;
 
 CREATE OR REPLACE VIEW warehouse.v_sales_by_channel AS
@@ -43,6 +45,7 @@ SELECT c.channel_code, c.channel_name, c.channel_type, f.sale_status AS status,
        SUM(f.gross_amount) AS gross_sales, SUM(f.net_amount) AS net_sales
 FROM warehouse.fact_sales f
 JOIN warehouse.dim_channel c ON c.channel_key = f.channel_key
+WHERE f.is_source_active
 GROUP BY c.channel_code, c.channel_name, c.channel_type, f.sale_status;
 
 CREATE OR REPLACE VIEW warehouse.v_sales_by_product AS
@@ -51,6 +54,7 @@ SELECT p.sku AS product_id, p.product_name, p.brand, p.category, f.sale_status A
        SUM(f.gross_amount) AS gross_sales, SUM(f.net_amount) AS net_sales
 FROM warehouse.fact_sales f
 JOIN warehouse.dim_product p ON p.product_key = f.product_key
+WHERE f.is_source_active
 GROUP BY p.sku, p.product_name, p.brand, p.category, f.sale_status;
 
 CREATE OR REPLACE VIEW warehouse.v_pipeline_quality AS
@@ -86,7 +90,8 @@ SELECT
         / NULLIF(COUNT(DISTINCT source_name || '|' || source_order_id) FILTER (WHERE sale_status = 'COMPLETED'), 0),
         2
     ) AS average_order_value
-FROM warehouse.fact_sales;
+FROM warehouse.fact_sales
+WHERE is_source_active;
 
 CREATE OR REPLACE VIEW warehouse.v_sales_monthly_kpi AS
 SELECT
@@ -108,6 +113,7 @@ SELECT
     ) AS average_order_value
 FROM warehouse.fact_sales f
 JOIN warehouse.dim_date d ON d.date_key = f.date_key
+WHERE f.is_source_active
 GROUP BY DATE_TRUNC('month', d.full_date)::date;
 
 CREATE OR REPLACE VIEW warehouse.v_sales_channel_kpi AS
@@ -132,6 +138,7 @@ SELECT
     ) AS average_order_value
 FROM warehouse.fact_sales f
 JOIN warehouse.dim_channel c ON c.channel_key = f.channel_key
+WHERE f.is_source_active
 GROUP BY c.channel_code, c.channel_name, c.channel_type;
 
 CREATE OR REPLACE VIEW warehouse.v_top_product_kpi AS
@@ -146,6 +153,7 @@ SELECT
     COUNT(DISTINCT f.source_name || '|' || f.source_order_id) FILTER (WHERE f.sale_status = 'COMPLETED') AS completed_orders
 FROM warehouse.fact_sales f
 JOIN warehouse.dim_product p ON p.product_key = f.product_key
+WHERE f.is_source_active
 GROUP BY p.sku, p.product_name, p.brand, p.category;
 
 CREATE OR REPLACE VIEW warehouse.v_sales_status_kpi AS
@@ -156,6 +164,7 @@ SELECT
     COALESCE(SUM(gross_amount), 0) AS gross_sales,
     COALESCE(SUM(net_amount), 0) AS net_sales
 FROM warehouse.fact_sales
+WHERE is_source_active
 GROUP BY sale_status;
 
 -- Bukti kualitas dapat ditelusuri berdasarkan run, sumber, dan aturan yang gagal.

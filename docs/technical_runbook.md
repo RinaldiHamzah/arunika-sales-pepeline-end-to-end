@@ -45,6 +45,18 @@ Jika status run `SUCCESS` dan `extracted_records = 0`, tidak ada data baru atau 
 
 Pada kondisi tersebut, runner berhenti setelah membandingkan snapshot. Tahap staging dan warehouse dilewati. Audit tetap mencatat status `SUCCESS`, jumlah baris yang dilewati, dan alasan data tidak diproses kembali.
 
+Saat isi CSV kanal berubah, periksa hasil rekonsiliasi dengan query berikut:
+
+```sql
+SELECT run_id, source_name, status, source_records,
+       observed_business_keys, deactivated_records, detail, reconciled_at
+FROM audit.source_reconciliations
+ORDER BY reconciled_at DESC
+LIMIT 20;
+```
+
+`SUCCESS` berarti snapshot lengkap berhasil dicocokkan. Fact yang tidak lagi ada ditandai tidak aktif dan tidak ditampilkan di analytics; record tetap tersimpan untuk audit. `SKIPPED` berarti sistem tidak memiliki key lengkap yang cukup untuk menyimpulkan bahwa record benar-benar hilang. File kanal harus merupakan snapshot lengkap, bukan hanya delta harian.
+
 Lihat tahap detail pada `audit.pipeline_stage_runs`. Log lokal berada di `logs/pipeline.log` dan `logs/dashboard.log`.
 
 ![Ringkasan monitoring pipeline](images/pipeline-monitoring.png)

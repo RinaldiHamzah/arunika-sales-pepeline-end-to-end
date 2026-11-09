@@ -93,5 +93,6 @@ View berikut adalah objek baca saja. View tidak ditampilkan sebagai tabel pada E
 | `audit.data_quality_results` | Satu rule kualitas per source per run. |
 | `audit.rejected_records` | Satu baris transaksi yang ditolak dalam satu run. |
 | `audit.source_snapshots` | Snapshot terakhir satu source untuk incremental loading. |
+| `audit.source_reconciliations` | Hasil pemeriksaan snapshot lengkap dan jumlah fact yang dinonaktifkan per source/run. |
 
 Pada staging, `source_raw_record_id` menghubungkan baris bersih dengan data raw yang menjadi asalnya. Hubungan ini dijaga oleh pipeline. Database menerapkan foreign key untuk `ingestion_run_id` dan seluruh relasi fact ke dimensi.

@@ -136,10 +136,10 @@ def test_full_pipeline_and_incremental_acceptance():
               (('raw', 'shopee_orders'), ('staging', 'stg_sales'),
                ('warehouse', 'fact_sales'), ('warehouse', 'dim_product'),
                ('audit', 'pipeline_runs'), ('raw', 'return_events'),
-               ('warehouse', 'fact_returns'))
+               ('warehouse', 'fact_returns'), ('audit', 'source_reconciliations'))
         """)
         ).scalar_one()
-        if required != 7:
+        if required != 8:
             pytest.fail("Database schema is not initialized; load database/schema/*.sql first")
 
     run(source_dir)
@@ -336,6 +336,44 @@ def test_full_pipeline_and_incremental_acceptance():
             text("SELECT fact_inserted_records, loaded_records FROM audit.pipeline_runs WHERE run_id=:run_id"),
             {"run_id": added_run},
         ).one() == (1, 1)
+
+    _website_order_lines(source_dir, order_id, 5)
+    reconciled_run = run(source_dir)
+    with engine.connect() as connection:
+        removed_line = connection.execute(
+            text("""
+                SELECT is_source_active,
+                       (SELECT COUNT(*) FROM warehouse.v_sales_detail
+                        WHERE source_name='WEBSITE' AND order_id=:order_id AND line_number=6) AS visible_rows
+                FROM warehouse.fact_sales
+                WHERE source_name='WEBSITE' AND source_order_id=:order_id AND source_line_number=6
+            """),
+            {"order_id": order_id},
+        ).one()
+        reconciliation_record = connection.execute(
+            text("""
+                SELECT status, observed_business_keys, deactivated_records
+                FROM audit.source_reconciliations
+                WHERE run_id=:run_id AND source_name='WEBSITE'
+            """),
+            {"run_id": reconciled_run},
+        ).one()
+    assert tuple(removed_line) == (False, 0)
+    assert tuple(reconciliation_record) == ("SUCCESS", 5, 1)
+
+    _website_order_lines(source_dir, order_id, 6)
+    run(source_dir)
+    with engine.connect() as connection:
+        assert connection.execute(
+            text("""
+                SELECT is_source_active,
+                       (SELECT COUNT(*) FROM warehouse.v_sales_detail
+                        WHERE source_name='WEBSITE' AND order_id=:order_id AND line_number=6) AS visible_rows
+                FROM warehouse.fact_sales
+                WHERE source_name='WEBSITE' AND source_order_id=:order_id AND source_line_number=6
+            """),
+            {"order_id": order_id},
+        ).one() == (True, 1)
 
     with engine.connect() as connection:
         with pytest.raises(IntegrityError), connection.begin_nested():

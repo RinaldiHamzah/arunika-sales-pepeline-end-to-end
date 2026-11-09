@@ -117,6 +117,20 @@ ALTER TABLE audit.pipeline_runs ADD COLUMN IF NOT EXISTS orchestration_run_id TE
 CREATE INDEX IF NOT EXISTS idx_runs_orchestration
     ON audit.pipeline_runs (pipeline_name, orchestration_run_id, started_at DESC);
 ALTER TABLE audit.source_snapshots ADD COLUMN IF NOT EXISTS source_records BIGINT CHECK (source_records >= 0);
+CREATE TABLE IF NOT EXISTS audit.source_reconciliations (
+    reconciliation_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    run_id UUID NOT NULL REFERENCES audit.pipeline_runs(run_id),
+    source_name VARCHAR(30) NOT NULL,
+    status VARCHAR(20) NOT NULL CHECK (status IN ('SUCCESS', 'SKIPPED')),
+    source_records BIGINT NOT NULL CHECK (source_records >= 0),
+    observed_business_keys BIGINT NOT NULL CHECK (observed_business_keys >= 0),
+    deactivated_records BIGINT NOT NULL DEFAULT 0 CHECK (deactivated_records >= 0),
+    detail TEXT,
+    reconciled_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_source_reconciliation_run UNIQUE (run_id, source_name)
+);
+CREATE INDEX IF NOT EXISTS idx_source_reconciliations_source_time
+    ON audit.source_reconciliations (source_name, reconciled_at DESC);
 ALTER TABLE audit.pipeline_runs
     ADD COLUMN IF NOT EXISTS source_records BIGINT CHECK (source_records >= 0),
     ADD COLUMN IF NOT EXISTS skipped_unchanged_records BIGINT CHECK (skipped_unchanged_records >= 0),

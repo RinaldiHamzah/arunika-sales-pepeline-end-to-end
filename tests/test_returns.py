@@ -39,9 +39,7 @@ def test_processed_refund_requires_a_nonnegative_amount():
 
     assert str(row["refund_amount"]) == "12000.00"
     with pytest.raises(ValueError, match="tidak boleh negatif"):
-        normalize_return_record(
-            _return(return_status="processed", refund_status="processed", refund_amount="-1")
-        )
+        normalize_return_record(_return(return_status="processed", refund_status="processed", refund_amount="-1"))
 
 
 @pytest.mark.parametrize(
@@ -51,7 +49,10 @@ def test_processed_refund_requires_a_nonnegative_amount():
         ({"quantity_returned": "0"}, "bilangan bulat positif"),
         ({"refund_status": "processed"}, "wajib diisi"),
         ({"return_status": "pending", "refund_status": "processed", "refund_amount": "1"}, "tidak dapat"),
-        ({"refund_status": "processed", "return_status": "approved", "refund_amount": "100000000000000"}, "NUMERIC\\(16,2\\)"),
+        (
+            {"refund_status": "processed", "return_status": "approved", "refund_amount": "100000000000000"},
+            "NUMERIC\\(16,2\\)",
+        ),
     ],
 )
 def test_invalid_return_rows_are_rejected_by_contract(changes, message):

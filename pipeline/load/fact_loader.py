@@ -38,24 +38,80 @@ def _snapshot_business_keys(source):
     return keys, None
 
 
-def reconcile_source_snapshot(connection: Connection, run_id: UUID, sources) -> list[dict]:
-    """Tandai fact yang hilang dari snapshot penuh tanpa menghapus riwayat warehouse."""
+def reconcile_source_snapshot(connection: Connection, run_id: UUID, sources, declarations=None) -> list[dict]:
+    """Nonaktifkan fact yang hilang hanya dari snapshot lengkap yang dideklarasikan."""
     summaries = []
     for source in sources:
-        keys, skip_reason = _snapshot_business_keys(source)
-        if skip_reason:
+        declaration = (declarations or {}).get(source.source_name)
+        mode = declaration.ingestion_mode if declaration else "INCREMENTAL_BATCH"
+        scope = declaration.snapshot_scope if declaration else None
+        snapshot_at = declaration.snapshot_timestamp if declaration else None
+        completeness = declaration.snapshot_completeness if declaration else "UNKNOWN"
+        if not declaration or not declaration.is_reconcilable:
+            skip_reason = "sumber bukan FULL_SNAPSHOT lengkap dengan scope ALL_HISTORY"
+            source_records = source.source_records if source.source_records is not None else len(source.frame)
             connection.execute(
                 text("""
                     INSERT INTO audit.source_reconciliations
-                        (run_id, source_name, status, source_records,
-                         observed_business_keys, deactivated_records, detail)
-                    VALUES (:run_id, :source_name, 'SKIPPED', :source_records, 0, 0, :detail)
+                        (run_id, source_name, status, source_records, observed_business_keys,
+                         deactivated_records, detail, ingestion_mode, snapshot_scope,
+                         snapshot_timestamp, snapshot_completeness)
+                    VALUES (:run_id, :source_name, 'SKIPPED', :source_records, 0, 0, :detail,
+                            :mode, :scope, :snapshot_at, :completeness)
                     ON CONFLICT (run_id, source_name) DO UPDATE SET
                         status = EXCLUDED.status,
                         source_records = EXCLUDED.source_records,
                         observed_business_keys = 0,
                         deactivated_records = 0,
                         detail = EXCLUDED.detail,
+                        ingestion_mode = EXCLUDED.ingestion_mode,
+                        snapshot_scope = EXCLUDED.snapshot_scope,
+                        snapshot_timestamp = EXCLUDED.snapshot_timestamp,
+                        snapshot_completeness = EXCLUDED.snapshot_completeness,
+                        reconciled_at = CURRENT_TIMESTAMP
+                """),
+                {
+                    "run_id": str(run_id),
+                    "source_name": source.source_name,
+                    "source_records": source_records,
+                    "detail": skip_reason,
+                    "mode": mode,
+                    "scope": scope,
+                    "snapshot_at": snapshot_at,
+                    "completeness": completeness,
+                },
+            )
+            summaries.append(
+                {
+                    "source_name": source.source_name,
+                    "status": "SKIPPED",
+                    "reason": skip_reason,
+                    "source_records": source_records,
+                    "observed_business_keys": 0,
+                    "deactivated_records": 0,
+                }
+            )
+            continue
+        keys, skip_reason = _snapshot_business_keys(source)
+        if skip_reason:
+            connection.execute(
+                text("""
+                    INSERT INTO audit.source_reconciliations
+                        (run_id, source_name, status, source_records,
+                         observed_business_keys, deactivated_records, detail, ingestion_mode,
+                         snapshot_scope, snapshot_timestamp, snapshot_completeness)
+                    VALUES (:run_id, :source_name, 'SKIPPED', :source_records, 0, 0, :detail,
+                            :mode, :scope, :snapshot_at, :completeness)
+                    ON CONFLICT (run_id, source_name) DO UPDATE SET
+                        status = EXCLUDED.status,
+                        source_records = EXCLUDED.source_records,
+                        observed_business_keys = 0,
+                        deactivated_records = 0,
+                        detail = EXCLUDED.detail,
+                        ingestion_mode = EXCLUDED.ingestion_mode,
+                        snapshot_scope = EXCLUDED.snapshot_scope,
+                        snapshot_timestamp = EXCLUDED.snapshot_timestamp,
+                        snapshot_completeness = EXCLUDED.snapshot_completeness,
                         reconciled_at = CURRENT_TIMESTAMP
                 """),
                 {
@@ -63,16 +119,22 @@ def reconcile_source_snapshot(connection: Connection, run_id: UUID, sources) -> 
                     "source_name": source.source_name,
                     "source_records": source.source_records if source.source_records is not None else len(source.frame),
                     "detail": skip_reason,
+                    "mode": mode,
+                    "scope": scope,
+                    "snapshot_at": snapshot_at,
+                    "completeness": completeness,
                 },
             )
-            summaries.append({
-                "source_name": source.source_name,
-                "status": "SKIPPED",
-                "reason": skip_reason,
-                "source_records": source.source_records if source.source_records is not None else len(source.frame),
-                "observed_business_keys": 0,
-                "deactivated_records": 0,
-            })
+            summaries.append(
+                {
+                    "source_name": source.source_name,
+                    "status": "SKIPPED",
+                    "reason": skip_reason,
+                    "source_records": source.source_records if source.source_records is not None else len(source.frame),
+                    "observed_business_keys": 0,
+                    "deactivated_records": 0,
+                }
+            )
             continue
 
         source_name = source.source_name
@@ -101,15 +163,20 @@ def reconcile_source_snapshot(connection: Connection, run_id: UUID, sources) -> 
             text("""
                 INSERT INTO audit.source_reconciliations
                     (run_id, source_name, status, source_records,
-                     observed_business_keys, deactivated_records, detail)
+                     observed_business_keys, deactivated_records, detail, ingestion_mode,
+                     snapshot_scope, snapshot_timestamp, snapshot_completeness)
                 VALUES (:run_id, :source_name, :status, :source_records,
-                        :observed, :deactivated, NULL)
+                        :observed, :deactivated, NULL, :mode, :scope, :snapshot_at, :completeness)
                 ON CONFLICT (run_id, source_name) DO UPDATE SET
                     status = EXCLUDED.status,
                     source_records = EXCLUDED.source_records,
                     observed_business_keys = EXCLUDED.observed_business_keys,
                     deactivated_records = EXCLUDED.deactivated_records,
                     detail = EXCLUDED.detail,
+                    ingestion_mode = EXCLUDED.ingestion_mode,
+                    snapshot_scope = EXCLUDED.snapshot_scope,
+                    snapshot_timestamp = EXCLUDED.snapshot_timestamp,
+                    snapshot_completeness = EXCLUDED.snapshot_completeness,
                     reconciled_at = CURRENT_TIMESTAMP
             """),
             {
@@ -119,15 +186,21 @@ def reconcile_source_snapshot(connection: Connection, run_id: UUID, sources) -> 
                 "source_records": source.source_records if source.source_records is not None else len(source.frame),
                 "observed": len(keys),
                 "deactivated": deactivated,
+                "mode": mode,
+                "scope": scope,
+                "snapshot_at": snapshot_at,
+                "completeness": completeness,
             },
         )
-        summaries.append({
-            "source_name": source_name,
-            "status": status,
-            "source_records": source.source_records if source.source_records is not None else len(source.frame),
-            "observed_business_keys": len(keys),
-            "deactivated_records": deactivated,
-        })
+        summaries.append(
+            {
+                "source_name": source_name,
+                "status": status,
+                "source_records": source.source_records if source.source_records is not None else len(source.frame),
+                "observed_business_keys": len(keys),
+                "deactivated_records": deactivated,
+            }
+        )
     return summaries
 
 

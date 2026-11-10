@@ -139,18 +139,20 @@ Product Master menjadi sumber kebenaran untuk SKU, nama canonical, brand, katego
 
 ### 2.7 Baseline data contoh
 
-File `data/processed/summary.csv` mencatat hasil validasi baseline berikut:
+Generator `scripts/generate_sample_data.py` membuat dataset demo yang deterministik dan bervariasi. Setiap kanal berisi 100 baris transaksi; tiap order memiliki 1–5 baris item. Nama pelanggan, kota, metode pembayaran, tanggal, dan variasi penulisan nama produk dibuat lebih beragam. Dataset tidak membuat duplikat business key; setiap kanal memiliki satu kasus kualitas terkendali agar jalur penolakan tetap dapat didemonstrasikan.
+
+Baseline hasil generator adalah:
 
 | Source | Baris awal | Bersih/valid | Duplikat | Ditolak |
 | --- | ---: | ---: | ---: | ---: |
 | Product Master | 20 | 20 | 0 | 0 |
-| Shopee | 100 | 45 | 45 | 10 |
-| Tokopedia | 100 | 45 | 45 | 10 |
-| Website | 100 | 46 | 46 | 8 |
-| Offline Store | 100 | 86 | 5 | 9 |
-| **Total transaksi** | **400** | **222** | **141** | **37** |
+| Shopee | 100 | 99 | 0 | 1 |
+| Tokopedia | 100 | 99 | 0 | 1 |
+| Website | 100 | 99 | 0 | 1 |
+| Offline Store | 100 | 99 | 0 | 1 |
+| **Total transaksi** | **400** | **396** | **0** | **4** |
 
-Angka tersebut adalah baseline file contoh, bukan jumlah isi database pada setiap waktu. Jumlah database dapat bertambah setelah upload dan run berikutnya.
+Dataset promo dan retur juga dihasilkan untuk mendukung demonstrasi relasi antar-sumber. Seluruh nama dan kontak pelanggan bersifat sintetis (`@example.test`), bukan data pelanggan nyata. Angka ini adalah baseline file contoh, bukan jumlah isi database pada setiap waktu. Jumlah database dapat berubah setelah pipeline dijalankan dan snapshot sumber direkonsiliasi.
 
 ---
 
@@ -178,7 +180,7 @@ File sumber diagram yang dapat diedit menggunakan Draw.io tersedia pada `docs/di
 | Warehouse validation | Task Airflow memeriksa konsistensi fact, business key, dan analytics view setelah loading. | Warehouse terverifikasi sebelum laporan terjadwal dikirim. |
 | Publish | View SQL dan Flask menjalankan agregasi di PostgreSQL. | KPI, grafik, filter, tabel transaksi, dan export. |
 
-Stage yang dicatat oleh runner meliputi `snapshot_lookup`, `source_scan`, `incremental_extract`, `raw_load`, `validate`, `fact_lookup`, `incremental_filter`, `transform`, `staging_load`, `dimension_load`, dan `fact_load`. Pada eksekusi terjadwal, Airflow melanjutkan proses dengan validasi warehouse dan pengiriman email. Run tanpa perubahan berhenti setelah pemeriksaan incremental Raw dan tidak menjalankan downstream stage.
+Stage yang dicatat oleh runner meliputi `snapshot_lookup`, `source_manifest`, `source_scan`, `incremental_extract`, `raw_load`, `validate`, `fact_lookup`, `incremental_filter`, `transform`, `staging_load`, `dimension_load`, `fact_load`, dan `source_reconciliation`. Pada eksekusi terjadwal, Airflow melanjutkan proses dengan validasi warehouse dan pengiriman email. Run tanpa perubahan tetap menjalankan rekonsiliasi bila manifest menyatakan snapshot lengkap.
 
 ---
 
@@ -194,6 +196,8 @@ Pipeline dapat dijalankan melalui:
 - upload CSV Dashboard: `/api/ingestion/upload`, dilindungi `DASHBOARD_ADMIN_TOKEN`.
 
 Setiap file diperiksa kontrak header-nya. Pipeline menghitung checksum SHA-256 file dan hash payload per baris. Metadata ingestion disimpan di `audit.source_ingestions`, sedangkan nilai sumber disimpan pada tabel Raw yang sesuai.
+
+Secara default, CSV kanal diperlakukan sebagai `INCREMENTAL_BATCH`; hilangnya baris dari batch tidak menonaktifkan fact. Rekonsiliasi penuh harus diaktifkan secara eksplisit melalui `data/source/source_manifest.json` dengan `ingestion_mode=FULL_SNAPSHOT`, `snapshot_scope=ALL_HISTORY`, `snapshot_completeness=COMPLETE`, dan waktu ISO-8601 berzona waktu. Snapshot kosong yang valid tetap dapat menonaktifkan semua fact aktif dalam source tersebut secara soft, termasuk pada run tanpa data baru. File hilang, rusak, atau key invalid tidak memicu penghapusan.
 
 ![Alur ingestion dari jalur eksekusi hingga Raw Layer](images/ingestion-process.png)
 
@@ -452,7 +456,7 @@ Kamus data lengkap berada pada `docs/data_dictionary.md`. Ringkasan field inti d
 | `pipeline_stage_runs` | Satu stage pada satu run | Stage, status, durasi, records processed, error. |
 | `source_ingestions` | Satu source pada satu run | File, path, checksum, format, extracted records. |
 | `source_snapshots` | Snapshot terakhir per source | File checksum, payload hashes, source records, run ID. |
-| `source_reconciliations` | Satu source pada satu run | Kelengkapan snapshot, jumlah key teramati, status rekonsiliasi, dan baris yang dinonaktifkan. |
+| `source_reconciliations` | Satu source pada satu run | Mode ingestion, scope/waktu/kelengkapan snapshot, jumlah key teramati, status rekonsiliasi, dan baris yang dinonaktifkan. |
 | `pipeline_watermarks` | Satu source per pipeline | Run sukses terakhir, waktu proses, business key. |
 | `data_quality_results` | Satu rule/source/run | Severity, failed records, details. |
 | `rejected_records` | Satu record ditolak | Source, order, row, reason, payload. |
@@ -527,9 +531,9 @@ Penanganan record:
 
 ### 9.3 Rekonsiliasi baris yang hilang dari sumber
 
-CSV kanal diperlakukan sebagai **snapshot lengkap**. Saat checksum file berubah, pipeline memindai seluruh file dan membandingkan business key `(source_name, source_order_id, source_line_number)` dengan fact aktif. Baris yang tidak lagi ada pada snapshot ditandai `is_source_active = FALSE`; fact tidak dihapus sehingga histori dan foreign key retur tetap terjaga. View Warehouse dan Dashboard hanya menyajikan fact aktif.
+Tanpa deklarasi, CSV kanal diperlakukan sebagai **INCREMENTAL_BATCH**. Rekonsiliasi penuh hanya dilakukan bila `source_manifest.json` secara eksplisit menyatakan `FULL_SNAPSHOT`, scope `ALL_HISTORY`, timestamp berzona waktu, dan completeness `COMPLETE`. Saat dijalankan, pipeline memindai seluruh file dan membandingkan business key `(source_name, source_order_id, source_line_number)` dengan fact aktif. Baris yang tidak lagi ada ditandai `is_source_active = FALSE`; fact tidak dihapus sehingga histori dan foreign key retur tetap terjaga. View Warehouse dan Dashboard hanya menyajikan fact aktif.
 
-Rekonsiliasi hanya dilakukan jika seluruh file berhasil dibaca dan business key dapat ditentukan untuk setiap baris. Jika snapshot tidak lengkap atau ada baris dengan order/nomor item yang tidak dapat dikenali, rekonsiliasi sumber tersebut dilewati dengan status `SKIPPED`; data lama tidak dinonaktifkan secara spekulatif. Status, jumlah key, dan jumlah fact yang dinonaktifkan disimpan di `audit.source_reconciliations` serta ringkasan run.
+Rekonsiliasi hanya dilakukan jika deklarasi lengkap, file berhasil dibaca, dan business key dapat ditentukan untuk setiap baris. Batch, file hilang/rusak, atau key yang tidak dapat dikenali tidak mengakibatkan mass deactivation. Snapshot kosong dengan header valid tetap diproses, termasuk pada jalur no-op. Status, metadata deklarasi, jumlah key, dan jumlah fact yang dinonaktifkan disimpan di `audit.source_reconciliations` serta ringkasan run.
 
 **Catatan operasional:** mekanisme ini aman untuk file yang memang merupakan snapshot lengkap. Jangan gunakan rekonsiliasi ini pada file delta/harian yang hanya berisi transaksi baru; file delta harus digabungkan menjadi snapshot penuh terlebih dahulu.
 
@@ -618,24 +622,35 @@ Jika SMTP gagal, `send_pipeline_report` mengembalikan `False`; wrapper Airflow k
 
 | View | Output utama |
 | --- | --- |
-| `warehouse.v_sales_detail` | Detail transaksi canonical beserta seluruh dimensi. |
-| `warehouse.v_sales_kpi` | Gross, net, total/completed/returned order, unit, return rate, AOV. |
+| `warehouse.v_sales_detail` | Detail transaksi canonical, dimensi, unit retur yang disetujui/diproses, dan refund yang diproses. |
+| `warehouse.v_sales_kpi` | Gross Order Value lintas status, realized sales, net setelah diskon/refund, order/line/unit return rate, dan AOV. |
 | `warehouse.v_sales_monthly_kpi` | KPI per bulan. |
 | `warehouse.v_sales_channel_kpi` | KPI per channel. |
 | `warehouse.v_top_product_kpi` | Revenue, unit, dan order per produk. |
 | `warehouse.v_sales_status_kpi` | Order, unit, gross, dan net per status. |
-| `warehouse.v_return_refund_kpi` | Jumlah request/baris retur, unit retur yang disetujui/diproses, dan refund aktual per bulan dan kanal. |
+| `warehouse.v_return_refund_kpi` | Jumlah request/baris retur, unit retur yang disetujui/diproses, dan refund aktual per bulan retur dan kanal. |
 | `audit.v_data_quality_by_rule` | Temuan per rule/source/run. |
 | `audit.v_data_quality_report` | Ringkasan kualitas per source/run. |
 
 ### 12.2 Definisi KPI
 
-- **Gross sales:** seluruh `gross_amount` untuk semua status.
-- **Net sales:** `net_amount` hanya untuk status `COMPLETED`.
-- **Completed orders:** distinct `(source_name, source_order_id)` dengan status `COMPLETED`.
-- **Units sold:** quantity dari transaksi `COMPLETED`.
-- **Return rate:** returned orders ÷ seluruh orders × 100%.
-- **AOV:** net sales completed ÷ completed orders.
+- **Gross Order Value:** jumlah `gross_amount` seluruh status transaksi aktif; ukuran nilai order, bukan pendapatan terealisasi.
+- **Gross Sales Eligible:** jumlah `gross_amount` untuk status `COMPLETED` atau `RETURNED` sebelum diskon. `CANCELLED` dikecualikan; status `RETURNED` tetap menyimpan nilai sales asal.
+- **Sales After Discount:** gross eligible dikurangi `discount_amount`, sebelum refund.
+- **Net Sales After Refund:** Sales After Discount dikurangi refund dengan `refund_status='PROCESSED'`. Refund diagregasikan lebih dulu di grain sales line; status pending/gagal tidak mengurangi net.
+- **Eligible Orders / Units:** distinct `(source_name, source_order_id)` dan quantity pada baris `COMPLETED` atau `RETURNED`.
+- **Returned Units:** unit dari event `APPROVED` atau `PROCESSED` pada baris eligible. PENDING dan REJECTED tidak dihitung.
+- **Unit Return Rate:** returned units ÷ eligible units × 100%.
+- **Order Return Rate:** distinct eligible orders dengan retur ÷ seluruh eligible orders × 100%.
+- **Order-Line Return Rate:** eligible lines dengan retur ÷ seluruh eligible lines × 100%.
+- **Processed refund:** jumlah `refund_amount` hanya pada event dengan `refund_status = 'PROCESSED'`.
+- **AOV:** Net Sales After Refund ÷ Eligible Orders.
+
+Status `RETURNED` menggambarkan status penjualan asal, bukan kuantitas atau nilai refund. Data kuantitas retur dan refund berasal hanya dari `warehouse.fact_returns`, sehingga status RETURNED tidak mengurangi gross dua kali. Dashboard membentuk cohort dari tanggal order; refund yang terjadi kemudian mengurangi net pada cohort order asal. Untuk analisis periode event gunakan `warehouse.v_return_refund_kpi`.
+
+Contoh: gross Rp300.000, diskon Rp30.000, refund PROCESSED Rp100.000 menghasilkan Sales After Discount Rp270.000 dan Net Sales After Refund Rp170.000. Refund PENDING belum mengubah net. Jika 2 dari 5 unit eligible diretur, Unit Return Rate = 40%.
+
+Filter tanggal dashboard memakai tanggal order. Refund yang diproses kemudian akan mengurangi net sales pada periode order asal (cohort penjualan). Sumber retur saat ini hanya menyediakan `return_date`, belum waktu refund benar-benar diproses; karena itu `warehouse.v_return_refund_kpi` dikelompokkan menurut bulan kejadian retur, bukan tanggal pemrosesan uang. Jangan menafsirkan view tersebut sebagai laporan arus kas refund per hari.
 
 ### 12.3 Query dan output
 
@@ -651,12 +666,12 @@ ORDER BY month_start;
 -- Sales by channel
 SELECT *
 FROM warehouse.v_sales_channel_kpi
-ORDER BY net_sales_completed DESC;
+ORDER BY net_sales_after_refunds DESC;
 
 -- Top product
 SELECT *
 FROM warehouse.v_top_product_kpi
-ORDER BY net_sales_completed DESC
+ORDER BY net_sales_after_refunds DESC
 LIMIT 10;
 
 -- Sales by status
@@ -670,7 +685,7 @@ FROM warehouse.v_return_refund_kpi
 ORDER BY return_month, source_name;
 ```
 
-Hasil aktual mengikuti isi warehouse pada saat query dijalankan. Definisi SQL dapat diperiksa pada `database/schema/8_analytics_views.sql`.
+Hasil aktual mengikuti isi warehouse pada saat query dijalankan. Definisi KPI terbaru ada di `database/schema/9_return_adjusted_kpis.sql`; migrasi Alembic `20261110_16` menerapkan KPI dan `20261110_17` menambah metadata audit rekonsiliasi.
 
 ![Output SQL analytics per status](images/sql-analytics-output.png)
 
@@ -688,8 +703,11 @@ Dashboard Flask membaca `warehouse.v_sales_detail` dan menjalankan agregasi SQL 
 - Penjualan Kotor;
 - Pesanan Selesai;
 - Unit Terjual;
-- Average Order Value;
-- Tingkat Retur;
+- Diskon Pesanan Selesai;
+- Refund Diproses;
+- Unit Diretur (retur disetujui/diproses);
+- Tingkat Retur Unit;
+- Average Order Value setelah refund diproses;
 - tren Gross vs Net per bulan;
 - kontribusi penjualan per channel;
 - status pesanan;
@@ -706,7 +724,7 @@ Dashboard dapat menjawab:
 - kanal mana yang memberikan net sales terbesar;
 - produk, SKU, brand, dan kategori mana yang paling kuat;
 - berapa AOV transaksi completed;
-- berapa tingkat retur dan distribusi status order;
+- berapa unit yang diretur, nilai refund yang sudah diproses, tingkat retur unit, dan distribusi status order;
 - kota mana yang menghasilkan penjualan completed terbesar;
 - bagaimana kualitas dan status run pipeline terakhir.
 
@@ -953,10 +971,12 @@ Checksum file mempercepat deteksi source tidak berubah, payload hash menentukan 
 - grain transaksi source adalah satu baris item per order; satu order dapat mempunyai banyak item dengan nomor item yang berbeda;
 - order ID hanya unik di dalam source, sehingga source menjadi bagian business key;
 - CSV lama yang belum memiliki kolom diskon tetap diterima; nilai kosong diperlakukan sebagai `discount_amount = 0` dan tidak membuktikan bahwa sumber telah melaporkan diskon secara lengkap;
-- satu promo per order didukung pada versi ini; nilai diskon aktual wajib berasal dari sumber dan dialokasikan ke item secara proporsional, bukan dihitung dari `discount_value` pada master;
-- `COMPLETED` digunakan untuk net sales dan unit terjual;
-- gross sales mencakup semua status;
-- transaksi yang hilang dari file tidak otomatis dihapus;
+- satu promo per order didukung; kode pada diskon per item atau order dicocokkan ke master. Diskon tingkat order dialokasikan proporsional, sedangkan diskon tingkat baris tidak dialokasikan ulang. Kedua sumber nominal tidak boleh digunakan bersamaan untuk order yang sama;
+- `COMPLETED` dan `RETURNED` termasuk sales eligible; `CANCELLED` dikecualikan dari realized sales;
+- diskon mengurangi net sales, sedangkan hanya refund yang sudah `PROCESSED` mengurangi net sales;
+- order, line, dan unit return rate memakai denominator terpisah yang dijelaskan pada Bagian 12.2;
+- file tanpa deklarasi adalah batch incremental; hanya snapshot `FULL_SNAPSHOT/ALL_HISTORY/COMPLETE` menonaktifkan baris yang hilang;
+- deactivation bersifat soft dan baris yang muncul kembali diaktifkan kembali oleh upsert;
 - late-arriving transaction tetap memakai tanggal bisnis transaksinya;
 - field customer/payment boleh nullable bila source tidak menyediakan;
 - data CSV repository adalah data simulasi, bukan transaksi atau harga resmi perusahaan.
@@ -980,7 +1000,7 @@ Tabel berikut memetakan kriteria yang diberikan ke implementasi dan evidence rep
 | 9 | Incremental dan duplicate prevention | Checksum, snapshot, payload hash, business key, record hash | Bagian 9; `audit.source_snapshots`; incremental tests |
 | 10 | Logging dan monitoring | Run/stage audit, metrics, error, logs, scripts | Bagian 10; `audit.pipeline_runs`; `pipeline/logger.py`; `scripts/monitor_pipeline.py` |
 | 11 | Airflow orchestration | DAG harian 13.00 WIB, dependency, retry, failure | Bagian 11; `airflow/orchestration.py` |
-| 12 | SQL analytics | KPI, month, channel, product, status views | Bagian 12; `database/schema/8_analytics_views.sql` |
+| 12 | SQL analytics | KPI gross/net pasca-refund, return rate unit, serta view per bulan/kanal/produk/status | Bagian 12; `database/schema/9_return_adjusted_kpis.sql` |
 | 13 | Dashboard analytics | KPI, charts, filters, transaction detail, audit | Bagian 13; `dashboard/`; `docs/images/` |
 | 14 | Testing dan validation | Unit, integration, SQL, contract, browser, CI | Bagian 14; `tests/`; `.github/workflows/ci.yml` |
 | 15 | Technical stack | Python, PostgreSQL, Airflow, Docker, Flask, JS | Bagian 15; `requirements.txt`; `docker-compose.yml` |

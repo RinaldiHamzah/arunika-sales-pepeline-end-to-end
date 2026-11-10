@@ -51,16 +51,16 @@ View berikut adalah objek baca saja. View tidak ditampilkan sebagai tabel pada E
 
 | View | Sumber data utama | Kegunaan |
 | --- | --- | --- |
-| `warehouse.v_sales_detail` | `fact_sales` dan seluruh dimensi terkait | Dataset transaksi canonical untuk dashboard, filter, tabel rincian transaksi, dan ekspor CSV. |
-| `warehouse.v_sales_by_month` | `fact_sales`, `dim_date` | Agregasi penjualan, unit, dan nilai gross/net per bulan serta status. |
-| `warehouse.v_sales_by_channel` | `fact_sales`, `dim_channel` | Agregasi penjualan per kanal dan status. |
-| `warehouse.v_sales_by_product` | `fact_sales`, `dim_product` | Agregasi penjualan per produk, brand, kategori, dan status. |
-| `warehouse.v_sales_kpi` | `fact_sales` | KPI keseluruhan: gross sales, net sales, completed order, returned order, unit terjual, return rate, dan AOV. |
-| `warehouse.v_sales_monthly_kpi` | `fact_sales`, `dim_date` | KPI utama yang dikelompokkan per bulan. |
-| `warehouse.v_sales_channel_kpi` | `fact_sales`, `dim_channel` | KPI utama yang dikelompokkan per kanal penjualan. |
-| `warehouse.v_top_product_kpi` | `fact_sales`, `dim_product` | Dasar analisis produk teratas berdasarkan penjualan dan unit order COMPLETED. |
-| `warehouse.v_sales_status_kpi` | `fact_sales` | Jumlah order, unit, gross sales, dan net sales per status transaksi. |
-| `warehouse.v_return_refund_kpi` | `fact_returns` | Jumlah return request dan baris retur, unit retur yang disetujui/diproses, serta nilai refund yang sudah diproses per bulan dan kanal. Tidak mengganti KPI penjualan yang sudah ada. |
+| `warehouse.v_sales_detail` | `fact_sales`, `fact_returns`, dan seluruh dimensi terkait | Dataset transaksi untuk dashboard dan ekspor; menampilkan unit retur disetujui/diproses serta refund PROCESSED per baris penjualan. |
+| `warehouse.v_sales_by_month` | `fact_sales`, `fact_returns`, `dim_date` | Penjualan per bulan/status, termasuk return unit, refund, dan net order selesai setelah refund. |
+| `warehouse.v_sales_by_channel` | `fact_sales`, `fact_returns`, `dim_channel` | Penjualan per kanal/status beserta retur dan refund. |
+| `warehouse.v_sales_by_product` | `fact_sales`, `fact_returns`, `dim_product` | Penjualan per produk, brand, kategori, beserta retur dan refund. |
+| `warehouse.v_sales_kpi` | `fact_sales`, `fact_returns` | KPI gross/net order selesai, diskon, unit, return rate berbasis unit, refund diproses, dan AOV. |
+| `warehouse.v_sales_monthly_kpi` | `fact_sales`, `fact_returns`, `dim_date` | KPI cohort order per bulan, termasuk net setelah refund dan unit return rate. |
+| `warehouse.v_sales_channel_kpi` | `fact_sales`, `fact_returns`, `dim_channel` | KPI per kanal, termasuk net setelah refund dan unit return rate. |
+| `warehouse.v_top_product_kpi` | `fact_sales`, `fact_returns`, `dim_product` | Dasar analisis produk berdasarkan net setelah refund, unit terjual, retur, dan refund. |
+| `warehouse.v_sales_status_kpi` | `fact_sales`, `fact_returns` | Order, unit, gross/net, retur, dan refund per status transaksi. |
+| `warehouse.v_return_refund_kpi` | `fact_returns` | Jumlah event retur, unit retur disetujui/diproses, dan refund PROCESSED menurut bulan retur dan kanal. |
 | `warehouse.v_pipeline_quality` | `audit.pipeline_runs`, `audit.data_quality_results` | Ringkasan kualitas dan metrik setiap eksekusi pipeline. |
 | `audit.v_data_quality_by_rule` | `audit.pipeline_runs`, `audit.data_quality_results` | Bukti quality check per run, source, dan aturan validasi. |
 | `audit.v_data_quality_report` | `audit.pipeline_runs`, `audit.data_quality_results` | Laporan kualitas per run dan source: missing value, duplicate, invalid value, invalid date, status, serta product mapping. |

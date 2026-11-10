@@ -16,10 +16,7 @@ RAW_TABLES = {
 
 
 def _raw_record_ids(connection: Connection, run_id: UUID, rows) -> dict[tuple[str, int], int]:
-    requested = {
-        (row["source_name"], int(row["source_row_number"]))
-        for row in rows
-    }
+    requested = {(row["source_name"], int(row["source_row_number"])) for row in rows}
     records = {}
     for source_name, table in RAW_TABLES.items():
         rows = connection.execute(
@@ -35,16 +32,20 @@ def _raw_record_ids(connection: Connection, run_id: UUID, rows) -> dict[tuple[st
         table = RAW_TABLES.get(source_name)
         if table is None:
             continue
-        row = connection.execute(
-            text(f"""
+        row = (
+            connection.execute(
+                text(f"""
                 SELECT raw_record_id
                 FROM {table}
                 WHERE source_row_number = :source_row_number
                 ORDER BY raw_record_id DESC
                 LIMIT 1
             """),
-            {"source_row_number": source_row_number},
-        ).mappings().first()
+                {"source_row_number": source_row_number},
+            )
+            .mappings()
+            .first()
+        )
         if row is not None:
             records[(source_name, source_row_number)] = row["raw_record_id"]
     return records

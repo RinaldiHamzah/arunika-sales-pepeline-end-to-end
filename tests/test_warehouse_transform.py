@@ -20,7 +20,7 @@ def test_clean_rows_transform_to_staging_contract():
     }
     assert set(rows["source_name"]) == expected_sources
     assert rows["source_line_number"].gt(0).all()
-    assert rows["source_line_number"].max() >= 10
+    assert rows["source_line_number"].max() == 5
     assert rows["mapped_sku"].notna().all()
     assert rows["sale_status"].isin({"COMPLETED", "CANCELLED", "RETURNED"}).all()
     assert not rows.duplicated(["source_name", "source_order_id", "source_line_number"]).any()

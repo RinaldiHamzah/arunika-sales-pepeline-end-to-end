@@ -91,38 +91,48 @@
             <article class="kpi-card featured">
               <span>Penjualan Bersih (Net)</span>
               <strong id="metric-sales">—</strong>
-              <small id="metric-sales-note">Total order COMPLETED</small>
+              <small id="metric-sales-note">COMPLETED/RETURNED setelah diskon dan refund diproses; cohort tanggal order</small>
               <small id="metric-sales-change">Dibanding periode sebelumnya</small>
             </article>
             <article class="kpi-card">
               <span>Penjualan Kotor (Gross)</span>
               <strong id="metric-gross">—</strong>
-              <small>Total order CANCELLED, COMPLETED, dan RETURNED</small>
+              <small>COMPLETED/RETURNED sebelum diskon; pembatalan dikecualikan</small>
             </article>
             <article class="kpi-card">
               <span>Diskon Pesanan Selesai</span>
               <strong id="metric-discount">—</strong>
-              <small>Jumlah diskon pada order COMPLETED</small>
+              <small>Jumlah diskon pada penjualan eligible</small>
             </article>
             <article class="kpi-card">
-              <span>Pesanan Selesai</span>
+              <span>Pesanan Eligible</span>
               <strong id="metric-orders">—</strong>
-              <small>Transaksi unik berstatus COMPLETED</small>
+              <small>Order COMPLETED atau RETURNED; CANCELLED dikecualikan</small>
             </article>
             <article class="kpi-card">
               <span>Unit Terjual</span>
               <strong id="metric-units">—</strong>
-              <small>Unit dari order COMPLETED</small>
+              <small>Unit dari order COMPLETED atau RETURNED</small>
             </article>
             <article class="kpi-card">
               <span>Rata-rata Nilai Pesanan (AOV)</span>
               <strong id="metric-aov">—</strong>
-              <small>Penjualan bersih per pesanan COMPLETED</small>
+              <small>Net setelah refund diproses per order eligible</small>
             </article>
             <article class="kpi-card">
-              <span>Tingkat Retur</span>
+              <span>Unit Diretur</span>
+              <strong id="metric-returned-units">—</strong>
+              <small>Retur disetujui atau diproses</small>
+            </article>
+            <article class="kpi-card">
+              <span>Tingkat Retur Unit</span>
               <strong id="metric-return-rate">—</strong>
-              <small>Order RETURNED dari seluruh order</small>
+              <small>Unit retur disetujui/diproses ÷ unit order eligible</small>
+            </article>
+            <article class="kpi-card">
+              <span>Refund Diproses</span>
+              <strong id="metric-refunds">—</strong>
+              <small>Nilai refund berstatus PROCESSED</small>
             </article>
           </div>
 

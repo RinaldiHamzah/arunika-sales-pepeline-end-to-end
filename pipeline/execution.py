@@ -2,6 +2,7 @@
 
 from contextlib import contextmanager
 from uuid import uuid4
+
 from sqlalchemy import text
 
 LOCK_KEY = 82462731

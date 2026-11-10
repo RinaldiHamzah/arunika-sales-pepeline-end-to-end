@@ -129,6 +129,11 @@ CREATE TABLE IF NOT EXISTS audit.source_reconciliations (
     reconciled_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_source_reconciliation_run UNIQUE (run_id, source_name)
 );
+ALTER TABLE audit.source_reconciliations
+    ADD COLUMN IF NOT EXISTS ingestion_mode VARCHAR(30) NOT NULL DEFAULT 'INCREMENTAL_BATCH',
+    ADD COLUMN IF NOT EXISTS snapshot_scope TEXT,
+    ADD COLUMN IF NOT EXISTS snapshot_timestamp TIMESTAMPTZ,
+    ADD COLUMN IF NOT EXISTS snapshot_completeness VARCHAR(20) NOT NULL DEFAULT 'UNKNOWN';
 CREATE INDEX IF NOT EXISTS idx_source_reconciliations_source_time
     ON audit.source_reconciliations (source_name, reconciled_at DESC);
 ALTER TABLE audit.pipeline_runs

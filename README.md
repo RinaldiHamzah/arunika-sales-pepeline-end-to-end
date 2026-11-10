@@ -280,7 +280,7 @@ data/source/promo_master.csv
 data/source/order_promotions.csv
 ```
 
-CSV transaksi dapat ditambahkan melalui dashboard atau ditempatkan langsung di folder sumber. Informasi promo dipisahkan menjadi `promo_master.csv` (aturan/katalog) dan `order_promotions.csv` (promo yang benar-benar diterapkan pada order). Format header tersedia di folder sumber. Nilai `discount_amount` harus berasal dari sumber transaksi; pipeline mengalokasikannya secara proporsional ke item order dan memeriksa bahwa totalnya tidak melebihi nilai kotor order. Nilai diskon master mendokumentasikan aturan, bukan dipakai untuk menebak diskon aktual.
+CSV transaksi dapat ditambahkan melalui dashboard atau ditempatkan langsung di folder sumber. `promo_master.csv` adalah katalog promo. Nilai penggunaan promo boleh berada di CSV kanal pada grain item, atau di `order_promotions.csv` pada grain order; pipeline memetakan kodenya ke master dan mengalokasikan diskon order secara proporsional ke item. Jangan masukkan satu diskon aktual melalui kedua jalur. Nilai master menjelaskan aturan, bukan untuk menebak potongan aktual.
 
 Data di repository hanya untuk simulasi; data tersebut bukan katalog atau harga resmi Arunika.
 
@@ -330,10 +330,14 @@ SQL dalam `database/schema/` digunakan saat volume PostgreSQL baru dibuat. Untuk
 - Grain `fact_sales` adalah satu baris item pada satu transaksi source. Satu order dapat memuat 1 hingga N item, termasuk SKU yang sama pada nomor item berbeda.
 - Business key transaksi memakai `(source_name, source_order_id, source_line_number)`. Nomor item berasal dari kolom native setiap source dan wajib integer positif; `source_record_hash` hanya mendeteksi perubahan isi. CSV contoh menyediakan pesanan 1, 2, 3, 5, dan 10 item serta pesanan acak 1–10 item.
 - Penjualan bersih dashboard adalah `net_amount` dengan status `COMPLETED` saja.
-- Penjualan kotor dashboard adalah `gross_amount` seluruh status: `CANCELLED`, `COMPLETED`, dan `RETURNED`.
+- `Gross Order Value` adalah `gross_amount` semua status; `Gross Sales Eligible` memasukkan `COMPLETED` dan `RETURNED`, tetapi mengecualikan `CANCELLED`.
+- `Sales After Discount` mengurangi diskon dari gross eligible. `Net Sales After Refund` mengurangi hanya refund berstatus `PROCESSED`, setelah refund diagregasikan pada grain sales line.
+- Unit Return Rate = unit retur `APPROVED`/`PROCESSED` ÷ unit eligible; Order Return Rate dan Order-Line Return Rate tersedia terpisah.
 - CSV lama tanpa kolom diskon tetap didukung; kolom hilang atau kosong diperlakukan sebagai diskon nol, sehingga metrik diskon hanya selengkap data yang dilaporkan sumber.
 - Pemakaian promo dicocokkan dengan `(source_name, order_id)`. Versi ini mendukung satu promo per order; nilai diskon aktual order dialokasikan proporsional ke gross tiap item dan total alokasi dijaga tetap sama dengan nilai order.
-- Transaksi yang hilang dari file source tidak dihapus otomatis dari warehouse. Koreksi dengan business key sama dan hash berbeda di-upsert.
+- Promo per baris pada CSV kanal dapat dipetakan ke `promo_master.csv`. Jangan mengirim diskon aktual yang sama sekaligus di CSV kanal dan `order_promotions.csv`.
+- Tanpa `data/source/source_manifest.json`, sumber dianggap batch incremental dan baris yang hilang tidak dinonaktifkan. Rekonsiliasi hanya berlaku untuk `FULL_SNAPSHOT`, scope `ALL_HISTORY`, timestamp berzona waktu, dan `COMPLETE`; fact hilang di-soft-deactivate, tidak dihapus.
+- Koreksi dengan business key sama dan hash berbeda di-upsert; baris nonaktif yang muncul lagi diaktifkan kembali.
 - CSV dalam repository adalah data sample/simulasi, bukan data operasional atau harga resmi.
 
 ## SQL Analytics dan Laporan Kualitas

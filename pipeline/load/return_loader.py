@@ -66,8 +66,7 @@ def _reject(connection, run_id, row_number, raw, reason) -> None:
             "run_id": str(run_id),
             "order_id": str(raw.get("order_id") or "") or None,
             "line_number": int(raw["order_line_number"])
-            if str(raw.get("order_line_number", "")).isdecimal()
-            and int(raw["order_line_number"]) <= 2147483647
+            if str(raw.get("order_line_number", "")).isdecimal() and int(raw["order_line_number"]) <= 2147483647
             else None,
             "row_number": row_number,
             "reason": reason,
@@ -117,6 +116,15 @@ def load_return_events(connection: Connection, run_id: UUID, source: ExtractedSo
     accepted = []
     pending_quantity = defaultdict(int)
     pending_refund = defaultdict(Decimal)
+    candidates.sort(
+        key=lambda item: (
+            item[0]["source_name"],
+            item[0]["source_order_id"],
+            item[0]["source_line_number"],
+            item[0]["return_id"],
+            item[0]["return_line_number"],
+        )
+    )
     for candidate, raw in candidates:
         event_key = (candidate["source_name"], candidate["return_id"], candidate["return_line_number"])
         if event_key in duplicate_keys:
@@ -126,28 +134,34 @@ def load_return_events(connection: Connection, run_id: UUID, source: ExtractedSo
             candidate["source_order_id"],
             candidate["source_line_number"],
         )
-        sale = connection.execute(
-            text("""
+        sale = (
+            connection.execute(
+                text("""
                 SELECT quantity, net_amount, sale_status
                 FROM warehouse.fact_sales
                 WHERE source_name = :source_name
                   AND source_order_id = :order_id
                   AND source_line_number = :line_number
+                FOR UPDATE
             """),
-            {
-                "source_name": line_key[0],
-                "order_id": line_key[1],
-                "line_number": line_key[2],
-            },
-        ).mappings().first()
+                {
+                    "source_name": line_key[0],
+                    "order_id": line_key[1],
+                    "line_number": line_key[2],
+                },
+            )
+            .mappings()
+            .first()
+        )
         reason = None
         if sale is None:
             reason = "Baris penjualan asal tidak ditemukan di Warehouse"
         elif sale["sale_status"] == "CANCELLED":
             reason = "Retur tidak dapat merujuk ke penjualan CANCELLED"
         else:
-            previous = connection.execute(
-                text("""
+            previous = (
+                connection.execute(
+                    text("""
                     SELECT COALESCE(SUM(quantity_returned), 0) AS quantity_returned,
                            COALESCE(SUM(refund_amount) FILTER (WHERE refund_status = 'PROCESSED'), 0) AS refunded
                     FROM warehouse.fact_returns
@@ -157,18 +171,24 @@ def load_return_events(connection: Connection, run_id: UUID, source: ExtractedSo
                       AND return_status <> 'REJECTED'
                       AND NOT (return_id = :return_id AND return_line_number = :return_line_number)
                 """),
-                {
-                    "source_name": line_key[0],
-                    "order_id": line_key[1],
-                    "line_number": line_key[2],
-                    "return_id": candidate["return_id"],
-                    "return_line_number": candidate["return_line_number"],
-                },
-            ).mappings().one()
+                    {
+                        "source_name": line_key[0],
+                        "order_id": line_key[1],
+                        "line_number": line_key[2],
+                        "return_id": candidate["return_id"],
+                        "return_line_number": candidate["return_line_number"],
+                    },
+                )
+                .mappings()
+                .one()
+            )
             prior_quantity = int(previous["quantity_returned"]) + pending_quantity[line_key]
             refund_value = candidate["refund_amount"] or Decimal("0.00")
             prior_refund = Decimal(previous["refunded"]) + pending_refund[line_key]
-            if candidate["return_status"] != "REJECTED" and prior_quantity + candidate["quantity_returned"] > sale["quantity"]:
+            if (
+                candidate["return_status"] != "REJECTED"
+                and prior_quantity + candidate["quantity_returned"] > sale["quantity"]
+            ):
                 reason = "Jumlah retur kumulatif melebihi quantity terjual"
             elif prior_refund + refund_value > sale["net_amount"]:
                 reason = "Refund kumulatif melebihi net amount baris penjualan"

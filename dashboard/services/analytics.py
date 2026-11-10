@@ -49,18 +49,35 @@ def query_dashboard_analytics(engine, start, end, channels, statuses, categories
     where, params = build_filter_clause(start, end, channels, statuses, categories, brands, products)
     usable_city = "LOWER(TRIM(COALESCE(city, ''))) NOT IN ('', 'nan', 'none', 'null', 'n/a', 'na')"
     source = f"FROM warehouse.v_sales_detail WHERE {where}"
-    completed_source = f"{source} AND status = 'COMPLETED'"
+    eligible_source = f"{source} AND is_eligible_sale"
     with engine.connect() as connection:
         metrics = (
             connection.execute(
                 text(f"""
-            SELECT COALESCE(SUM(gross_amount), 0) AS gross_sales,
-                   COALESCE(SUM(net_amount) FILTER (WHERE status = 'COMPLETED'), 0) AS net_sales,
-                   COALESCE(SUM(discount_amount) FILTER (WHERE status = 'COMPLETED'), 0) AS discount_total,
+            SELECT COALESCE(SUM(gross_amount), 0) AS gross_order_value_all_statuses,
+                   COALESCE(SUM(gross_amount) FILTER (WHERE is_eligible_sale), 0) AS gross_sales,
+                   COALESCE(SUM(net_amount) FILTER (WHERE is_eligible_sale), 0) AS sales_after_discount,
+                   COALESCE(SUM(net_amount - processed_refund_amount)
+                       FILTER (WHERE is_eligible_sale), 0) AS net_sales,
+                   COALESCE(SUM(discount_amount) FILTER (WHERE is_eligible_sale), 0) AS discount_total,
+                   COUNT(DISTINCT source_name || '|' || order_id) FILTER (WHERE is_eligible_sale) AS eligible_orders,
                    COUNT(DISTINCT source_name || '|' || order_id) FILTER (WHERE status = 'COMPLETED') AS completed_orders,
-                   COALESCE(SUM(quantity) FILTER (WHERE status = 'COMPLETED'), 0) AS completed_units,
+                   COALESCE(SUM(quantity) FILTER (WHERE is_eligible_sale), 0) AS eligible_units,
                    COUNT(DISTINCT source_name || '|' || order_id) AS total_orders,
-                   COUNT(DISTINCT source_name || '|' || order_id) FILTER (WHERE status = 'RETURNED') AS returned_orders,
+                   COUNT(DISTINCT source_name || '|' || order_id)
+                       FILTER (WHERE is_eligible_sale AND returned_units > 0) AS returned_orders,
+                   COUNT(*) FILTER (WHERE is_eligible_sale AND returned_units > 0) AS returned_order_lines,
+                   COALESCE(SUM(returned_units) FILTER (WHERE is_eligible_sale), 0) AS returned_units,
+                   COALESCE(SUM(processed_refund_amount) FILTER (WHERE is_eligible_sale), 0)
+                       AS processed_refund_amount,
+                   COALESCE(ROUND(100.0 * COUNT(DISTINCT source_name || '|' || order_id)
+                       FILTER (WHERE is_eligible_sale AND returned_units > 0)
+                       / NULLIF(COUNT(DISTINCT source_name || '|' || order_id)
+                           FILTER (WHERE is_eligible_sale), 0), 2), 0) AS order_return_rate,
+                   COALESCE(ROUND(100.0 * COUNT(*) FILTER (WHERE is_eligible_sale AND returned_units > 0)
+                       / NULLIF(COUNT(*) FILTER (WHERE is_eligible_sale), 0), 2), 0) AS line_return_rate,
+                   COALESCE(ROUND(100.0 * SUM(returned_units) FILTER (WHERE is_eligible_sale)
+                       / NULLIF(SUM(quantity) FILTER (WHERE is_eligible_sale), 0), 2), 0) AS return_rate,
                    COUNT(*) FILTER (WHERE NOT ({usable_city})) AS unresolved_city_records,
                    COUNT(*) AS total_records
             {source}
@@ -74,8 +91,9 @@ def query_dashboard_analytics(engine, start, end, channels, statuses, categories
             "month": connection.execute(
                 text(f"""
                 SELECT TO_CHAR(order_date, 'YYYY-MM') AS label,
-                       COALESCE(SUM(net_amount) FILTER (WHERE status = 'COMPLETED'), 0) AS net,
-                       COALESCE(SUM(gross_amount), 0) AS gross
+                       COALESCE(SUM(net_amount - processed_refund_amount)
+                           FILTER (WHERE is_eligible_sale), 0) AS net,
+                       COALESCE(SUM(gross_amount) FILTER (WHERE is_eligible_sale), 0) AS gross
                 {source} GROUP BY TO_CHAR(order_date, 'YYYY-MM') ORDER BY label
             """),
                 params,
@@ -84,8 +102,8 @@ def query_dashboard_analytics(engine, start, end, channels, statuses, categories
             .all(),
             "channel": connection.execute(
                 text(f"""
-                SELECT channel_name AS label, COALESCE(SUM(net_amount), 0) AS value
-                {completed_source} GROUP BY channel_name ORDER BY value DESC, label
+                SELECT channel_name AS label, COALESCE(SUM(net_amount - processed_refund_amount), 0) AS value
+                {eligible_source} GROUP BY channel_name ORDER BY value DESC, label
             """),
                 params,
             )
@@ -94,8 +112,8 @@ def query_dashboard_analytics(engine, start, end, channels, statuses, categories
             "product": connection.execute(
                 text(f"""
                 SELECT product_name AS label, COALESCE(SUM(quantity), 0) AS quantity,
-                       COALESCE(SUM(net_amount), 0) AS net_sales
-                {completed_source} GROUP BY product_name ORDER BY quantity DESC, label LIMIT 10
+                       COALESCE(SUM(net_amount - processed_refund_amount), 0) AS net_sales
+                {eligible_source} GROUP BY product_name ORDER BY quantity DESC, label LIMIT 10
             """),
                 params,
             )
@@ -103,7 +121,9 @@ def query_dashboard_analytics(engine, start, end, channels, statuses, categories
             .all(),
             "status": connection.execute(
                 text(f"""
-                SELECT status AS label, COUNT(*) AS orders, COALESCE(SUM(net_amount), 0) AS net_sales
+                SELECT status AS label, COUNT(*) AS orders,
+                       COALESCE(SUM(net_amount - processed_refund_amount)
+                           FILTER (WHERE is_eligible_sale), 0) AS net_sales
                 {source} GROUP BY status ORDER BY label
             """),
                 params,
@@ -113,8 +133,8 @@ def query_dashboard_analytics(engine, start, end, channels, statuses, categories
             "category": connection.execute(
                 text(f"""
                 SELECT COALESCE(NULLIF(TRIM(category), ''), 'Uncategorized') AS label,
-                       COALESCE(SUM(net_amount), 0) AS value
-                {completed_source}
+                       COALESCE(SUM(net_amount - processed_refund_amount), 0) AS value
+                {eligible_source}
                 GROUP BY COALESCE(NULLIF(TRIM(category), ''), 'Uncategorized') ORDER BY value DESC, label
             """),
                 params,
@@ -123,8 +143,8 @@ def query_dashboard_analytics(engine, start, end, channels, statuses, categories
             .all(),
             "city": connection.execute(
                 text(f"""
-                SELECT city AS label, COALESCE(SUM(net_amount), 0) AS value
-                {completed_source} AND {usable_city} GROUP BY city ORDER BY value DESC, label LIMIT 6
+                SELECT city AS label, COALESCE(SUM(net_amount - processed_refund_amount), 0) AS value
+                {eligible_source} AND {usable_city} GROUP BY city ORDER BY value DESC, label LIMIT 6
             """),
                 params,
             )
@@ -133,8 +153,8 @@ def query_dashboard_analytics(engine, start, end, channels, statuses, categories
             "brand": connection.execute(
                 text(f"""
                 SELECT COALESCE(NULLIF(TRIM(brand), ''), 'Unknown brand') AS label,
-                       COALESCE(SUM(net_amount), 0) AS value
-                {completed_source}
+                       COALESCE(SUM(net_amount - processed_refund_amount), 0) AS value
+                {eligible_source}
                 GROUP BY COALESCE(NULLIF(TRIM(brand), ''), 'Unknown brand') ORDER BY value DESC, label LIMIT 7
             """),
                 params,
@@ -144,8 +164,8 @@ def query_dashboard_analytics(engine, start, end, channels, statuses, categories
             "sku": connection.execute(
                 text(f"""
                 SELECT COALESCE(NULLIF(TRIM(product_id), ''), 'Unknown SKU') AS label,
-                       COALESCE(SUM(net_amount), 0) AS value
-                {completed_source}
+                       COALESCE(SUM(net_amount - processed_refund_amount), 0) AS value
+                {eligible_source}
                 GROUP BY COALESCE(NULLIF(TRIM(product_id), ''), 'Unknown SKU') ORDER BY value DESC, label LIMIT 7
             """),
                 params,
@@ -157,7 +177,7 @@ def query_dashboard_analytics(engine, start, end, channels, statuses, categories
                 SELECT promo_code AS label,
                        COALESCE(SUM(discount_amount), 0) AS value,
                        COUNT(DISTINCT source_name || '|' || order_id) AS orders
-                {completed_source} AND promo_code IS NOT NULL AND TRIM(promo_code) <> ''
+                {eligible_source} AND promo_code IS NOT NULL AND TRIM(promo_code) <> ''
                 GROUP BY promo_code ORDER BY value DESC, label LIMIT 10
             """),
                 params,
@@ -171,14 +191,14 @@ def query_dashboard_analytics(engine, start, end, channels, statuses, categories
 def query_dashboard_data(engine, start, end, channels, statuses, categories, brands=None, products=None):
     """Ambil baris rincian, pilihan filter, dan data pemantauan pipeline."""
     where, params = build_filter_clause(start, end, channels, statuses, categories, brands, products)
-    completed_where = " AND ".join([where, "status = 'COMPLETED'"])
+    eligible_where = " AND ".join([where, "is_eligible_sale"])
     with engine.begin() as connection:
         detail = (
             connection.execute(
                 text(f"""
             SELECT sales_key, source_name, order_id, order_date, product_id, product_name,
                    category, brand, channel_name, status, city, quantity, gross_amount,
-                   discount_amount, net_amount, promo_code
+                   discount_amount, net_amount, returned_units, processed_refund_amount, promo_code
             FROM warehouse.v_sales_detail WHERE {where} ORDER BY order_date DESC, sales_key DESC
         """),
                 params,
@@ -223,7 +243,7 @@ def query_dashboard_data(engine, start, end, channels, statuses, categories, bra
             .mappings()
             .all()
         )
-        previous = _previous_period(connection, params, completed_where, start, end)
+        previous = _previous_period(connection, params, eligible_where, start, end)
         stages = []
         if latest:
             stages = (
@@ -250,7 +270,7 @@ def query_dashboard_data(engine, start, end, channels, statuses, categories, bra
     )
 
 
-def _previous_period(connection, params, completed_where, start, end):
+def _previous_period(connection, params, eligible_where, start, end):
     """Hitung rentang tanggal sebelumnya yang sebanding tanpa menggagalkan permintaan."""
     try:
         current_start, current_end = date.fromisoformat(start), date.fromisoformat(end)
@@ -261,10 +281,10 @@ def _previous_period(connection, params, completed_where, start, end):
         return (
             connection.execute(
                 text(f"""
-            SELECT COALESCE(SUM(net_amount), 0) AS net_sales,
+            SELECT COALESCE(SUM(net_amount - processed_refund_amount), 0) AS net_sales,
                    COALESCE(SUM(gross_amount), 0) AS gross_sales,
                    COUNT(DISTINCT source_name || '|' || order_id) AS orders
-            FROM warehouse.v_sales_detail WHERE {completed_where}
+            FROM warehouse.v_sales_detail WHERE {eligible_where}
         """),
                 previous_params,
             )

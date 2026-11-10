@@ -26,7 +26,7 @@ flowchart LR
     M[Airflow / UI / CLI] --> B
 ```
 
-Dashboard menggunakan `warehouse.v_sales_detail` untuk menyajikan data sesuai filter. PostgreSQL menghitung KPI dan grafik melalui agregasi SQL. View KPI tanpa filter (`v_sales_kpi`, `v_sales_monthly_kpi`, `v_sales_channel_kpi`, `v_top_product_kpi`, dan `v_sales_status_kpi`) juga tersedia untuk pemeriksaan dan kebutuhan BI.
+Dashboard menggunakan `warehouse.v_sales_detail` untuk menyajikan data sesuai filter. View mengagregasikan retur/refund terlebih dahulu pada grain baris penjualan, sehingga beberapa event tidak menggandakan nilai sales. KPI cohort order memasukkan status `COMPLETED` dan `RETURNED`, mengecualikan `CANCELLED`, dan membedakan gross sebelum diskon, sales setelah diskon, net setelah refund diproses, serta order/line/unit return rate.
 
 `raw.*` menjadi tempat penyimpanan awal. Setiap baris baru atau berubah disimpan terlebih dahulu tanpa mengubah nilai dari sumbernya. Baris yang tidak lolos validasi tetap dapat ditelusuri di raw dan tabel audit, tetapi tidak diteruskan ke staging atau fact.
 
@@ -40,7 +40,7 @@ Dashboard menggunakan `warehouse.v_sales_detail` untuk menyajikan data sesuai fi
 | --- | --- | --- | --- |
 | Extract | CSV source | frame source, checksum, nomor baris | checksum SHA-256, `source_row_number`, dan ID item asli |
 | Incremental | frame source + snapshot sukses terakhir | hanya payload baru/berubah | `audit.source_snapshots.payload_hashes` |
-| Rekonsiliasi | snapshot CSV lengkap + fact aktif | fact yang hilang ditandai tidak aktif, bukan dihapus | `audit.source_reconciliations`, `fact_sales.is_source_active` |
+| Rekonsiliasi | snapshot yang dideklarasikan lengkap + fact aktif | hanya FULL_SNAPSHOT/ALL_HISTORY/COMPLETE yang boleh menonaktifkan fact; batch default aman | `source_manifest.json`, `audit.source_reconciliations`, `fact_sales.is_source_active` |
 | Raw load | payload source asli | `raw.*` | `ingestion_run_id`, file, baris, JSON payload |
 | Validation | raw-equivalent delta | valid, duplicate, rejected | rule, severity, alasan, payload rejected |
 | Transform | record valid | schema canonical | tanggal typed, SKU mapped, customer natural key |
@@ -64,7 +64,7 @@ Biaya lookup ini mengikuti jumlah kandidat valid pada run saat ini, bukan jumlah
 6. Email pelanggan atau kombinasi nama dan kota digunakan untuk membentuk natural key pelanggan pada dimensi.
 7. Baris yang lolos validasi dimuat ke `staging.stg_sales`. Pipeline kemudian menentukan surrogate key dimensi dan memuat atau memperbarui fact berdasarkan business key dan hash.
 
-Informasi promosi berasal dari dua file pendamping: `promo_master.csv` berisi aturan dan periode kode promo, sedangkan `order_promotions.csv` mencatat kode serta nilai diskon aktual per kombinasi kanal dan order. Pipeline memeriksa kode, periode, order, dan batas nilai diskon, lalu membagi diskon order secara proporsional ke baris item. Nilai aturan persentase/fixed pada master tidak dipakai untuk merekonstruksi potongan aktual.
+`promo_master.csv` adalah katalog kode dan periode promo. Diskon aktual dapat disediakan per baris pada CSV kanal, atau per order di `order_promotions.csv`; penggunaan per baris dicocokkan ke master, sedangkan nilai tingkat order dialokasikan secara proporsional ke item. Kedua sumber nilai tidak boleh mengisi diskon bersamaan pada order yang sama. Pipeline tidak menebak nominal aktual dari aturan di master.
 
 ## Incremental loading
 
@@ -75,12 +75,13 @@ Payload identik                 → dilewati sebelum validasi dan raw load
 Payload baru                    → raw → validation → staging → warehouse
 Business key sama, hash berubah → koreksi/upsert warehouse
 Business key dan hash sama      → tidak menulis fact ulang
-Baris hilang dari source        → tidak dihapus otomatis
+Baris hilang dari batch         → tidak menonaktifkan fact
+Baris hilang dari FULL snapshot → soft-deactivate dan audit
 ```
 
 Perubahan pada file promo memicu pemindaian ulang kanal agar perubahan atau penghapusan penerapan promo pada order yang sudah ada dapat menjadi koreksi fact.
 
-Jika seluruh payload pada semua source, termasuk Product Master, identik, run ditutup dengan status `SUCCESS` segera setelah `snapshot_lookup`, `source_scan`, dan `incremental_extract`. Pada jalur ini tidak ada stage `raw_load`, `validate`, `transform`, `staging_load`, `dimension_load`, atau `fact_load`; laporan run mencatat seluruh metrik pemrosesan sebagai `0` dan menjelaskan bahwa tidak ada data baru atau perubahan.
+Jika seluruh payload identik, downstream load dilewati. Deklarasi FULL snapshot tetap direkonsiliasi, termasuk snapshot kosong yang valid; INCREMENTAL_BATCH dicatat `SKIPPED`. Dengan demikian, jalur no-op tidak melewatkan perubahan keanggotaan snapshot.
 
 Business key fact adalah:
 

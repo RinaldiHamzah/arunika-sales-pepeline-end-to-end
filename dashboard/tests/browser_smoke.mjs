@@ -18,7 +18,14 @@ const examples = [{ label: 'Wardah', value: 31383000, orders: 40 }];
 const fixture = {
   filters: { start: '2026-01-01', end: '2026-09-20' },
   options: { channels: ['Shopee', 'Tokopedia'], statuses: ['COMPLETED'], categories: ['Skincare'], brands: ['Wardah'], products: ['WRD-SKC-001'] },
-  metrics: { net_sales: 31383000, gross_sales: 32383000, orders: 241, units: 374, average_order_value: 130220, return_rate: 17.4 },
+  metrics: {
+    net_sales: 31383000, gross_sales: 32383000, orders: 241, units: 374,
+    eligible_orders: 241, completed_orders: 240, sales_after_discount: 32383000,
+    discount_total: 1000000, average_order_value: 130220, returned_orders: 7,
+    returned_order_lines: 8, order_return_rate: 2.9, line_return_rate: 2.1,
+    returned_units: 8,
+    processed_refund_amount: 50000, return_rate: 2.1,
+  },
   charts: {
     month: [{ label: '2026-08', net: 1000000, gross: 1200000 }, { label: '2026-09', net: 2000000, gross: 2500000 }],
     channel: examples, brand: examples, category: examples, sku: examples, status: examples,
@@ -29,7 +36,8 @@ const fixture = {
   rows: Array.from({ length: 61 }, (_, i) => ({
     order_id: 'ORDER-' + i, order_date: '2026-09-20', channel_name: 'Shopee',
     product_name: 'Wardah UV Shield Aqua Fresh Essence SPF 50 PA++++ 30ml',
-    category: 'Skincare', status: 'COMPLETED', quantity: 2, net_amount: 137800,
+    category: 'Skincare', status: 'COMPLETED', quantity: 2, returned_units: 1,
+    processed_refund_amount: 5000, net_amount: 137800,
   })),
 };
 let fail = false;
@@ -170,6 +178,7 @@ try {
   });
   await send('Page.navigate', { url: origin });
   await until("document.getElementById('metric-orders')?.textContent === '241'");
+  await until("document.getElementById('metric-returned-units')?.textContent === '8'");
   console.log('Initial render ready');
   assert.equal(await evaluate("document.querySelectorAll('.chart-data').length"), 6);
   for (const width of [320, 375, 640, 768, 1024, 1440]) {
@@ -188,6 +197,7 @@ try {
     if (width <= 640) {
       assert.equal(await evaluate("getComputedStyle(document.querySelector('#transaction-rows tr')).display"), 'block');
       assert.equal(await evaluate("document.querySelector('#transaction-rows td').dataset.label"), 'Tanggal');
+      assert.equal(await evaluate("document.querySelectorAll('#transaction-rows tr:first-child td').length"), 12);
     }
   }
   await evaluate("location.hash='overview'; document.getElementById('tab-summary').focus(); document.getElementById('tab-summary').dispatchEvent(new KeyboardEvent('keydown', {key:'ArrowRight', bubbles:true}))");

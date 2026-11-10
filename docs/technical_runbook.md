@@ -43,19 +43,35 @@ Tabel utama adalah `audit.pipeline_runs`.
 
 Jika status run `SUCCESS` dan `extracted_records = 0`, tidak ada data baru atau perubahan pada sumber. Ini hasil normal; data lama tidak diproses ulang.
 
-Pada kondisi tersebut, runner berhenti setelah membandingkan snapshot. Tahap staging dan warehouse dilewati. Audit tetap mencatat status `SUCCESS`, jumlah baris yang dilewati, dan alasan data tidak diproses kembali.
+Pada kondisi tersebut, tahap validasi dan load staging/warehouse dilewati. Rekonsiliasi tetap dilakukan hanya untuk source yang dideklarasikan sebagai snapshot penuh yang lengkap; batch dicatat sebagai `SKIPPED`.
 
 Saat isi CSV kanal berubah, periksa hasil rekonsiliasi dengan query berikut:
 
 ```sql
-SELECT run_id, source_name, status, source_records,
+SELECT run_id, source_name, status, ingestion_mode, snapshot_scope,
+       snapshot_timestamp, snapshot_completeness, source_records,
        observed_business_keys, deactivated_records, detail, reconciled_at
 FROM audit.source_reconciliations
 ORDER BY reconciled_at DESC
 LIMIT 20;
 ```
 
-`SUCCESS` berarti snapshot lengkap berhasil dicocokkan. Fact yang tidak lagi ada ditandai tidak aktif dan tidak ditampilkan di analytics; record tetap tersimpan untuk audit. `SKIPPED` berarti sistem tidak memiliki key lengkap yang cukup untuk menyimpulkan bahwa record benar-benar hilang. File kanal harus merupakan snapshot lengkap, bukan hanya delta harian.
+Tanpa file `data/source/source_manifest.json`, semua kanal dianggap `INCREMENTAL_BATCH`; record yang tidak ada pada batch tidak dinonaktifkan. Untuk mengaktifkan rekonsiliasi, deklarasikan kanal sebagai `FULL_SNAPSHOT` dengan scope `ALL_HISTORY`, timestamp ISO-8601 berzona waktu, dan completeness `COMPLETE`. `SUCCESS` berarti snapshot itu berhasil dibandingkan. Fact yang hilang menjadi tidak aktif tetapi tetap tersimpan. Snapshot CSV yang hilang, rusak, key tidak valid, atau metadata parsial tidak boleh menonaktifkan fact.
+
+Contoh deklarasi lengkap:
+
+```json
+{
+  "sources": {
+    "WEBSITE": {
+      "ingestion_mode": "FULL_SNAPSHOT",
+      "snapshot_scope": "ALL_HISTORY",
+      "snapshot_timestamp": "2026-11-10T09:00:00+07:00",
+      "snapshot_completeness": "COMPLETE"
+    }
+  }
+}
+```
 
 Lihat tahap detail pada `audit.pipeline_stage_runs`. Log lokal berada di `logs/pipeline.log` dan `logs/dashboard.log`.
 

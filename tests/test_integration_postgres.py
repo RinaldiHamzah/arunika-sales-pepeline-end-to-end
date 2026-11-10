@@ -1,6 +1,7 @@
 """Tes integrasi basis data PostgreSQL."""
 
 import csv
+import json
 import os
 import shutil
 import tempfile
@@ -112,6 +113,18 @@ def _website_order_lines(source_dir, order_id, count, changed_line=None):
         writer.writerows(rows)
 
 
+def _declare_website_snapshot(source_dir, *, mode, completeness, timestamp="2026-11-10T00:00:00+07:00"):
+    manifest_path = Path(source_dir) / "source_manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["sources"]["WEBSITE"] = {
+        "ingestion_mode": mode,
+        "snapshot_scope": "ALL_HISTORY" if mode == "FULL_SNAPSHOT" else None,
+        "snapshot_timestamp": timestamp if mode == "FULL_SNAPSHOT" else None,
+        "snapshot_completeness": completeness,
+    }
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+
 @pytest.mark.skipif(
     not _enabled(),
     reason="run against the isolated ecommerce_sales_test database via the test compose profile",
@@ -125,6 +138,22 @@ def test_full_pipeline_and_incremental_acceptance():
     source_dir.mkdir()
     for name in ("product.csv", "shopee.csv", "tokopedia.csv", "website.csv", "offline.csv", "returns.csv"):
         shutil.copy2(ROOT / "data" / "source" / name, source_dir / name)
+    (source_dir / "source_manifest.json").write_text(
+        json.dumps(
+            {
+                "sources": {
+                    source: {
+                        "ingestion_mode": "FULL_SNAPSHOT",
+                        "snapshot_scope": "ALL_HISTORY",
+                        "snapshot_timestamp": "2026-11-10T00:00:00+07:00",
+                        "snapshot_completeness": "COMPLETE",
+                    }
+                    for source in ("SHOPEE", "TOKOPEDIA", "WEBSITE", "OFFLINE_STORE")
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
     engine = get_engine()
     _reset_isolated_database(engine)
     with engine.connect() as connection:
@@ -375,6 +404,74 @@ def test_full_pipeline_and_incremental_acceptance():
             {"order_id": order_id},
         ).one() == (True, 1)
 
+    # Partial batches may omit a historical line; they must never deactivate it.
+    _declare_website_snapshot(source_dir, mode="INCREMENTAL_BATCH", completeness="PARTIAL")
+    order_promotions_path = source_dir / "order_promotions.csv"
+    with order_promotions_path.open(newline="", encoding="utf-8") as stream:
+        redemptions = list(csv.DictReader(stream))
+        promo_fields = list(redemptions[0])
+    redemptions = [row for row in redemptions if row["source_name"] != "WEBSITE"]
+    with order_promotions_path.open("w", newline="", encoding="utf-8") as stream:
+        writer = csv.DictWriter(stream, fieldnames=promo_fields)
+        writer.writeheader()
+        writer.writerows(redemptions)
+    _website_order_lines(source_dir, order_id, 5)
+    batch_run = run(source_dir)
+    with engine.connect() as connection:
+        batch_line = connection.execute(
+            text(
+                "SELECT is_source_active FROM warehouse.fact_sales WHERE source_name='WEBSITE' AND source_order_id=:id AND source_line_number=6"
+            ),
+            {"id": order_id},
+        ).scalar_one()
+        batch_audit = connection.execute(
+            text(
+                "SELECT status, ingestion_mode, deactivated_records FROM audit.source_reconciliations WHERE run_id=:run_id AND source_name='WEBSITE'"
+            ),
+            {"run_id": batch_run},
+        ).one()
+    assert batch_line is True
+    assert tuple(batch_audit) == ("SKIPPED", "INCREMENTAL_BATCH", 0)
+
+    # A declared, complete empty snapshot is still reconciled on the no-op path.
+    website_path = source_dir / "website.csv"
+    with website_path.open(newline="", encoding="utf-8") as stream:
+        website_fields = next(csv.reader(stream))
+    with website_path.open("w", newline="", encoding="utf-8") as stream:
+        csv.writer(stream).writerow(website_fields)
+    _declare_website_snapshot(source_dir, mode="FULL_SNAPSHOT", completeness="COMPLETE")
+    empty_run = run(source_dir)
+    with engine.connect() as connection:
+        empty_audit = connection.execute(
+            text(
+                "SELECT status, source_records, observed_business_keys, deactivated_records FROM audit.source_reconciliations WHERE run_id=:run_id AND source_name='WEBSITE'"
+            ),
+            {"run_id": empty_run},
+        ).one()
+        historical_rows = connection.execute(
+            text("SELECT COUNT(*) FROM warehouse.fact_sales WHERE source_name='WEBSITE'"),
+        ).scalar_one()
+        active_rows = connection.execute(
+            text("SELECT COUNT(*) FROM warehouse.fact_sales WHERE source_name='WEBSITE' AND is_source_active"),
+        ).scalar_one()
+    assert tuple(empty_audit) == ("SUCCESS", 0, 0, historical_rows)
+    assert historical_rows > 0
+    assert active_rows == 0
+
+    shutil.copy2(ROOT / "data" / "source" / "website.csv", website_path)
+    _website_order_lines(source_dir, order_id, 6)
+    run(source_dir)
+    with engine.connect() as connection:
+        assert (
+            connection.execute(
+                text(
+                    "SELECT is_source_active FROM warehouse.fact_sales WHERE source_name='WEBSITE' AND source_order_id=:id AND source_line_number=6"
+                ),
+                {"id": order_id},
+            ).scalar_one()
+            is True
+        )
+
     with engine.connect() as connection:
         with pytest.raises(IntegrityError), connection.begin_nested():
             connection.execute(
@@ -404,10 +501,17 @@ def test_full_pipeline_and_incremental_acceptance():
         expected_kpi = (
             connection.execute(
                 text("""
-                    SELECT COALESCE(SUM(gross_amount), 0) AS gross_sales,
-                           COALESCE(SUM(net_amount) FILTER (WHERE status = 'COMPLETED'), 0) AS net_sales,
+                    SELECT COALESCE(SUM(gross_amount) FILTER (WHERE is_eligible_sale), 0) AS gross_sales,
+                           COALESCE(SUM(net_amount) FILTER (WHERE is_eligible_sale), 0) AS sales_after_discount,
+                           COALESCE(SUM(net_amount - processed_refund_amount)
+                               FILTER (WHERE is_eligible_sale), 0) AS net_sales,
                            COUNT(DISTINCT source_name || '|' || order_id)
-                               FILTER (WHERE status = 'COMPLETED') AS completed_orders
+                               FILTER (WHERE is_eligible_sale) AS eligible_orders,
+                           COALESCE(SUM(returned_units) FILTER (WHERE is_eligible_sale), 0) AS returned_units,
+                           COALESCE(SUM(processed_refund_amount)
+                               FILTER (WHERE is_eligible_sale), 0) AS processed_refund_amount,
+                           COALESCE(ROUND(100.0 * SUM(returned_units) FILTER (WHERE is_eligible_sale)
+                               / NULLIF(SUM(quantity) FILTER (WHERE is_eligible_sale), 0), 2), 0) AS return_rate
                     FROM warehouse.v_sales_detail
                     WHERE order_date BETWEEN '2026-01-01' AND '2026-12-31'
                 """)
@@ -418,5 +522,9 @@ def test_full_pipeline_and_incremental_acceptance():
     assert payload["metrics"]["orders"] >= 20
     assert float(payload["metrics"]["gross_sales"]) == float(expected_kpi["gross_sales"])
     assert float(payload["metrics"]["net_sales"]) == float(expected_kpi["net_sales"])
-    assert payload["metrics"]["orders"] == expected_kpi["completed_orders"]
+    assert payload["metrics"]["orders"] == expected_kpi["eligible_orders"]
+    assert float(payload["metrics"]["sales_after_discount"]) == float(expected_kpi["sales_after_discount"])
+    assert float(payload["metrics"]["returned_units"]) == float(expected_kpi["returned_units"])
+    assert float(payload["metrics"]["processed_refund_amount"]) == float(expected_kpi["processed_refund_amount"])
+    assert float(payload["metrics"]["return_rate"]) == float(expected_kpi["return_rate"])
     assert {"month", "channel", "category", "city", "product", "status"} <= set(payload["charts"])

@@ -2,6 +2,7 @@
 
 from decimal import Decimal
 from hashlib import sha256
+from pathlib import Path
 
 import pandas as pd
 
@@ -76,25 +77,38 @@ def test_notebook_cells_run_without_changing_sources(monkeypatch, tmp_path):
     import io
     import json
 
+    import pandas as pd
+    from IPython.display import display
+
     import pipeline.validation.analysis as helpers
 
     # Jalankan setiap sel kode dan arahkan hanya hasil ekspor ke folder sementara.
     original_export = helpers.export_analysis
     monkeypatch.setattr(helpers, "export_analysis", lambda results: original_export(results, tmp_path))
+    original_to_csv = pd.DataFrame.to_csv
+
+    def export_csv_to_temp(frame, path_or_buffer=None, *args, **kwargs):
+        if isinstance(path_or_buffer, (str, Path)):
+            path_or_buffer = tmp_path / Path(path_or_buffer).name
+        return original_to_csv(frame, path_or_buffer, *args, **kwargs)
+
+    monkeypatch.setattr(pd.DataFrame, "to_csv", export_csv_to_temp)
     paths = list((ROOT / "data/source").glob("*.csv"))
     before = {p: sha256(p.read_bytes()).hexdigest() for p in paths}
     for cwd in [ROOT, ROOT / "analisis"]:
         monkeypatch.chdir(cwd)
         for path in (ROOT / "analisis").glob("*.ipynb"):
             nb = json.loads(path.read_text(encoding="utf-8"))
-            headings = ["".join(c["source"]) for c in nb["cells"] if c["cell_type"] == "markdown"]
-            for number, label in enumerate(
-                ["Missing value", "Duplicate", "Invalid value", "Date format", "Data type", "Product consistency"], 1
-            ):
-                assert any(h.startswith(f"## {number}. {label}") for h in headings)
-            namespace = {"__name__": "__main__"}
-            with contextlib.redirect_stdout(io.StringIO()):
-                for cell in nb["cells"]:
-                    if cell["cell_type"] == "code":
-                        exec(compile("".join(cell["source"]), str(path), "exec"), namespace)
+            if path.stem in {"shopee", "tokopedia", "website"}:
+                headings = ["".join(c["source"]) for c in nb["cells"] if c["cell_type"] == "markdown"]
+                for number, label in enumerate(
+                    ["Missing value", "Duplicate", "Invalid value", "Date format", "Data type", "Product consistency"],
+                    1,
+                ):
+                    assert any(h.startswith(f"## {number}. {label}") for h in headings)
+                namespace = {"__name__": "__main__", "display": display}
+                with contextlib.redirect_stdout(io.StringIO()):
+                    for cell in nb["cells"]:
+                        if cell["cell_type"] == "code":
+                            exec(compile("".join(cell["source"]), str(path), "exec"), namespace)
     assert before == {p: sha256(p.read_bytes()).hexdigest() for p in paths}

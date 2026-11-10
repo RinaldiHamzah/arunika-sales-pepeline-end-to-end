@@ -142,10 +142,38 @@ def apply_order_promotions(
         for index, row in frame.iterrows():
             key = (source.source_name, str(row[spec["order_id"]]).strip())
             groups.setdefault(key, []).append(index)
+            code = (clean_text(row.get("promo_code")) or "").upper()
+            discount_text = clean_text(row.get("discount_amount"))
+            discount = _decimal(discount_text, "discount_amount", allow_zero=True) if discount_text else Decimal("0.00")
+            if not code and discount > 0:
+                raise ValueError(f"Diskon baris kanal memerlukan promo_code pada {key[0]}/{key[1]}")
+            if code:
+                if code not in master:
+                    raise ValueError(f"Promo {code} pada CSV kanal tidak ditemukan di promo_master.csv")
+                parsed_date, date_error = parse_date(row[spec["order_date"]], source_key)
+                promo = master[code]
+                if date_error or not promo["start_date"] <= parsed_date.date() <= promo["end_date"]:
+                    raise ValueError(f"Promo {code} tidak berlaku pada tanggal order {key[0]}/{key[1]}")
+                quantity = _decimal(row[spec["quantity"]], "quantity")
+                unit_price = _decimal(row[spec["unit_price"]], "unit_price", allow_zero=True)
+                gross = (quantity * unit_price).quantize(Decimal("0.01"))
+                if discount > gross:
+                    raise ValueError(f"Diskon baris melebihi gross pada {key[0]}/{key[1]}")
         for key, redemption in redemptions.items():
             if key[0] != source.source_name or key not in groups:
                 continue
             indices = groups[key]
+            source_codes = {
+                (clean_text(frame.at[index, "promo_code"]) or "").upper()
+                for index in indices
+                if clean_text(frame.at[index, "promo_code"])
+            }
+            source_discounts = [
+                _decimal(clean_text(frame.at[index, "discount_amount"]) or "0", "discount_amount", allow_zero=True)
+                for index in indices
+            ]
+            if any(amount > 0 for amount in source_discounts) or source_codes - {redemption["promo_code"]}:
+                raise ValueError(f"Promo tingkat order dan promo baris sumber sama-sama terisi untuk {key[0]}/{key[1]}")
             promo = master[redemption["promo_code"]]
             gross = []
             order_date = None

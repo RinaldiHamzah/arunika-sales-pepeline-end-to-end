@@ -43,7 +43,8 @@ LOG_FIELDS = (
     "request_method",
     "request_path",
     "status_code",
-    "duration_ms",)
+    "duration_ms",
+)
 
 
 class _LoggerNameFilter(logging.Filter):
@@ -72,14 +73,12 @@ class _JsonFormatter(logging.Formatter):
 
 
 class _ApplicationTimeFormatter(logging.Formatter):
-
     def formatTime(self, record: logging.LogRecord, datefmt: str | None = None) -> str:
         timestamp = datetime.fromtimestamp(record.created, APP_TIMEZONE)
         return timestamp.strftime(datefmt) if datefmt else timestamp.isoformat()
 
 
 class _PrettyConsoleFormatter(_ApplicationTimeFormatter):
-
     @staticmethod
     def _mapping(value) -> dict:
         return value if isinstance(value, dict) else {}
@@ -129,8 +128,7 @@ class _PrettyConsoleFormatter(_ApplicationTimeFormatter):
             if not isinstance(source, dict):
                 continue
             lines.append(
-                "- {name}: kandidat {extracted}"
-                " | valid {valid} | ditolak {rejected} | duplikat {duplicate}".format(
+                "- {name}: kandidat {extracted} | valid {valid} | ditolak {rejected} | duplikat {duplicate}".format(
                     name=source.get("source_name", "—"),
                     extracted=source.get("extracted_records", 0),
                     valid=source.get("validated_records", 0),

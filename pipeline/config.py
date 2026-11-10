@@ -4,9 +4,11 @@ import os
 from dataclasses import dataclass
 from urllib.parse import urlparse
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
 from dotenv import load_dotenv
 
 load_dotenv()
+
 
 @dataclass(frozen=True)
 class Settings:
@@ -45,5 +47,6 @@ class Settings:
             ZoneInfo(self.app_timezone)
         except ZoneInfoNotFoundError as error:
             raise ValueError(f"APP_TIMEZONE is not a valid IANA timezone: {self.app_timezone}") from error
+
 
 settings = Settings()

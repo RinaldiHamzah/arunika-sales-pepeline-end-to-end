@@ -1,14 +1,19 @@
 """Tes grain multi-item pada generator dan validasi tanpa basis data."""
 
 import csv
-from collections import Counter
+import shutil
+from pathlib import Path
 
+import pandas as pd
 import pytest
 
+from pipeline.extract.sources import extract_all
+from pipeline.promotions import apply_order_promotions, extract_promotion_sources
+from pipeline.returns import extract_return_events, normalize_return_record
 from pipeline.transform.standardize import clean_results_to_staging, filter_incremental_results, source_record_hash
 from pipeline.validation.contracts import SOURCE_NAMES, SOURCE_SPECS, order_line_key
 from pipeline.validation.data_quality import analyze
-from scripts.generate_sample_data import FIXED_ITEM_COUNTS, order_promotions, records
+from scripts.generate_sample_data import CHANNELS, generate, order_sizes
 
 
 def _save(path, rows):
@@ -48,29 +53,66 @@ def _web(order, line, sku="SKU-1", qty=1):
     }
 
 
-def test_generator_is_deterministic_and_has_required_order_sizes():
-    first = records(1)
-    assert first == records(1)
-    counts = Counter(row["id"] for row in first[: sum(FIXED_ITEM_COUNTS)])
-    assert list(counts.values()) == list(FIXED_ITEM_COUNTS)
-    for order_id, size in counts.items():
-        assert [row["line_number"] for row in first if row["id"] == order_id] == list(range(1, size + 1))
-    assert len({row["id"] for row in first}) < len(first)
-    assert any(row["discount_amount"] > 0 for row in first)
-    assert all(
-        row["discount_amount"] <= row["qty"] * row["price"] for row in first if row["qty"] > 0 and row["price"] > 0
+def test_sample_data_generator_is_deterministic_and_etl_consistent(tmp_path):
+    source_dir = tmp_path / "input"
+    first_dir, second_dir = tmp_path / "first", tmp_path / "second"
+    source_dir.mkdir()
+    shutil.copy2(Path(__file__).resolve().parents[1] / "data/source/product.csv", source_dir / "product.csv")
+
+    generate(source_dir, first_dir)
+    generate(source_dir, second_dir)
+    shutil.copy2(source_dir / "product.csv", first_dir / "product.csv")
+    shutil.copy2(source_dir / "product.csv", second_dir / "product.csv")
+
+    product_master = analyze(first_dir / "product.csv", "product").clean
+    quality = {}
+    for channel in CHANNELS:
+        path = first_dir / channel["filename"]
+        second_path = second_dir / channel["filename"]
+        assert path.read_bytes() == second_path.read_bytes()
+        source_key = next(key for key, name in SOURCE_NAMES.items() if name == channel["source"])
+        result = analyze(path, source_key, product_master)
+        quality[source_key] = result
+        data = pd.read_csv(path, dtype=str, keep_default_na=False)
+        order_column, line_column = channel["order"], channel["line"]
+        item_counts = data.groupby(order_column)[line_column].nunique()
+        assert len(data) == 100
+        assert item_counts.min() == 1 and item_counts.max() == 5
+        assert set(item_counts) == {1, 2, 3, 4, 5}
+        assert data.duplicated().sum() == 0
+        assert data.duplicated([order_column, line_column]).sum() == 0
+        assert result.summary["duplicate_records"] == 0
+        assert result.summary["invalid_records"] == 1
+
+    assert order_sizes(29) and order_sizes(30) and order_sizes(31)
+    sources = extract_all(first_dir)
+    effective_sources, _master = apply_order_promotions(sources, extract_promotion_sources(first_dir))
+    assert any(
+        str(code).strip()
+        for source in effective_sources
+        if source.source_name != "PRODUCT_MASTER"
+        for code in source.frame.get("promo_code", [])
     )
-    assert all(bool(row["promo_code"]) == (row["discount_amount"] > 0) for row in first)
+    promo_master_rows = pd.read_csv(first_dir / "promo_master.csv", dtype=str).set_index("promo_code")
+    redemption_rows = pd.read_csv(first_dir / "order_promotions.csv", dtype=str)
+    assert not redemption_rows.empty
+    assert all(promo_master_rows.loc[code, "status"] == "active" for code in redemption_rows["promo_code"])
 
-
-def test_generator_places_order_level_promos_in_separate_source():
-    promotions = order_promotions(records(1), "SHOPEE")
-
-    assert promotions
-    assert all(row["source_name"] == "SHOPEE" for row in promotions)
-    assert len({(row["source_name"], row["order_id"]) for row in promotions}) == len(promotions)
-    assert all(row["promo_code"] in {"ARUNIKA10", "ARUNIKA15"} for row in promotions)
-    assert all(float(row["discount_amount"]) > 0 for row in promotions)
+    returns = extract_return_events(first_dir)
+    return_records = [normalize_return_record(row) for row in returns.frame.to_dict("records")]
+    completed_lines = {
+        SOURCE_NAMES[key]: {
+            (row["order_id"], int(row["line_number"]))
+            for row in result.clean.to_dict("records")
+            if row["status"] == "COMPLETED"
+        }
+        for key, result in quality.items()
+    }
+    assert return_records
+    assert all(
+        (row["source_order_id"], row["source_line_number"]) in completed_lines[row["source_name"]]
+        for row in return_records
+    )
 
 
 def test_contracts_have_native_line_identifier_for_each_source():
@@ -84,12 +126,13 @@ def test_contracts_have_native_line_identifier_for_each_source():
 
 
 def test_multiline_matrix_and_same_sku_are_not_duplicates(tmp_path, master):
+    item_counts = (1, 2, 3, 4, 5)
     rows = []
-    for order, count in enumerate(FIXED_ITEM_COUNTS, 1):
+    for order, count in enumerate(item_counts, 1):
         rows.extend(_web(f"ORD-{order}", line, f"SKU-{line}") for line in range(1, count + 1))
     rows.extend([_web("SAME-SKU", 1, qty=1), _web("SAME-SKU", 2, qty=2)])
     result = analyze(_save(tmp_path / "website.csv", rows), "website", master)
-    assert result.summary["valid_records"] == sum(FIXED_ITEM_COUNTS) + 2
+    assert result.summary["valid_records"] == sum(item_counts) + 2
     assert result.summary["duplicate_records"] == result.summary["invalid_records"] == 0
     stage = clean_results_to_staging({"website": result})
     assert len(stage) == len(rows)

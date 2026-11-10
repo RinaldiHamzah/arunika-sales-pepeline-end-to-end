@@ -139,6 +139,7 @@ def run_report_summary(
     eligible_facts: int = 0,
     inserted_facts: int = 0,
     facts_written: int = 0,
+    source_reconciliation: list[dict] | None = None,
 ) -> dict:
     written = max(0, int(facts_written))
     inserted = max(0, int(inserted_facts))
@@ -162,6 +163,11 @@ def run_report_summary(
             "updated_facts": max(0, written - inserted),
             "facts_written": written,
         },
+        "reconciliation": {
+            "sources_checked": sum(item.get("status") == "SUCCESS" for item in source_reconciliation or []),
+            "sources_skipped": sum(item.get("status") == "SKIPPED" for item in source_reconciliation or []),
+            "deactivated_records": sum(int(item.get("deactivated_records", 0)) for item in source_reconciliation or []),
+        },
     }
 
 
@@ -172,6 +178,13 @@ def outcome_message(report):
     if extracted_records is None:
         return "Run lama: jumlah data yang diproses belum direkam."
     if extracted_records == 0:
+        reconciliation = report.get("source_reconciliation") or []
+        deactivated = sum(int(item.get("deactivated_records", 0)) for item in reconciliation)
+        if deactivated:
+            return (
+                "Pipeline tidak menerima transaksi baru; rekonsiliasi menonaktifkan "
+                f"{deactivated} baris yang hilang dari snapshot lengkap."
+            )
         return "Pipeline selesai tanpa data baru atau perubahan untuk diproses."
     product_master_records = _source_metric(report, "PRODUCT_MASTER", "extracted_records")
     product_context = (

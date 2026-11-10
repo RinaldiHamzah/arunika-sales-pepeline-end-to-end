@@ -5,8 +5,8 @@ from __future__ import annotations
 from sqlalchemy import text
 from sqlalchemy.engine import Connection
 
-    # Anggota referensi ini merupakan bagian dari model analitik, bukan data sumber.
-    # Data tersebut harus tetap tersedia meskipun operator mengosongkan tabel gudang data.
+# Anggota referensi ini merupakan bagian dari model analitik, bukan data sumber.
+# Data tersebut harus tetap tersedia meskipun operator mengosongkan tabel gudang data.
 CHANNELS = (
     {"channel_code": "SHOPEE", "channel_name": "Shopee", "channel_type": "MARKETPLACE"},
     {"channel_code": "TOKOPEDIA", "channel_name": "Tokopedia", "channel_type": "MARKETPLACE"},

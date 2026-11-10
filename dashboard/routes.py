@@ -94,20 +94,30 @@ def run_pipeline():
         return jsonify({"status": "started", "process_id": process.pid, "run_id": str(run_id)}), 202
     except PipelineBusyError:
         with _engine().connect() as connection:
-            active_run_id = connection.execute(text("""
+            active_run_id = connection.execute(
+                text("""
                 SELECT run_id FROM audit.pipeline_runs WHERE status='RUNNING'
                 ORDER BY started_at DESC LIMIT 1
-            """)).scalar_one_or_none()
-        return jsonify({"status": "already_running", "run_id": str(active_run_id) if active_run_id else None,
-                        "error": "Pipeline sedang menunggu atau berjalan."}), 409
+            """)
+            ).scalar_one_or_none()
+        return jsonify(
+            {
+                "status": "already_running",
+                "run_id": str(active_run_id) if active_run_id else None,
+                "error": "Pipeline sedang menunggu atau berjalan.",
+            }
+        ), 409
     except Exception as error:
         if run_id:
             with _engine().begin() as connection:
-                connection.execute(text("""
+                connection.execute(
+                    text("""
                     UPDATE audit.pipeline_runs SET status='FAILED', ended_at=CURRENT_TIMESTAMP,
                     current_stage='failed', error_message='Unable to start pipeline worker'
                     WHERE run_id=:run_id AND status='RUNNING' AND current_stage='queued'
-                """), {"run_id": run_id})
+                """),
+                    {"run_id": run_id},
+                )
         payload = {"status": "failed", "error": "Pipeline tidak dapat dijalankan."}
         if settings.flask_debug:
             payload["detail"] = str(error)
@@ -125,21 +135,36 @@ def pipeline_progress():
         except ValueError:
             return jsonify({"error": "ID run tidak valid."}), 400
     with _engine().connect() as connection:
-        query = text("""
+        query = (
+            text("""
             SELECT run_id, status, current_stage, current_stage_started_at, started_at, ended_at,
                    duration_seconds, error_message, outcome_message
             FROM audit.pipeline_runs WHERE run_id = :run_id
-        """) if requested_run_id else text("""
+        """)
+            if requested_run_id
+            else text("""
             SELECT run_id, status, current_stage, current_stage_started_at, started_at, ended_at,
                    duration_seconds, error_message, outcome_message
             FROM audit.pipeline_runs ORDER BY (status = 'RUNNING') DESC, started_at DESC LIMIT 1
         """)
-        statement = connection.execute(query, {"run_id": requested_run_id}) if requested_run_id else connection.execute(query)
+        )
+        statement = (
+            connection.execute(query, {"run_id": requested_run_id}) if requested_run_id else connection.execute(query)
+        )
         run = statement.mappings().one_or_none()
-        stages = connection.execute(text("""
+        stages = (
+            connection.execute(
+                text("""
             SELECT stage_name, status, started_at, ended_at, duration_seconds, records_processed, error_message
             FROM audit.pipeline_stage_runs WHERE run_id = :run_id ORDER BY started_at
-        """), {"run_id": run["run_id"]}).mappings().all() if run else []
+        """),
+                {"run_id": run["run_id"]},
+            )
+            .mappings()
+            .all()
+            if run
+            else []
+        )
     return jsonify({"run": serializable([run])[0] if run else None, "stages": serializable(stages)})
 
 
@@ -157,8 +182,14 @@ def upload_source_batch():
         return jsonify({"error": "Ukuran CSV maksimum adalah 10 MB."}), 413
     try:
         rows = append_csv_batch(source_key, payload)
-        return jsonify({"status": "accepted", "source": source_key, "rows_appended": rows,
-                        "next_step": "Jalankan pipeline untuk memvalidasi dan memuat batch ini."}), 201
+        return jsonify(
+            {
+                "status": "accepted",
+                "source": source_key,
+                "rows_appended": rows,
+                "next_step": "Jalankan pipeline untuk memvalidasi dan memuat batch ini.",
+            }
+        ), 201
     except ValueError as error:
         return jsonify({"error": str(error)}), 400
 
@@ -168,20 +199,34 @@ def operations_status():
     if error := _admin_error():
         return error
     with _engine().connect() as connection:
-        runs = connection.execute(text("""
+        runs = (
+            connection.execute(
+                text("""
             SELECT run_id, status, started_at, ended_at, duration_seconds, extracted_records,
                    validated_records, rejected_records, duplicate_records, incremental_records,
                    fact_inserted_records, fact_skipped_records, loaded_records, error_message,
                    source_records, skipped_unchanged_records, source_metrics, report_summary, outcome_message
             FROM audit.pipeline_runs ORDER BY started_at DESC LIMIT 10
-        """)).mappings().all()
-        failed_runs_7d = connection.execute(text("""
+        """)
+            )
+            .mappings()
+            .all()
+        )
+        failed_runs_7d = connection.execute(
+            text("""
             SELECT COUNT(*) FROM audit.pipeline_runs
             WHERE status = 'FAILED' AND started_at >= CURRENT_TIMESTAMP - INTERVAL '7 days'
-        """)).scalar_one()
-    return jsonify({"dag_id": "ecommerce_sales_pipeline", "schedule": "0 13 * * * (13:00 WIB)",
-                    "airflow": _airflow_health(), "failed_runs_last_7_days": failed_runs_7d,
-                    "recent_runs": operation_runs_for_display(runs)})
+        """)
+        ).scalar_one()
+    return jsonify(
+        {
+            "dag_id": "ecommerce_sales_pipeline",
+            "schedule": "0 13 * * * (13:00 WIB)",
+            "airflow": _airflow_health(),
+            "failed_runs_last_7_days": failed_runs_7d,
+            "recent_runs": operation_runs_for_display(runs),
+        }
+    )
 
 
 @dashboard_routes.get("/api/dashboard")
@@ -195,7 +240,8 @@ def dashboard_data():
             _engine(), start, end, channels, statuses, categories, brands, products
         )
         gross_sales, net_sales = float(analytics["gross_sales"] or 0), float(analytics["net_sales"] or 0)
-        completed_count, order_count = int(analytics["completed_orders"] or 0), int(analytics["total_orders"] or 0)
+        eligible_count = int(analytics["eligible_orders"] or 0)
+        completed_count = int(analytics["completed_orders"] or 0)
         returned_count, total_records = int(analytics["returned_orders"] or 0), int(analytics["total_records"] or 0)
         unresolved_city_records = int(analytics["unresolved_city_records"] or 0)
         latest = observability["latest_run"]
@@ -205,28 +251,68 @@ def dashboard_data():
         latest_duplicate = (latest["duplicate_records"] or 0) if latest else 0
         latest_incremental = (latest["incremental_records"] or 0) if latest else 0
         previous_net = float((observability["previous"] or {"net_sales": 0})["net_sales"] or 0)
-        return jsonify({
-            "filters": {"start": start, "end": end, "channels": channels, "statuses": statuses,
-                        "categories": categories, "brands": brands, "products": products},
-            "options": {key: sorted({row[column] for row in options}) for key, column in (
-                ("channels", "channel_name"), ("categories", "category"), ("statuses", "status"),
-                ("brands", "brand"), ("products", "product_id"))},
-            "metrics": {"net_sales": net_sales, "gross_sales": gross_sales, "orders": completed_count,
-                        "units": float(analytics["completed_units"] or 0), "completed": completed_count,
-                        "return_rate": (returned_count / order_count * 100) if order_count else 0,
-                        "average_order_value": (net_sales / completed_count) if completed_count else 0,
-                        "net_change_percent": ((net_sales - previous_net) / previous_net * 100) if previous_net else None},
-            "observability": {"pipeline_success_rate": float(observability["success_rate"] or 0),
-                "pipeline_duration": latest_dict.get("duration_seconds") if latest_dict else None,
-                "rejected_record_rate": (latest_rejected / latest_extracted * 100) if latest_extracted else 0,
-                "duplicate_rate": (latest_duplicate / latest_extracted * 100) if latest_extracted else 0,
-                "fact_load_rate": (latest["fact_inserted_records"] / latest_incremental * 100) if latest_incremental else 0,
-                "latest_run": latest_dict, "source_freshness": serializable(observability["freshness"]),
-                "stages": serializable(observability["stages"]),
-                "known_city_coverage_rate": ((total_records - unresolved_city_records) / total_records * 100) if total_records else 0,
-                "unresolved_city_records": unresolved_city_records},
-            "charts": charts, "rows": serializable(rows),
-        })
+        return jsonify(
+            {
+                "filters": {
+                    "start": start,
+                    "end": end,
+                    "channels": channels,
+                    "statuses": statuses,
+                    "categories": categories,
+                    "brands": brands,
+                    "products": products,
+                },
+                "options": {
+                    key: sorted({row[column] for row in options})
+                    for key, column in (
+                        ("channels", "channel_name"),
+                        ("categories", "category"),
+                        ("statuses", "status"),
+                        ("brands", "brand"),
+                        ("products", "product_id"),
+                    )
+                },
+                "metrics": {
+                    "net_sales": net_sales,
+                    "gross_sales": gross_sales,
+                    "gross_order_value_all_statuses": float(analytics["gross_order_value_all_statuses"] or 0),
+                    "sales_after_discount": float(analytics["sales_after_discount"] or 0),
+                    "discount_total": float(analytics["discount_total"] or 0),
+                    "orders": eligible_count,
+                    "eligible_orders": eligible_count,
+                    "completed_orders": completed_count,
+                    "units": float(analytics["eligible_units"] or 0),
+                    "completed": completed_count,
+                    "returned_orders": returned_count,
+                    "returned_order_lines": int(analytics["returned_order_lines"] or 0),
+                    "returned_units": float(analytics["returned_units"] or 0),
+                    "processed_refund_amount": float(analytics["processed_refund_amount"] or 0),
+                    "return_rate": float(analytics["return_rate"] or 0),
+                    "order_return_rate": float(analytics["order_return_rate"] or 0),
+                    "line_return_rate": float(analytics["line_return_rate"] or 0),
+                    "average_order_value": (net_sales / eligible_count) if eligible_count else 0,
+                    "net_change_percent": ((net_sales - previous_net) / previous_net * 100) if previous_net else None,
+                },
+                "observability": {
+                    "pipeline_success_rate": float(observability["success_rate"] or 0),
+                    "pipeline_duration": latest_dict.get("duration_seconds") if latest_dict else None,
+                    "rejected_record_rate": (latest_rejected / latest_extracted * 100) if latest_extracted else 0,
+                    "duplicate_rate": (latest_duplicate / latest_extracted * 100) if latest_extracted else 0,
+                    "fact_load_rate": (latest["fact_inserted_records"] / latest_incremental * 100)
+                    if latest_incremental
+                    else 0,
+                    "latest_run": latest_dict,
+                    "source_freshness": serializable(observability["freshness"]),
+                    "stages": serializable(observability["stages"]),
+                    "known_city_coverage_rate": ((total_records - unresolved_city_records) / total_records * 100)
+                    if total_records
+                    else 0,
+                    "unresolved_city_records": unresolved_city_records,
+                },
+                "charts": charts,
+                "rows": serializable(rows),
+            }
+        )
     except Exception as error:
         payload = {"error": "Dashboard gagal mengambil data."}
         if settings.flask_debug:
@@ -245,7 +331,10 @@ def export_dashboard():
             output.write(",".join(headers) + "\n")
             for row in rows:
                 output.write(",".join('"' + str(row.get(key, "")).replace('"', '""') + '"' for key in headers) + "\n")
-        return Response(output.getvalue(), mimetype="text/csv",
-                        headers={"Content-Disposition": "attachment; filename=arunika_sales_export.csv"})
+        return Response(
+            output.getvalue(),
+            mimetype="text/csv",
+            headers={"Content-Disposition": "attachment; filename=arunika_sales_export.csv"},
+        )
     except Exception:
         return jsonify({"error": "Export data gagal."}), 503

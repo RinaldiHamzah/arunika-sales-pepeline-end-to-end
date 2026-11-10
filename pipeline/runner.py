@@ -31,6 +31,7 @@ from pipeline.logger import get_logger
 from pipeline.promotions import apply_order_promotions, extract_promotion_sources, snapshot_source
 from pipeline.reporting import outcome_message, quality_staging_summary, run_report_summary, summarize_sources
 from pipeline.returns import extract_return_events
+from pipeline.source_manifest import load_source_manifest
 from pipeline.transform.standardize import SOURCE_NAMES, clean_results_to_staging, filter_incremental_results
 from pipeline.validation.data_quality import run_quality
 
@@ -210,20 +211,22 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
 
     def finish_incremental_noop():
         """Selesaikan run tanpa perubahan tanpa menyentuh kualitas, staging, atau fact."""
-        message = outcome_message(
-            {
-                **report_metrics,
-                "status": "SUCCESS",
-                "extracted_records": 0,
-                "loaded_records": 0,
-            }
-        )
         duration_seconds = round(perf_counter() - started, 3)
         with engine.begin() as connection:
+            reconciliation = stage(
+                "source_reconciliation",
+                lambda: reconcile_source_snapshot(connection, run_id, reconciliation_sources, declarations),
+            )
+            report_metrics["source_reconciliation"] = reconciliation
+            stages[-1]["records_processed"] = sum(item["deactivated_records"] for item in reconciliation)
+            message = outcome_message(
+                {**report_metrics, "status": "SUCCESS", "extracted_records": 0, "loaded_records": 0}
+            )
             report_metrics["report_summary"] = run_report_summary(
                 report_metrics,
                 raw_transaction_total=raw_transaction_total(connection),
                 raw_product_master_total=raw_product_master_total(connection),
+                source_reconciliation=reconciliation,
             )
             # CSV yang disusun ulang tetapi isinya sama tetap mendapat checksum terbaru.
             # Tidak ada baris yang dimuat ke raw karena seluruh payload sudah tercatat.
@@ -282,19 +285,24 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
     try:
         with engine.connect() as connection:
             snapshots = stage("snapshot_lookup", lambda: load_source_snapshots(connection))
+        declarations = stage("source_manifest", lambda: load_source_manifest(source_dir))
         promo_sources = stage("promotion_scan", lambda: extract_promotion_sources(source_dir))
-        return_source = stage(
-            "return_scan", lambda: extract_return_events(source_dir, snapshots.get("RETURN_EVENTS"))
-        )
+        return_source = stage("return_scan", lambda: extract_return_events(source_dir, snapshots.get("RETURN_EVENTS")))
         promo_changed = any(
             snapshots.get(source.source_name, {}).get("file_checksum_sha256") != source.checksum_sha256
             for source in promo_sources
         )
         promotion_checksum = ":".join(source.checksum_sha256 for source in promo_sources)
-        scanned_sources = stage("source_scan", lambda: extract_all(source_dir, snapshots, force_refresh=promo_changed))
+        has_full_snapshot = any(declaration.is_reconcilable for declaration in declarations.values())
+        scanned_sources = stage(
+            "source_scan",
+            lambda: extract_all(source_dir, snapshots, force_refresh=promo_changed or has_full_snapshot),
+        )
         effective_scanned_sources, promotion_master = stage(
             "promotion_match", lambda: apply_order_promotions(scanned_sources, promo_sources)
         )
+        channel_names = set(SOURCE_NAMES.values())
+        reconciliation_sources = [source for source in effective_scanned_sources if source.source_name in channel_names]
         raw_hashes = {
             source.source_name: set(snapshots.get(source.source_name, {}).get("payload_hashes", []))
             for source in scanned_sources
@@ -378,9 +386,7 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
             stages[-1]["records_processed"] = promotion_raw_count
             return_raw_count = 0
             if not return_delta.frame.empty:
-                return_raw_count = stage(
-                    "return_raw_load", lambda: load_return_raw(connection, run_id, return_delta)
-                )
+                return_raw_count = stage("return_raw_load", lambda: load_return_raw(connection, run_id, return_delta))
                 stages[-1]["records_processed"] = return_raw_count
             raw_total_after = raw_transaction_total(connection)
             raw_product_master_total_after = raw_product_master_total(connection)
@@ -453,25 +459,12 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
             )
             fact_count = stage("fact_load", lambda: load_facts(connection, run_id))
             stages[-1]["records_processed"] = fact_count
-            channel_names = set(SOURCE_NAMES.values())
-            reconciliation_sources = [
-                source
-                for source in effective_scanned_sources
-                if source.source_name in channel_names
-                and (
-                    source.source_records is None
-                    or len(source.frame) == source.source_records
-                    or snapshots.get(source.source_name, {}).get("file_checksum_sha256")
-                    != source.checksum_sha256
-                )
-            ]
             reconciliation = stage(
                 "source_reconciliation",
-                lambda: reconcile_source_snapshot(connection, run_id, reconciliation_sources),
+                lambda: reconcile_source_snapshot(connection, run_id, reconciliation_sources, declarations),
             )
-            stages[-1]["records_processed"] = sum(
-                item["deactivated_records"] for item in reconciliation
-            )
+            report_metrics["source_reconciliation"] = reconciliation
+            stages[-1]["records_processed"] = sum(item["deactivated_records"] for item in reconciliation)
             return_summary = {"loaded": 0, "rejected": 0}
             if not return_delta.frame.empty:
                 return_summary = stage(
@@ -519,6 +512,7 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
                 eligible_facts=incremental_count,
                 inserted_facts=fact_inserted_count,
                 facts_written=fact_count,
+                source_reconciliation=reconciliation,
             )
             report_metrics["report_summary"]["returns"] = {
                 "raw_records_inserted": return_raw_count,

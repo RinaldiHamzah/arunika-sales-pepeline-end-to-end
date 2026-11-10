@@ -48,11 +48,13 @@ export function renderTransactions() {
       <td>${escapeHtml(row.category)}</td>
       <td>${statusBadge(row.status)}</td>
       <td>${number(row.quantity)}</td>
+      <td>${number(row.returned_units)}</td>
+      <td>${money(row.processed_refund_amount)}</td>
       <td>${money(row.discount_amount)}</td>
       <td>${escapeHtml(row.promo_code || '—')}</td>
       <td>${money(row.net_amount)}</td>
     </tr>
-  `).join('') : `<tr><td colspan="10" class="empty">${state.transactionSearch ? 'Tidak ada transaksi yang sesuai pencarian.' : 'Tidak ada transaksi. Coba ubah periode atau reset filter di Overview.'}</td></tr>`;
+  `).join('') : `<tr><td colspan="12" class="empty">${state.transactionSearch ? 'Tidak ada transaksi yang sesuai pencarian.' : 'Tidak ada transaksi. Coba ubah periode atau reset filter di Overview.'}</td></tr>`;
   labelTableCells();
   $('row-count').textContent = state.transactionSearch
     ? `${number(filteredRows.length)} dari ${number(state.rows.length)} Transaksi`
@@ -70,10 +72,12 @@ function renderMetrics(metrics) {
     'metric-orders': number(metrics.orders),
     'metric-units': number(metrics.units),
     'metric-aov': money(metrics.average_order_value),
+    'metric-returned-units': number(metrics.returned_units),
     'metric-return-rate': percent(metrics.return_rate),
+    'metric-refunds': money(metrics.processed_refund_amount),
   };
   Object.entries(values).forEach(([id, value]) => { $(id).textContent = value; });
-  $('metric-sales-note').textContent = 'Total order COMPLETED';
+  $('metric-sales-note').textContent = 'COMPLETED/RETURNED setelah diskon dan refund diproses; cohort tanggal order';
   const change = metrics.net_change_percent;
   $('metric-sales-change').textContent = change == null
     ? 'Belum ada periode pembanding'

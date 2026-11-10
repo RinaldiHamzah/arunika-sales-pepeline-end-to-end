@@ -147,6 +147,7 @@ def format_pipeline_report(report):
     returns = run_summary.get("returns") or {}
     quality_staging = run_summary.get("quality_staging")
     warehouse = run_summary.get("warehouse") or {}
+    reconciliation = run_summary.get("reconciliation") or {}
 
     lines = [
         "PT Arunika Beauty Indonesia",
@@ -175,6 +176,16 @@ def format_pipeline_report(report):
                 f"Event baru ke Raw: {returns.get('raw_records_inserted', 0)}",
                 f"Event valid dimuat ke Warehouse: {returns.get('loaded_events', 0)}",
                 f"Event ditolak: {returns.get('rejected_events', 0)}",
+                "",
+            ]
+        )
+    if any(reconciliation.get(key, 0) for key in ("sources_checked", "sources_skipped", "deactivated_records")):
+        lines.extend(
+            [
+                "REKONSILIASI SUMBER",
+                f"Snapshot lengkap diperiksa: {reconciliation.get('sources_checked', 0)}",
+                f"Batch/snapshot tidak aman dilewati: {reconciliation.get('sources_skipped', 0)}",
+                f"Baris fact dinonaktifkan: {reconciliation.get('deactivated_records', 0)}",
                 "",
             ]
         )

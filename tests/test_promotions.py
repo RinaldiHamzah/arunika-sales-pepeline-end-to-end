@@ -118,6 +118,64 @@ def test_redemption_must_reference_master_promo(tmp_path):
         apply_order_promotions([], promotions)
 
 
+def test_channel_line_promo_code_must_map_to_master(tmp_path):
+    (tmp_path / "promo_master.csv").write_text(
+        "promo_code,promo_name,discount_type,discount_value,start_date,end_date,status\n"
+        "NEW15,Promo Pengguna Baru,percentage,15,2026-01-01,2026-12-31,active\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "order_promotions.csv").write_text(
+        "source_name,order_id,promo_code,discount_amount\n", encoding="utf-8"
+    )
+    promotions = extract_promotion_sources(tmp_path)
+    spec = SOURCE_SPECS["shopee"]
+    frame = dict(
+        zip(
+            list(spec.values()) + ["discount_amount", "promo_code"],
+            ["ORDER-2", "1", "2026-06-01", "Serum", "1", "100", "A", "Jakarta", "COD", "completed", "5.00", "NEW15"],
+        )
+    )
+    source = _source("shopee", tmp_path / "shopee.csv", [frame])
+
+    enriched, _ = apply_order_promotions([source], promotions)
+
+    assert enriched[0].frame.loc[0, "discount_amount"] == "5.00"
+    assert enriched[0].frame.loc[0, "promo_code"] == "NEW15"
+
+
+def test_order_level_and_nonzero_line_discount_cannot_be_counted_twice(tmp_path):
+    promotions = _promo_files(tmp_path)
+    spec = SOURCE_SPECS["shopee"]
+    source = _source(
+        "shopee",
+        tmp_path / "shopee.csv",
+        [
+            dict(
+                zip(
+                    list(spec.values()) + ["discount_amount", "promo_code"],
+                    [
+                        "ORDER-1",
+                        "1",
+                        "2026-06-01",
+                        "Serum",
+                        "1",
+                        "100",
+                        "A",
+                        "Jakarta",
+                        "COD",
+                        "completed",
+                        "2.00",
+                        "NEW15",
+                    ],
+                )
+            )
+        ],
+    )
+
+    with pytest.raises(ValueError, match="tingkat order dan promo baris"):
+        apply_order_promotions([source], promotions)
+
+
 def test_promo_master_requires_explicit_discount_value(tmp_path):
     (tmp_path / "promo_master.csv").write_text(
         "promo_code,promo_name,discount_type,discount_value,start_date,end_date,status\n"

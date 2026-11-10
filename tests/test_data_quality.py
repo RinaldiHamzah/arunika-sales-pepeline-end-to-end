@@ -84,6 +84,29 @@ def test_semantic_duplicates_and_optional_missing(tmp_path, master):
     assert result.clean.iloc[0]["net_amount"] == Decimal("200.20")
 
 
+@pytest.mark.parametrize("line_count", [1, 2, 3, 5, 10])
+def test_one_order_can_contain_multiple_lines_for_the_same_sku(tmp_path, master, line_count):
+    rows = [
+        web("ORDER-MULTI", line_item_no=str(line), product_identifier="001", quantity="1", total_amount="100.10")
+        for line in range(1, line_count + 1)
+    ]
+
+    result = analyze(save(tmp_path / "web.csv", rows), "website", master)
+
+    assert len(result.clean) == line_count
+    assert result.clean.order_id.nunique() == 1
+    assert result.clean.sku.nunique() == 1
+    assert result.clean.line_number.tolist() == list(range(1, line_count + 1))
+
+
+@pytest.mark.parametrize("line_number", ["", "0", "-1", "1.5", "2147483648"])
+def test_invalid_line_number_is_rejected(tmp_path, master, line_number):
+    result = analyze(save(tmp_path / "web.csv", [web(line_item_no=line_number)]), "website", master)
+
+    assert result.clean.empty
+    assert len(result.rejected) == 1
+
+
 def test_discount_is_validated_and_net_amount_is_calculated_per_item(tmp_path, master):
     discounted = web(discount_amount="20.00", promo_code="BEAUTY20", total_amount="180.20")
     gross_total = web("00002", discount_amount="20.00", promo_code="BEAUTY20", total_amount="200.20")

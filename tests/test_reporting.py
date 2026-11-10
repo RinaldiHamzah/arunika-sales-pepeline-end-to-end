@@ -81,18 +81,18 @@ def test_email_shows_processing_results_without_snapshot_metrics():
         "loaded_records": 15,
         "fact_inserted_records": 15,
         "report_summary": {
-                "raw": {
-                    "source_total": 120,
+            "raw": {
+                "source_total": 120,
+                "new_or_changed": 20,
+                "inserted_to_raw": 20,
+                "total_transactions_in_raw": 470,
+                "product_master": {
+                    "source_total": 20,
                     "new_or_changed": 20,
                     "inserted_to_raw": 20,
-                    "total_transactions_in_raw": 470,
-                    "product_master": {
-                        "source_total": 20,
-                        "new_or_changed": 20,
-                        "inserted_to_raw": 20,
-                        "total_in_raw": 20,
-                    },
+                    "total_in_raw": 20,
                 },
+            },
             "quality_staging": {
                 "checked": True,
                 "missing_value": {"total": 0, "by_field": {}},
@@ -158,6 +158,16 @@ def test_noop_is_success_with_explicit_explanation():
     assert "tanpa data baru atau perubahan" in outcome_message(report)
 
 
+def test_noop_reports_deactivations_from_a_complete_snapshot():
+    report = {
+        "status": "SUCCESS",
+        "extracted_records": 0,
+        "source_reconciliation": [{"status": "SUCCESS", "deactivated_records": 12}],
+    }
+
+    assert "menonaktifkan 12 baris" in outcome_message(report)
+
+
 def test_report_includes_return_event_counts_when_present():
     body = format_pipeline_report(
         {
@@ -173,6 +183,22 @@ def test_report_includes_return_event_counts_when_present():
     assert "Event baru ke Raw: 4" in body
     assert "Event valid dimuat ke Warehouse: 3" in body
     assert "Event ditolak: 1" in body
+
+
+def test_email_report_includes_reconciliation_counts():
+    body = format_pipeline_report(
+        {
+            "status": "SUCCESS",
+            "report_summary": {
+                "raw": {},
+                "reconciliation": {"sources_checked": 1, "sources_skipped": 3, "deactivated_records": 12},
+            },
+        }
+    )
+
+    assert "REKONSILIASI SUMBER" in body
+    assert "Snapshot lengkap diperiksa: 1" in body
+    assert "Baris fact dinonaktifkan: 12" in body
 
 
 def test_run_summary_separates_run_metrics_from_table_inventory():

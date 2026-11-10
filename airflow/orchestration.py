@@ -80,8 +80,7 @@ def email_pipeline_report_task(**context):
         # Lemparkan pengecualian agar Airflow mencoba ulang notifikasi dan
         # menampilkan masalah operasional pada grid DAG.
         raise RuntimeError(
-            "Laporan pipeline gagal dikirim melalui SMTP. "
-            "Periksa log task email_pipeline_report untuk detailnya."
+            "Laporan pipeline gagal dikirim melalui SMTP. Periksa log task email_pipeline_report untuk detailnya."
         )
     LOGGER.info(
         "airflow_email_report_completed",

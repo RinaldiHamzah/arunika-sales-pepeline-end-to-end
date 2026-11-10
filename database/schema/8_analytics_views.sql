@@ -70,8 +70,8 @@ LEFT JOIN audit.data_quality_results q ON q.run_id = r.run_id
 GROUP BY r.run_id, r.started_at, r.ended_at, r.status, r.extracted_records,
          r.valid_records, r.duplicate_records, r.invalid_records, r.loaded_records;
 
--- Definisi KPI yang digunakan bersama oleh kueri SQL dan dokumentasi dashboard.
--- Gross mencakup semua status transaksi; pendapatan neto hanya untuk pesanan selesai.
+-- Definisi KPI dasar untuk kompatibilitas urutan bootstrap.
+-- database/schema/9_return_adjusted_kpis.sql mengganti view KPI ini dengan definisi bisnis terbaru.
 CREATE OR REPLACE VIEW warehouse.v_sales_kpi AS
 SELECT
     COALESCE(SUM(gross_amount), 0) AS gross_sales_all_statuses,

@@ -1,0 +1,109 @@
+pos_receipt_no,receipt_line_no,sold_at,item_description,units,item_price,store_name,store_city,payment_type,status,discount_amount,promo_code
+POS-0301,1,16-Jun-2026,Produk Demo Tidak Terdaftar 50ml,1,219000.00,Arunika Beauty Tunjungan Plaza,Surabaya,Transfer Bank,completed,0.00,
+POS-0302,1,03-Jul-2026,Kahf-Triple-Protection-Sunscreen-Moisturizer-SPF-30,1,54900.00,Arunika Beauty Paragon Mall,Semarang,E-Wallet,completed,0.00,NEWUSER10
+POS-0302,2,03-Jul-2026,Crystallure Supreme Revitalizing Oil Serum 20ml,2,219000.00,Arunika Beauty Paragon Mall,Semarang,COD,COMPLETED,0.00,NEWUSER10
+POS-0302,3,03-Jul-2026,Make-Over-Powerstay-Matte-Powder-Foundation-N20,1,179000.00,Arunika Beauty Paragon Mall,Semarang,Transfer Bank,completed,0.00,NEWUSER10
+POS-0302,4,03-Jul-2026, Kahf Face Wash Oil and Comedo Defense 100ml ,1,42900.00,Arunika Beauty Paragon Mall,Semarang,Transfer Bank,COMPLETED,0.00,NEWUSER10
+POS-0303,1,21-Sep-2026,Wonderly Body Mist Sweet Blossom 100ml,1,45900.00,Arunika Beauty Grand Indonesia,Jakarta,E-Wallet,completed,0.00,
+POS-0303,2,21-Sep-2026,Kahf-Triple-Protection-Sunscreen-Moisturizer-SPF-30,2,54900.00,Arunika Beauty Grand Indonesia,Jakarta,E-Wallet,COMPLETED,0.00,
+POS-0303,3,21-Sep-2026, Wardah UV Shield Aqua Fresh Essence SPF 50 PA++++ 30ml ,3,68900.00,Arunika Beauty Grand Indonesia,Jakarta,Transfer Bank,completed,0.00,
+POS-0304,1,15-Mar-2026,Crystallure-Supreme-Revitalizing-Oil-Serum-20ml,2,219000.00,Arunika Beauty Paragon Mall,Semarang,Cash,completed,0.00,
+POS-0304,2,15-Mar-2026,WONDERLY BODY MIST SWEET BLOSSOM 100ML,1,45900.00,Arunika Beauty Paragon Mall,Semarang,E-Wallet,COMPLETED,0.00,
+POS-0304,3,15-Mar-2026, Kahf Triple Protection Sunscreen Moisturizer SPF 30 ,1,54900.00,Arunika Beauty Paragon Mall,Semarang,E-Wallet,completed,0.00,
+POS-0305,1,08-Feb-2026,KAHF TRIPLE PROTECTION SUNSCREEN MOISTURIZER SPF 30,1,54900.00,Arunika Beauty Malioboro,Yogyakarta,COD,cancelled,0.00,
+POS-0305,2,08-Feb-2026,Crystallure Supreme Revitalizing Oil Serum 20ml,2,219000.00,Arunika Beauty Malioboro,Yogyakarta,E-Wallet,CANCELLED,0.00,
+POS-0305,3,08-Feb-2026,Emina Sun Battle SPF 50 PA++++ 30ml,3,49900.00,Arunika Beauty Malioboro,Yogyakarta,Transfer Bank,cancelled,0.00,
+POS-0306,1,07-Jan-2026,BIODEF BODY WASH FRESH CARE 450ML,2,35900.00,Arunika Beauty Paris Van Java,Bandung,E-Wallet,completed,7180.00,NEWUSER10
+POS-0306,2,07-Jan-2026,Emina-Sun-Battle-SPF-50-PA++++-30ml,1,49900.00,Arunika Beauty Paris Van Java,Bandung,Transfer Bank,COMPLETED,4990.00,NEWUSER10
+POS-0306,3,07-Jan-2026,Emina Glossy Stain 01 Autumn Bell,1,52900.00,Arunika Beauty Paris Van Java,Bandung,Credit Card,completed,5290.00,NEWUSER10
+POS-0307,1,28-May-2026, LABORE Barrier Revive Cream 30ml ,1,119000.00,Arunika Beauty Paris Van Java,Bandung,COD,completed,0.00,
+POS-0307,2,28-May-2026,Kahf Face Wash Oil and Comedo Defense 100ml,1,42900.00,Arunika Beauty Paris Van Java,Bandung,Transfer Bank,COMPLETED,0.00,
+POS-0307,3,28-May-2026,Emina-Bright-Stuff-Face-Wash-100ml,3,27900.00,Arunika Beauty Paris Van Java,Bandung,Transfer Bank,completed,0.00,
+POS-0307,4,28-May-2026,Wardah-Aloe-Hydramild-Moisturizer-40ml,1,45900.00,Arunika Beauty Paris Van Java,Bandung,Transfer Bank,COMPLETED,0.00,
+POS-0308,1,16-Feb-2026,Wonderly Body Mist Sweet Blossom 100ml,1,45900.00,Arunika Beauty Paragon Mall,Semarang,Cash,completed,0.00,
+POS-0308,2,16-Feb-2026,Make Over Powerstay Weightless Liquid Foundation W22,1,169000.00,Arunika Beauty Paragon Mall,Semarang,E-Wallet,COMPLETED,0.00,
+POS-0308,3,16-Feb-2026,WARDAH ALOE HYDRAMILD MOISTURIZER 40ML,3,45900.00,Arunika Beauty Paragon Mall,Semarang,Cash,completed,0.00,
+POS-0309,1,12-Jul-2026,LABORE Barrier Revive Cream 30ml,1,119000.00,Arunika Beauty Grand Indonesia,Jakarta,Transfer Bank,cancelled,0.00,
+POS-0309,2,12-Jul-2026,Make Over Powerstay Matte Powder Foundation N20,3,179000.00,Arunika Beauty Grand Indonesia,Jakarta,COD,CANCELLED,0.00,
+POS-0310,1,08-Feb-2026,Make Over Powerstay Weightless Liquid Foundation W22,1,169000.00,Arunika Beauty Malioboro,Yogyakarta,COD,cancelled,0.00,
+POS-0310,2,08-Feb-2026, Make Over Powerstay Matte Powder Foundation N20 ,1,179000.00,Arunika Beauty Malioboro,Yogyakarta,Transfer Bank,CANCELLED,0.00,
+POS-0310,3,08-Feb-2026,Wardah-Aloe-Hydramild-Moisturizer-40ml,2,45900.00,Arunika Beauty Malioboro,Yogyakarta,Credit Card,cancelled,0.00,
+POS-0311,1,03-Apr-2026,TAVI-Urban-Shield-Sunscreen-SPF-50-30ml,1,89900.00,Arunika Beauty Malioboro,Yogyakarta,E-Wallet,cancelled,0.00,
+POS-0311,2,03-Apr-2026, LABORE Barrier Revive Cream 30ml ,2,119000.00,Arunika Beauty Malioboro,Yogyakarta,COD,CANCELLED,0.00,
+POS-0312,1,07-Sep-2026, Wardah Colorfit Velvet Matte Lip Mousse 03 ,1,62900.00,Arunika Beauty Tunjungan Plaza,Surabaya,Credit Card,completed,0.00,
+POS-0312,2,07-Sep-2026,LABORE Barrier Revive Cream 30ml,2,119000.00,Arunika Beauty Tunjungan Plaza,Surabaya,Transfer Bank,COMPLETED,0.00,
+POS-0312,3,07-Sep-2026,Emina-Cheek-Lit-Cream-Blush-Peach,2,46900.00,Arunika Beauty Tunjungan Plaza,Surabaya,E-Wallet,completed,0.00,
+POS-0312,4,07-Sep-2026, Make Over Powerstay Matte Powder Foundation N20 ,1,179000.00,Arunika Beauty Tunjungan Plaza,Surabaya,E-Wallet,COMPLETED,0.00,
+POS-0313,1,05-Jan-2026,WARDAH ALOE HYDRAMILD MOISTURIZER 40ML,2,45900.00,Arunika Beauty Paris Van Java,Bandung,COD,returned,0.00,
+POS-0313,2,05-Jan-2026, Emina Glossy Stain 01 Autumn Bell ,1,52900.00,Arunika Beauty Paris Van Java,Bandung,Credit Card,RETURNED,0.00,
+POS-0313,3,05-Jan-2026, Emina Cheek Lit Cream Blush Peach ,1,46900.00,Arunika Beauty Paris Van Java,Bandung,Credit Card,returned,0.00,
+POS-0314,1,04-May-2026,CRYSTALLURE SUPREME REVITALIZING OIL SERUM 20ML,1,219000.00,Arunika Beauty Malioboro,Yogyakarta,Transfer Bank,completed,21900.00,NEWUSER10
+POS-0314,2,04-May-2026,TAVI-Urban-Shield-Sunscreen-SPF-50-30ml,1,89900.00,Arunika Beauty Malioboro,Yogyakarta,E-Wallet,COMPLETED,8990.00,NEWUSER10
+POS-0314,3,04-May-2026,LABORE Barrier Revive Cream 30ml,2,119000.00,Arunika Beauty Malioboro,Yogyakarta,Transfer Bank,completed,23800.00,NEWUSER10
+POS-0314,4,04-May-2026,Wardah Colorfit Perfect Glow Cushion 13N,1,109000.00,Arunika Beauty Malioboro,Yogyakarta,E-Wallet,COMPLETED,10900.00,NEWUSER10
+POS-0314,5,04-May-2026,Wardah-Lightening-Micellar-Water-100ml,1,28900.00,Arunika Beauty Malioboro,Yogyakarta,Credit Card,completed,2890.00,NEWUSER10
+POS-0315,1,19-May-2026, Wardah UV Shield Aqua Fresh Essence SPF 50 PA++++ 30ml ,2,68900.00,Arunika Beauty Paris Van Java,Bandung,E-Wallet,completed,0.00,
+POS-0315,2,19-May-2026,WARDAH ALOE HYDRAMILD MOISTURIZER 40ML,1,45900.00,Arunika Beauty Paris Van Java,Bandung,Transfer Bank,COMPLETED,0.00,
+POS-0315,3,19-May-2026,Wardah Lightening Micellar Water 100ml,2,28900.00,Arunika Beauty Paris Van Java,Bandung,Transfer Bank,completed,0.00,
+POS-0315,4,19-May-2026, Emina Cheek Lit Cream Blush Peach ,2,46900.00,Arunika Beauty Paris Van Java,Bandung,E-Wallet,COMPLETED,0.00,
+POS-0316,1,25-Jun-2026,LABORE-Barrier-Revive-Cream-30ml,1,119000.00,Arunika Beauty Beachwalk,Denpasar,Credit Card,completed,0.00,
+POS-0316,2,25-Jun-2026,Wardah Aloe Hydramild Moisturizer 40ml,1,45900.00,Arunika Beauty Beachwalk,Denpasar,COD,COMPLETED,0.00,
+POS-0316,3,25-Jun-2026,Emina-Cheek-Lit-Cream-Blush-Peach,2,46900.00,Arunika Beauty Beachwalk,Denpasar,Credit Card,completed,0.00,
+POS-0316,4,25-Jun-2026, Wardah Lightening Micellar Water 100ml ,1,28900.00,Arunika Beauty Beachwalk,Denpasar,Cash,COMPLETED,0.00,
+POS-0317,1,05-Jul-2026,TAVI-Urban-Shield-Sunscreen-SPF-50-30ml,2,89900.00,Arunika Beauty Beachwalk,Denpasar,COD,completed,0.00,
+POS-0317,2,05-Jul-2026,INSTAPERFECT SKINCOVER AIR CUSHION 02 BEIGE,2,149000.00,Arunika Beauty Beachwalk,Denpasar,COD,COMPLETED,0.00,
+POS-0317,3,05-Jul-2026,LABORE Barrier Revive Cream 30ml,2,119000.00,Arunika Beauty Beachwalk,Denpasar,COD,completed,0.00,
+POS-0318,1,04-Feb-2026,TAVI-Urban-Shield-Sunscreen-SPF-50-30ml,1,89900.00,Arunika Beauty Tunjungan Plaza,Surabaya,E-Wallet,returned,0.00,
+POS-0318,2,04-Feb-2026,WARDAH UV SHIELD AQUA FRESH ESSENCE SPF 50 PA++++ 30ML,1,68900.00,Arunika Beauty Tunjungan Plaza,Surabaya,E-Wallet,RETURNED,0.00,
+POS-0318,3,04-Feb-2026,Make Over Powerstay Matte Powder Foundation N20,2,179000.00,Arunika Beauty Tunjungan Plaza,Surabaya,Credit Card,returned,0.00,
+POS-0318,4,04-Feb-2026,LABORE Barrier Revive Cream 30ml,2,119000.00,Arunika Beauty Tunjungan Plaza,Surabaya,Transfer Bank,RETURNED,0.00,
+POS-0319,1,12-Aug-2026,TAVI-Urban-Shield-Sunscreen-SPF-50-30ml,1,89900.00,Arunika Beauty Tunjungan Plaza,Surabaya,Credit Card,completed,0.00,
+POS-0319,2,12-Aug-2026,WARDAH COLORFIT VELVET MATTE LIP MOUSSE 03,1,62900.00,Arunika Beauty Tunjungan Plaza,Surabaya,E-Wallet,COMPLETED,0.00,
+POS-0320,1,04-Aug-2026,EMINA SUN BATTLE SPF 50 PA++++ 30ML,1,49900.00,Arunika Beauty Paris Van Java,Bandung,Credit Card,completed,0.00,
+POS-0320,2,04-Aug-2026,LABORE-BiomeProtect-Physical-Sunscreen-SPF-50-30ml,3,129000.00,Arunika Beauty Paris Van Java,Bandung,COD,COMPLETED,0.00,
+POS-0320,3,04-Aug-2026,Kahf-Triple-Protection-Sunscreen-Moisturizer-SPF-30,1,54900.00,Arunika Beauty Paris Van Java,Bandung,COD,completed,0.00,
+POS-0321,1,13-Aug-2026,Instaperfect Skincover Air Cushion 02 Beige,1,149000.00,Arunika Beauty Beachwalk,Denpasar,COD,completed,0.00,
+POS-0321,2,13-Aug-2026,Make-Over-Powerstay-Matte-Powder-Foundation-N20,2,179000.00,Arunika Beauty Beachwalk,Denpasar,COD,COMPLETED,0.00,
+POS-0321,3,13-Aug-2026,Emina Sun Battle SPF 50 PA++++ 30ml,1,49900.00,Arunika Beauty Beachwalk,Denpasar,Transfer Bank,completed,0.00,
+POS-0321,4,13-Aug-2026,Wardah-Lightening-Micellar-Water-100ml,1,28900.00,Arunika Beauty Beachwalk,Denpasar,Transfer Bank,COMPLETED,0.00,
+POS-0321,5,13-Aug-2026,KAHF FACE WASH OIL AND COMEDO DEFENSE 100ML,2,42900.00,Arunika Beauty Beachwalk,Denpasar,Cash,completed,0.00,
+POS-0322,1,29-Jan-2026,Wardah Colorfit Velvet Matte Lip Mousse 03,1,62900.00,Arunika Beauty Paris Van Java,Bandung,Transfer Bank,completed,6290.00,NEWUSER10
+POS-0322,2,29-Jan-2026, TAVI Urban Shield Sunscreen SPF 50 30ml ,1,89900.00,Arunika Beauty Paris Van Java,Bandung,COD,COMPLETED,8990.00,NEWUSER10
+POS-0322,3,29-Jan-2026, LABORE Barrier Revive Cream 30ml ,1,119000.00,Arunika Beauty Paris Van Java,Bandung,E-Wallet,completed,11900.00,NEWUSER10
+POS-0323,1,11-May-2026,TAVI Urban Shield Sunscreen SPF 50 30ml,2,89900.00,Arunika Beauty Tunjungan Plaza,Surabaya,COD,completed,0.00,
+POS-0323,2,11-May-2026,KAHF TRIPLE PROTECTION SUNSCREEN MOISTURIZER SPF 30,1,54900.00,Arunika Beauty Tunjungan Plaza,Surabaya,COD,COMPLETED,0.00,
+POS-0323,3,11-May-2026,Biodef-Body-Wash-Fresh-Care-450ml,1,35900.00,Arunika Beauty Tunjungan Plaza,Surabaya,Credit Card,completed,0.00,
+POS-0323,4,11-May-2026, Wardah Lightening Micellar Water 100ml ,2,28900.00,Arunika Beauty Tunjungan Plaza,Surabaya,Transfer Bank,COMPLETED,0.00,
+POS-0324,1,30-Sep-2026,Emina Glossy Stain 01 Autumn Bell,1,52900.00,Arunika Beauty Beachwalk,Denpasar,Transfer Bank,returned,0.00,
+POS-0324,2,30-Sep-2026,Wardah Lightening Micellar Water 100ml,2,28900.00,Arunika Beauty Beachwalk,Denpasar,E-Wallet,RETURNED,0.00,
+POS-0325,1,08-Jan-2026,Biodef Body Wash Fresh Care 450ml,2,35900.00,Arunika Beauty Malioboro,Yogyakarta,E-Wallet,completed,0.00,
+POS-0325,2,08-Jan-2026,TAVI Urban Shield Sunscreen SPF 50 30ml,1,89900.00,Arunika Beauty Malioboro,Yogyakarta,COD,COMPLETED,0.00,
+POS-0325,3,08-Jan-2026, Wardah Aloe Hydramild Moisturizer 40ml ,1,45900.00,Arunika Beauty Malioboro,Yogyakarta,COD,completed,0.00,
+POS-0325,4,08-Jan-2026,Make Over Powerstay Matte Powder Foundation N20,3,179000.00,Arunika Beauty Malioboro,Yogyakarta,Credit Card,COMPLETED,0.00,
+POS-0325,5,08-Jan-2026,Wardah Lightening Micellar Water 100ml,1,28900.00,Arunika Beauty Malioboro,Yogyakarta,E-Wallet,completed,0.00,
+POS-0326,1,12-Oct-2026,WARDAH COLORFIT PERFECT GLOW CUSHION 13N,4,109000.00,Arunika Beauty Malioboro,Yogyakarta,Transfer Bank,completed,0.00,FIXED10K
+POS-0326,2,12-Oct-2026, TAVI Urban Shield Sunscreen SPF 50 30ml ,1,89900.00,Arunika Beauty Malioboro,Yogyakarta,E-Wallet,COMPLETED,0.00,FIXED10K
+POS-0327,1,04-Jan-2026, Make Over Powerstay Weightless Liquid Foundation W22 ,1,169000.00,Arunika Beauty Malioboro,Yogyakarta,COD,completed,0.00,
+POS-0327,2,04-Jan-2026,Wonderly Body Mist Sweet Blossom 100ml,1,45900.00,Arunika Beauty Malioboro,Yogyakarta,E-Wallet,COMPLETED,0.00,
+POS-0328,1,03-May-2026, Wonderly Body Mist Sweet Blossom 100ml ,2,45900.00,Arunika Beauty Malioboro,Yogyakarta,Transfer Bank,completed,0.00,
+POS-0328,2,03-May-2026, Emina Glossy Stain 01 Autumn Bell ,2,52900.00,Arunika Beauty Malioboro,Yogyakarta,Transfer Bank,COMPLETED,0.00,
+POS-0328,3,03-May-2026, LABORE Barrier Revive Cream 30ml ,1,119000.00,Arunika Beauty Malioboro,Yogyakarta,E-Wallet,completed,0.00,
+POS-0328,4,03-May-2026,Emina-Sun-Battle-SPF-50-PA++++-30ml,2,49900.00,Arunika Beauty Malioboro,Yogyakarta,COD,COMPLETED,0.00,
+POS-0329,1,28-May-2026,Wardah-UV-Shield-Aqua-Fresh-Essence-SPF-50-PA++++-30ml,4,68900.00,Arunika Beauty Paragon Mall,Semarang,Transfer Bank,cancelled,0.00,
+POS-0329,2,28-May-2026,LABORE Barrier Revive Cream 30ml,1,119000.00,Arunika Beauty Paragon Mall,Semarang,E-Wallet,CANCELLED,0.00,
+POS-0329,3,28-May-2026,WARDAH COLORFIT PERFECT GLOW CUSHION 13N,2,109000.00,Arunika Beauty Paragon Mall,Semarang,Credit Card,cancelled,0.00,
+POS-0330,1,16-Feb-2026,Crystallure-Supreme-Revitalizing-Oil-Serum-20ml,1,219000.00,Arunika Beauty Tunjungan Plaza,Surabaya,E-Wallet,completed,21900.00,NEWUSER10
+POS-0330,2,16-Feb-2026,KAHF TRIPLE PROTECTION SUNSCREEN MOISTURIZER SPF 30,1,54900.00,Arunika Beauty Tunjungan Plaza,Surabaya,Transfer Bank,COMPLETED,5490.00,NEWUSER10
+POS-0330,3,16-Feb-2026, Emina Sun Battle SPF 50 PA++++ 30ml ,1,49900.00,Arunika Beauty Tunjungan Plaza,Surabaya,E-Wallet,completed,4990.00,NEWUSER10
+POS-0330,4,16-Feb-2026,Make Over Powerstay Weightless Liquid Foundation W22,2,169000.00,Arunika Beauty Tunjungan Plaza,Surabaya,E-Wallet,COMPLETED,33800.00,NEWUSER10
+POS-0331,1,25-Oct-2026,EMINA CHEEK LIT CREAM BLUSH PEACH,1,46900.00,Arunika Beauty Malioboro,Yogyakarta,E-Wallet,completed,0.00,
+POS-0331,2,25-Oct-2026,WARDAH UV SHIELD AQUA FRESH ESSENCE SPF 50 PA++++ 30ML,1,68900.00,Arunika Beauty Malioboro,Yogyakarta,Credit Card,COMPLETED,0.00,
+POS-0331,3,25-Oct-2026,Instaperfect-Skincover-Air-Cushion-02-Beige,1,149000.00,Arunika Beauty Malioboro,Yogyakarta,E-Wallet,completed,0.00,
+POS-0303,1,21-Sep-2026,Wonderly Body Mist Sweet Blossom 100ml,1,45900.00,Arunika Beauty Grand Indonesia,Jakarta,E-Wallet,completed,0.00,
+POS-QA-CONFLICT,1,21-Sep-2026,Wonderly Body Mist Sweet Blossom 100ml,1,45900.00,Arunika Beauty Grand Indonesia,Jakarta,E-Wallet,completed,0.00,
+POS-QA-CONFLICT,1,21-Sep-2026,Wonderly Body Mist Sweet Blossom 100ml,2,45900.00,Arunika Beauty Grand Indonesia,Jakarta,E-Wallet,completed,0.00,
+POS-QA-MISSING,1,21-Sep-2026,Wonderly Body Mist Sweet Blossom 100ml,,45900.00,Arunika Beauty Grand Indonesia,Jakarta,E-Wallet,completed,0.00,
+POS-QA-DATE,1,not-a-date,Wonderly Body Mist Sweet Blossom 100ml,1,45900.00,Arunika Beauty Grand Indonesia,Jakarta,E-Wallet,completed,0.00,
+POS-QA-STATUS,1,21-Sep-2026,Wonderly Body Mist Sweet Blossom 100ml,1,45900.00,Arunika Beauty Grand Indonesia,Jakarta,E-Wallet,IN_TRANSIT,0.00,
+POS-QA-PRODUCT,1,21-Sep-2026,Produk QA Tidak Terdaftar 50ml,1,45900.00,Arunika Beauty Grand Indonesia,Jakarta,E-Wallet,completed,0.00,
+POS-QA-OPTIONAL,1,21-Sep-2026,Wonderly Body Mist Sweet Blossom 100ml,1,45900.00,Arunika Beauty Grand Indonesia,,E-Wallet,completed,0.00,

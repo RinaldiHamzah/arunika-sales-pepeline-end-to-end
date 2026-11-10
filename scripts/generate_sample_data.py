@@ -12,7 +12,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DIR = ROOT / "data" / "source"
 SEED = 20261109
-ROW_COUNT = 100
+BUSINESS_ROW_COUNT = 112
+QUALITY_ROW_COUNT = 8
+ROW_COUNT = BUSINESS_ROW_COUNT
+QUALITY_ORDER_NUMBERS = {"9991", "9992", "9993", "9994", "9995", "9996"}
 
 FIRST_NAMES = (
     "Alya",
@@ -127,9 +130,9 @@ PROMO_RULES = {
     row[0]: (row[2], Decimal(row[3]), date.fromisoformat(row[4]), date.fromisoformat(row[5]), row[6]) for row in PROMOS
 }
 SIZE_COUNTS = {
-    29: (1, 5, 8, 10, 5),
-    30: (1, 3, 14, 9, 3),
-    31: (1, 6, 12, 9, 3),
+    29: (1, 1, 9, 8, 10),
+    30: (1, 3, 8, 9, 9),
+    31: (2, 3, 9, 8, 9),
 }
 CHANNELS = (
     {
@@ -230,7 +233,15 @@ def customer_profiles() -> list[dict]:
 def existing_order_ids(source_dir: Path, channel: dict) -> list[str]:
     rows = read_csv(source_dir / channel["filename"])
     order_column = channel["order"]
-    ids = list(dict.fromkeys(row[order_column].strip() for row in rows if row.get(order_column, "").strip()))
+    ids = list(
+        dict.fromkeys(
+            row[order_column].strip()
+            for row in rows
+            if row.get(order_column, "").strip()
+            and "-QA-" not in row[order_column]
+            and row[order_column].rsplit("-", 1)[-1] not in QUALITY_ORDER_NUMBERS
+        )
+    )
     if ids:
         return ids
     return [f"{channel['prefix']}-{index:04}" for index in range(1, 31)]
@@ -240,13 +251,13 @@ def order_sizes(order_count: int) -> list[int]:
     if order_count not in SIZE_COUNTS:
         raise ValueError(f"Distribusi demo mendukung 29–31 order; ditemukan {order_count}")
     sizes = [size for size, count in enumerate(SIZE_COUNTS[order_count], start=1) for _ in range(count)]
-    if len(sizes) != order_count or sum(sizes) != ROW_COUNT:
-        raise AssertionError("Distribusi item demo tidak berjumlah tepat 100 baris")
+    if len(sizes) != order_count or sum(sizes) != BUSINESS_ROW_COUNT:
+        raise AssertionError(f"Distribusi item demo tidak berjumlah tepat {BUSINESS_ROW_COUNT} baris bisnis")
     return sizes
 
 
 def promotion_for_order(order_date: date, order_index: int, gross: Decimal):
-    if order_index % 4 != 1:
+    if order_index % 2 != 1:
         return None
     eligible = [
         code
@@ -261,6 +272,22 @@ def promotion_for_order(order_date: date, order_index: int, gross: Decimal):
         (gross * value / 100).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP) if kind == "percentage" else value
     )
     return code, min(discount, gross)
+
+
+def allocate_discount(discount: Decimal, lines: list[dict]) -> list[Decimal]:
+    """Alokasikan promo baris-level secara proporsional tanpa melampaui nilai item."""
+    gross_values = [line["unit_price"] * line["quantity"] for line in lines]
+    total = sum(gross_values, Decimal("0.00"))
+    allocations, remaining = [], discount
+    for index, gross in enumerate(gross_values):
+        if index == len(gross_values) - 1:
+            amount = remaining
+        else:
+            amount = (discount * gross / total).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            amount = min(amount, gross, remaining)
+        allocations.append(amount)
+        remaining -= amount
+    return allocations
 
 
 def product_description(product: dict, kind: str, rng: random.Random) -> str:
@@ -323,7 +350,13 @@ def build_channel(source_dir: Path, channel: dict, products: list[dict], custome
         promotion = (
             None if order_index == 0 or status != "COMPLETED" else promotion_for_order(order_date, order_index, gross)
         )
-        if promotion:
+        order_level_promotion = promotion is not None and order_index % 4 == 1
+        line_discounts = (
+            allocate_discount(promotion[1], order_rows)
+            if promotion is not None and not order_level_promotion
+            else [Decimal("0.00")] * len(order_rows)
+        )
+        if promotion and order_level_promotion:
             code, discount = promotion
             redemptions.append(
                 {
@@ -334,14 +367,14 @@ def build_channel(source_dir: Path, channel: dict, products: list[dict], custome
                 }
             )
 
-        for row in order_rows:
+        for line_index, row in enumerate(order_rows):
             row["promo_code"] = promotion[0] if promotion else ""
-            row["discount_amount"] = "0.00"
+            row["discount_amount"] = f"{line_discounts[line_index]:.2f}"
             rows.append(row)
             cursor += 1
 
-    if cursor != ROW_COUNT:
-        raise AssertionError(f"{channel['source']} menghasilkan {cursor}, bukan {ROW_COUNT} baris")
+    if cursor != BUSINESS_ROW_COUNT:
+        raise AssertionError(f"{channel['source']} menghasilkan {cursor}, bukan {BUSINESS_ROW_COUNT} baris bisnis")
     return rows, redemptions
 
 
@@ -424,6 +457,83 @@ def render_sales_row(row: dict, channel: dict) -> dict:
     }
 
 
+def quality_case_rows(rows: list[dict], channel: dict) -> list[dict]:
+    """Tambahkan kasus uji kualitas yang terisolasi dan diberi penanda QA pada ID."""
+    order_column, line_column = channel["order"], channel["line"]
+    date_column = {
+        "shopee": "order_date",
+        "tokopedia": "transaction_date",
+        "website": "created_at",
+        "offline": "sold_at",
+    }[channel["kind"]]
+    product_column = {
+        "shopee": "product_name",
+        "tokopedia": "item_name",
+        "website": "product_identifier",
+        "offline": "item_description",
+    }[channel["kind"]]
+    quantity_column = {"shopee": "qty", "tokopedia": "quantity", "website": "quantity", "offline": "units"}[
+        channel["kind"]
+    ]
+    optional_column = {
+        "shopee": "customer_name",
+        "tokopedia": "buyer_name",
+        "website": "customer_email",
+        "offline": "store_city",
+    }[channel["kind"]]
+    safe_row = next(
+        (
+            row
+            for row in rows
+            if row.get("status", "").upper() in {"COMPLETED", "CANCELLED", "RETURNED"}
+            and str(row.get(quantity_column, "")).isdecimal()
+            and int(row[quantity_column]) > 0
+            and row.get(product_column)
+            and not row.get("promo_code")
+            and Decimal(row.get("discount_amount", "0") or "0") == 0
+            and not row.get(product_column, "").startswith("Produk Demo Tidak Terdaftar")
+            and (
+                channel["kind"] != "website"
+                or Decimal(row["total_amount"]) == Decimal(row[quantity_column]) * Decimal(row["unit_price"])
+            )
+        ),
+        None,
+    )
+    if safe_row is None:
+        raise ValueError(f"{channel['source']} tidak memiliki baris transaksi tanpa promo untuk fixture kualitas")
+
+    # Duplikat identik: pipeline harus mempertahankan satu baris dan mencatat duplikatnya.
+    duplicate = dict(safe_row)
+    # Konflik: kedua versi dengan key yang sama harus ditolak, bukan dipilih sembarang.
+    conflict_a, conflict_b = dict(safe_row), dict(safe_row)
+    conflict_a[order_column] = conflict_b[order_column] = f"{channel['prefix']}-9991"
+    conflict_a[line_column] = conflict_b[line_column] = "1"
+    conflict_b[quantity_column] = str(int(conflict_a[quantity_column]) + 1)
+    if channel["kind"] == "website":
+        conflict_b["total_amount"] = f"{Decimal(conflict_b[quantity_column]) * Decimal(conflict_b['unit_price']):.2f}"
+
+    def invalid_row(order_number: str) -> dict:
+        row = dict(safe_row)
+        row[order_column] = f"{channel['prefix']}-{order_number}"
+        row[line_column] = "1"
+        return row
+
+    missing = invalid_row("9992")
+    missing[quantity_column] = ""
+    invalid_date = invalid_row("9993")
+    invalid_date[date_column] = "not-a-date"
+    invalid_status = invalid_row("9994")
+    invalid_status["status"] = "IN_TRANSIT"
+    unmapped = invalid_row("9995")
+    unmapped[product_column] = (
+        "SKU-QA-NOT-IN-MASTER" if channel["kind"] == "website" else "Produk QA Tidak Terdaftar 50ml"
+    )
+    optional_missing = invalid_row("9996")
+    optional_missing[optional_column] = ""
+
+    return [duplicate, conflict_a, conflict_b, missing, invalid_date, invalid_status, unmapped, optional_missing]
+
+
 def build_returns(source_dir: Path, built_rows: dict[str, list[dict]]) -> list[dict]:
     rng = random.Random(SEED + 900)
     old_rows = read_csv(source_dir / "returns.csv")
@@ -441,7 +551,7 @@ def build_returns(source_dir: Path, built_rows: dict[str, list[dict]]) -> list[d
             in {channel["source"], "OFFLINE" if channel["source"] == "OFFLINE_STORE" else channel["source"]}
         ]
         event_keys = list(dict.fromkeys((row["return_id"], row["return_line_number"]) for row in old))
-        while len(event_keys) < 12:
+        while len(event_keys) < 25:
             next_id = f"RET-DEMO-{channel['prefix']}-2026-{len(event_keys) + 101:03}"
             event_keys.append((next_id, "1"))
         if len(completed) < len(event_keys):
@@ -551,7 +661,9 @@ def generate(source_dir: Path, output_dir: Path) -> None:
                     "promo_code",
                 ),
             }[channel["kind"]]
-        write_csv(output_dir, channel["filename"], fields, [render_sales_row(row, channel) for row in rows])
+        rendered = [render_sales_row(row, channel) for row in rows]
+        rendered.extend(quality_case_rows(rendered, channel))
+        write_csv(output_dir, channel["filename"], fields, rendered)
 
     promo_fields = ("promo_code", "promo_name", "discount_type", "discount_value", "start_date", "end_date", "status")
     write_csv(output_dir, "promo_master.csv", promo_fields, [dict(zip(promo_fields, row)) for row in PROMOS])
@@ -571,9 +683,17 @@ def generate(source_dir: Path, output_dir: Path) -> None:
         "refund_status",
     )
     write_csv(output_dir, "returns.csv", return_fields, build_returns(source_dir, all_sales))
+    write_csv(
+        output_dir, "product.csv", tuple(read_csv(source_dir / "product.csv")[0]), read_csv(source_dir / "product.csv")
+    )
     print(f"Data demo deterministik dibuat di: {output_dir}")
-    print("Empat kanal: masing-masing 100 baris; setiap order memiliki 1 hingga 5 baris item.")
-    print("Setiap kanal memiliki satu kasus kualitas terkendali; duplikat business key tidak dibuat.")
+    print(
+        f"Empat kanal: masing-masing {BUSINESS_ROW_COUNT} baris bisnis dengan order 1–5 baris item, "
+        f"ditambah {QUALITY_ROW_COUNT} baris fixture QA ({ROW_COUNT + QUALITY_ROW_COUNT} total)."
+    )
+    print(
+        "Fixture QA mencakup duplikat identik, konflik business key, data wajib kosong, tanggal/status invalid, dan produk tak terpetakan."
+    )
 
 
 def main() -> None:

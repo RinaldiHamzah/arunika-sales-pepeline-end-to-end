@@ -139,20 +139,20 @@ Product Master menjadi sumber kebenaran untuk SKU, nama canonical, brand, katego
 
 ### 2.7 Baseline data contoh
 
-Generator `scripts/generate_sample_data.py` membuat dataset demo yang deterministik dan bervariasi. Setiap kanal berisi 100 baris transaksi; tiap order memiliki 1–5 baris item. Nama pelanggan, kota, metode pembayaran, tanggal, dan variasi penulisan nama produk dibuat lebih beragam. Dataset tidak membuat duplikat business key; setiap kanal memiliki satu kasus kualitas terkendali agar jalur penolakan tetap dapat didemonstrasikan.
+Generator `scripts/generate_sample_data.py` membuat dataset demo deterministik. Tiap kanal memiliki tepat 120 baris: 112 baris transaksi bisnis dengan order berisi 1–5 item dan delapan baris QA. ID sintetis QA memakai format order kanal yang sama dengan nomor pada rentang `9991`–`9996` (contoh `TKP-9991`), bukan label QA dalam kolom order. Baris QA mencakup duplikat identik, konflik business key, quantity wajib kosong, tanggal dan status tidak valid, produk yang tidak terpetakan, serta atribut opsional kosong. Baris ini sengaja berada di CSV sumber agar hasil valid, duplikat, warning, dan reject dapat dilihat dari eksekusi pipeline demo. Jangan memakai data sintetis ini untuk keputusan bisnis.
 
 Baseline hasil generator adalah:
 
 | Source | Baris awal | Bersih/valid | Duplikat | Ditolak |
 | --- | ---: | ---: | ---: | ---: |
 | Product Master | 20 | 20 | 0 | 0 |
-| Shopee | 100 | 99 | 0 | 1 |
-| Tokopedia | 100 | 99 | 0 | 1 |
-| Website | 100 | 99 | 0 | 1 |
-| Offline Store | 100 | 99 | 0 | 1 |
-| **Total transaksi** | **400** | **396** | **0** | **4** |
+| Shopee | 120 | 112 | 1 | 7 |
+| Tokopedia | 120 | 112 | 1 | 7 |
+| Website | 120 | 112 | 1 | 7 |
+| Offline Store | 120 | 112 | 1 | 7 |
+| **Total transaksi** | **480** | **448** | **4** | **28** |
 
-Dataset promo dan retur juga dihasilkan untuk mendukung demonstrasi relasi antar-sumber. Seluruh nama dan kontak pelanggan bersifat sintetis (`@example.test`), bukan data pelanggan nyata. Angka ini adalah baseline file contoh, bukan jumlah isi database pada setiap waktu. Jumlah database dapat berubah setelah pipeline dijalankan dan snapshot sumber direkonsiliasi.
+Diskon pada sebagian transaksi dialokasikan ke baris produk, sedangkan sebagian penukaran dicatat sebagai promo tingkat order di `order_promotions.csv`; keduanya tidak diterapkan ganda pada order yang sama. Generator menyiapkan penukaran promo tingkat order serta 25 event retur per kanal. Seluruh nama dan kontak pelanggan bersifat sintetis (`@example.test`), bukan data pelanggan nyata. Angka ini adalah baseline file contoh, bukan jumlah isi database pada setiap waktu. Jumlah database dapat berubah setelah pipeline dijalankan dan snapshot sumber direkonsiliasi.
 
 ---
 

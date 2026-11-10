@@ -76,13 +76,14 @@ def test_sample_data_generator_is_deterministic_and_etl_consistent(tmp_path):
         data = pd.read_csv(path, dtype=str, keep_default_na=False)
         order_column, line_column = channel["order"], channel["line"]
         item_counts = data.groupby(order_column)[line_column].nunique()
-        assert len(data) == 100
+        assert len(data) == 120
         assert item_counts.min() == 1 and item_counts.max() == 5
         assert set(item_counts) == {1, 2, 3, 4, 5}
-        assert data.duplicated().sum() == 0
-        assert data.duplicated([order_column, line_column]).sum() == 0
-        assert result.summary["duplicate_records"] == 0
-        assert result.summary["invalid_records"] == 1
+        assert data.duplicated().sum() == 1
+        assert data.duplicated([order_column, line_column], keep=False).sum() == 4
+        assert result.summary["valid_records"] == 112
+        assert result.summary["duplicate_records"] == 1
+        assert result.summary["invalid_records"] == 7
 
     assert order_sizes(29) and order_sizes(30) and order_sizes(31)
     sources = extract_all(first_dir)
@@ -97,8 +98,14 @@ def test_sample_data_generator_is_deterministic_and_etl_consistent(tmp_path):
     redemption_rows = pd.read_csv(first_dir / "order_promotions.csv", dtype=str)
     assert not redemption_rows.empty
     assert all(promo_master_rows.loc[code, "status"] == "active" for code in redemption_rows["promo_code"])
+    assert len(redemption_rows) >= 8
+    for source in effective_sources:
+        if source.source_name in SOURCE_NAMES.values():
+            amounts = pd.to_numeric(source.frame["discount_amount"], errors="coerce").fillna(0)
+            assert amounts.gt(0).any()
 
     returns = extract_return_events(first_dir)
+    assert len(returns.frame) == 100
     return_records = [normalize_return_record(row) for row in returns.frame.to_dict("records")]
     completed_lines = {
         SOURCE_NAMES[key]: {

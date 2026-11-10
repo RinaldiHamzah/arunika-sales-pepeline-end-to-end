@@ -1,0 +1,121 @@
+order_id,order_line_id,order_date,product_name,qty,unit_price,customer_name,customer_city,payment_method,status,discount_amount,promo_code
+SHP-0001,1,2026-05-09,EMINA GLOSSY STAIN 01 AUTUMN BELL,2,52900.00,Tegar Wijaya,Jakarta,E-Wallet,in_transit,0.00,
+SHP-0002,1,2026-10-17,Wardah Colorfit Perfect Glow Cushion 13N,1,109000.00,Aditya Sari,Palembang,E-Wallet,completed,0.00,FIXED10K
+SHP-0002,2,2026-10-17,EMINA CHEEK LIT CREAM BLUSH PEACH,1,46900.00,Aditya Sari,Palembang,E-Wallet,COMPLETED,0.00,FIXED10K
+SHP-0002,3,2026-10-17,LABORE-BiomeProtect-Physical-Sunscreen-SPF-50-30ml,1,129000.00,Aditya Sari,Palembang,E-Wallet,completed,0.00,FIXED10K
+SHP-0002,4,2026-10-17, Make Over Powerstay Matte Powder Foundation N20 ,1,179000.00,Aditya Sari,Palembang,Credit Card,COMPLETED,0.00,FIXED10K
+SHP-0002,5,2026-10-17,WARDAH LIGHTENING MICELLAR WATER 100ML,2,28900.00,Aditya Sari,Palembang,COD,completed,0.00,FIXED10K
+SHP-0003,1,2026-10-31,Wardah Colorfit Perfect Glow Cushion 13N,1,109000.00,Hana Saputra,Semarang,COD,completed,0.00,
+SHP-0003,2,2026-10-31,Emina-Cheek-Lit-Cream-Blush-Peach,1,46900.00,Hana Saputra,Semarang,E-Wallet,COMPLETED,0.00,
+SHP-0004,1,2026-03-07, Wardah Aloe Hydramild Moisturizer 40ml ,3,45900.00,Utami Safitri,Jakarta,COD,completed,13770.00,NEWUSER10
+SHP-0004,2,2026-03-07,Biodef-Body-Wash-Fresh-Care-450ml,1,35900.00,Utami Safitri,Jakarta,Transfer Bank,COMPLETED,3590.00,NEWUSER10
+SHP-0004,3,2026-03-07,Emina-Cheek-Lit-Cream-Blush-Peach,1,46900.00,Utami Safitri,Jakarta,Transfer Bank,completed,4690.00,NEWUSER10
+SHP-0004,4,2026-03-07,MAKE OVER POWERSTAY WEIGHTLESS LIQUID FOUNDATION W22,2,169000.00,Utami Safitri,Jakarta,Transfer Bank,COMPLETED,33800.00,NEWUSER10
+SHP-0005,1,2026-02-23,LABORE-Barrier-Revive-Cream-30ml,1,119000.00,Utami Sari,Bandung,Credit Card,completed,0.00,
+SHP-0005,2,2026-02-23,Wardah-Colorfit-Velvet-Matte-Lip-Mousse-03,2,62900.00,Utami Sari,Bandung,Transfer Bank,COMPLETED,0.00,
+SHP-0005,3,2026-02-23, LABORE BiomeProtect Physical Sunscreen SPF 50 30ml ,1,129000.00,Utami Sari,Bandung,E-Wallet,completed,0.00,
+SHP-0005,4,2026-02-23,BIODEF BODY WASH FRESH CARE 450ML,3,35900.00,Utami Sari,Bandung,Transfer Bank,COMPLETED,0.00,
+SHP-0005,5,2026-02-23, Emina Cheek Lit Cream Blush Peach ,4,46900.00,Utami Sari,Bandung,Transfer Bank,completed,0.00,
+SHP-0006,1,2026-06-21,Instaperfect Skincover Air Cushion 02 Beige,2,149000.00,Fajar Santoso,Solo,E-Wallet,completed,0.00,NEWUSER10
+SHP-0006,2,2026-06-21,LABORE BiomeProtect Physical Sunscreen SPF 50 30ml,1,129000.00,Fajar Santoso,Solo,Transfer Bank,COMPLETED,0.00,NEWUSER10
+SHP-0006,3,2026-06-21,Biodef-Body-Wash-Fresh-Care-450ml,1,35900.00,Fajar Santoso,Solo,E-Wallet,completed,0.00,NEWUSER10
+SHP-0006,4,2026-06-21,TAVI URBAN SHIELD SUNSCREEN SPF 50 30ML,2,89900.00,Fajar Santoso,Solo,Credit Card,COMPLETED,0.00,NEWUSER10
+SHP-0006,5,2026-06-21,Wonderly Body Mist Sweet Blossom 100ml,1,45900.00,Fajar Santoso,Solo,E-Wallet,completed,0.00,NEWUSER10
+SHP-0007,1,2026-10-10,Wardah-Lightening-Micellar-Water-100ml,1,28900.00,Tania Safitri,Malang,COD,cancelled,0.00,
+SHP-0007,2,2026-10-10,Wardah-Colorfit-Perfect-Glow-Cushion-13N,2,109000.00,Tania Safitri,Malang,E-Wallet,CANCELLED,0.00,
+SHP-0007,3,2026-10-10, Crystallure Supreme Revitalizing Oil Serum 20ml ,2,219000.00,Tania Safitri,Malang,Credit Card,cancelled,0.00,
+SHP-0007,4,2026-10-10,BIODEF BODY WASH FRESH CARE 450ML,2,35900.00,Tania Safitri,Malang,Transfer Bank,CANCELLED,0.00,
+SHP-0008,1,2026-05-25,Instaperfect-Skincover-Air-Cushion-02-Beige,3,149000.00,Farah Putri,Bekasi,Cash,completed,44700.00,NEWUSER10
+SHP-0008,2,2026-05-25,Wardah-Colorfit-Velvet-Matte-Lip-Mousse-03,1,62900.00,Farah Putri,Bekasi,COD,COMPLETED,6290.00,NEWUSER10
+SHP-0008,3,2026-05-25, LABORE Barrier Revive Cream 30ml ,1,119000.00,Farah Putri,Bekasi,Transfer Bank,completed,11900.00,NEWUSER10
+SHP-0009,1,2026-10-04, Biodef Body Wash Fresh Care 450ml ,2,35900.00,Reza Safitri,Malang,Cash,completed,0.00,
+SHP-0009,2,2026-10-04, Wardah UV Shield Aqua Fresh Essence SPF 50 PA++++ 30ml ,2,68900.00,Reza Safitri,Malang,Transfer Bank,COMPLETED,0.00,
+SHP-0009,3,2026-10-04,Kahf Face Wash Oil and Comedo Defense 100ml,2,42900.00,Reza Safitri,Malang,Cash,completed,0.00,
+SHP-0009,4,2026-10-04,LABORE-Barrier-Revive-Cream-30ml,1,119000.00,Reza Safitri,Malang,E-Wallet,COMPLETED,0.00,
+SHP-0010,1,2026-08-25,Wardah-Colorfit-Velvet-Matte-Lip-Mousse-03,1,62900.00,Galih Putri,Denpasar,Transfer Bank,cancelled,0.00,
+SHP-0010,2,2026-08-25,Emina Sun Battle SPF 50 PA++++ 30ml,2,49900.00,Galih Putri,Denpasar,Transfer Bank,CANCELLED,0.00,
+SHP-0010,3,2026-08-25, LABORE BiomeProtect Physical Sunscreen SPF 50 30ml ,1,129000.00,Galih Putri,Denpasar,COD,cancelled,0.00,
+SHP-0010,4,2026-08-25, Wardah Lightening Micellar Water 100ml ,1,28900.00,Galih Putri,Denpasar,E-Wallet,CANCELLED,0.00,
+SHP-0011,1,2026-01-01,TAVI-Urban-Shield-Sunscreen-SPF-50-30ml,1,89900.00,Fajar Firmansyah,Yogyakarta,Transfer Bank,completed,0.00,
+SHP-0011,2,2026-01-01,Kahf Triple Protection Sunscreen Moisturizer SPF 30,1,54900.00,Fajar Firmansyah,Yogyakarta,Transfer Bank,COMPLETED,0.00,
+SHP-0011,3,2026-01-01,WARDAH ALOE HYDRAMILD MOISTURIZER 40ML,1,45900.00,Fajar Firmansyah,Yogyakarta,E-Wallet,completed,0.00,
+SHP-0012,1,2026-10-08,LABORE-BiomeProtect-Physical-Sunscreen-SPF-50-30ml,1,129000.00,Citra Setiawan,Medan,COD,completed,12900.00,NEWUSER10
+SHP-0012,2,2026-10-08, Wardah Colorfit Perfect Glow Cushion 13N ,2,109000.00,Citra Setiawan,Medan,E-Wallet,COMPLETED,21800.00,NEWUSER10
+SHP-0013,1,2026-06-28,Emina Sun Battle SPF 50 PA++++ 30ml,1,49900.00,Farah Nugraha,Bekasi,COD,completed,0.00,
+SHP-0013,2,2026-06-28,WONDERLY BODY MIST SWEET BLOSSOM 100ML,2,45900.00,Farah Nugraha,Bekasi,E-Wallet,COMPLETED,0.00,
+SHP-0013,3,2026-06-28, Emina Cheek Lit Cream Blush Peach ,4,46900.00,Farah Nugraha,Bekasi,E-Wallet,completed,0.00,
+SHP-0013,4,2026-06-28, Wardah UV Shield Aqua Fresh Essence SPF 50 PA++++ 30ml ,1,68900.00,Farah Nugraha,Bekasi,Transfer Bank,COMPLETED,0.00,
+SHP-0014,1,2026-02-16, Wardah Lightening Micellar Water 100ml ,2,28900.00,Tegar Hidayat,Makassar,E-Wallet,completed,0.00,NEWUSER10
+SHP-0014,2,2026-02-16,Make-Over-Powerstay-Weightless-Liquid-Foundation-W22,1,169000.00,Tegar Hidayat,Makassar,Transfer Bank,COMPLETED,0.00,NEWUSER10
+SHP-0014,3,2026-02-16,TAVI URBAN SHIELD SUNSCREEN SPF 50 30ML,3,89900.00,Tegar Hidayat,Makassar,E-Wallet,completed,0.00,NEWUSER10
+SHP-0014,4,2026-02-16,LABORE BIOMEPROTECT PHYSICAL SUNSCREEN SPF 50 30ML,2,129000.00,Tegar Hidayat,Makassar,E-Wallet,COMPLETED,0.00,NEWUSER10
+SHP-0014,5,2026-02-16,WARDAH COLORFIT PERFECT GLOW CUSHION 13N,1,109000.00,Tegar Hidayat,Makassar,Credit Card,completed,0.00,NEWUSER10
+SHP-0015,1,2026-04-18,Instaperfect Skincover Air Cushion 02 Beige,1,149000.00,Hasna Kurniawan,Palembang,E-Wallet,cancelled,0.00,
+SHP-0015,2,2026-04-18,Wardah-Lightening-Micellar-Water-100ml,2,28900.00,Hasna Kurniawan,Palembang,E-Wallet,CANCELLED,0.00,
+SHP-0015,3,2026-04-18,Wonderly-Body-Mist-Sweet-Blossom-100ml,1,45900.00,Hasna Kurniawan,Palembang,E-Wallet,cancelled,0.00,
+SHP-0016,1,2026-05-30,Make-Over-Powerstay-Matte-Powder-Foundation-N20,2,179000.00,Reza Putri,Denpasar,Cash,completed,35800.00,NEWUSER10
+SHP-0016,2,2026-05-30,Emina Cheek Lit Cream Blush Peach,2,46900.00,Reza Putri,Denpasar,Credit Card,COMPLETED,9380.00,NEWUSER10
+SHP-0016,3,2026-05-30,EMINA SUN BATTLE SPF 50 PA++++ 30ML,1,49900.00,Reza Putri,Denpasar,Cash,completed,4990.00,NEWUSER10
+SHP-0016,4,2026-05-30,Crystallure Supreme Revitalizing Oil Serum 20ml,1,219000.00,Reza Putri,Denpasar,E-Wallet,COMPLETED,21900.00,NEWUSER10
+SHP-0016,5,2026-05-30,LABORE-BiomeProtect-Physical-Sunscreen-SPF-50-30ml,3,129000.00,Reza Putri,Denpasar,Transfer Bank,completed,38700.00,NEWUSER10
+SHP-0017,1,2026-03-06,Wardah UV Shield Aqua Fresh Essence SPF 50 PA++++ 30ml,3,68900.00,Hana Maharani,Surabaya,E-Wallet,completed,0.00,
+SHP-0017,2,2026-03-06,Instaperfect-Skincover-Air-Cushion-02-Beige,1,149000.00,Hana Maharani,Surabaya,E-Wallet,COMPLETED,0.00,
+SHP-0017,3,2026-03-06,Make-Over-Powerstay-Matte-Powder-Foundation-N20,2,179000.00,Hana Maharani,Surabaya,Cash,completed,0.00,
+SHP-0018,1,2026-06-22,Wonderly Body Mist Sweet Blossom 100ml,1,45900.00,Salsa Nugraha,Bekasi,Transfer Bank,cancelled,0.00,
+SHP-0018,2,2026-06-22,TAVI URBAN SHIELD SUNSCREEN SPF 50 30ML,2,89900.00,Salsa Nugraha,Bekasi,E-Wallet,CANCELLED,0.00,
+SHP-0018,3,2026-06-22,Kahf-Triple-Protection-Sunscreen-Moisturizer-SPF-30,2,54900.00,Salsa Nugraha,Bekasi,E-Wallet,cancelled,0.00,
+SHP-0019,1,2026-07-24,Kahf Face Wash Oil and Comedo Defense 100ml,1,42900.00,Eka Sari,Palembang,Credit Card,returned,0.00,
+SHP-0019,2,2026-07-24,Wardah Colorfit Perfect Glow Cushion 13N,1,109000.00,Eka Sari,Palembang,Credit Card,RETURNED,0.00,
+SHP-0020,1,2026-07-04, Emina Sun Battle SPF 50 PA++++ 30ml ,2,49900.00,Farah Kusuma,Denpasar,E-Wallet,completed,9980.00,NEWUSER10
+SHP-0020,2,2026-07-04,Wardah Colorfit Perfect Glow Cushion 13N,1,109000.00,Farah Kusuma,Denpasar,E-Wallet,COMPLETED,10900.00,NEWUSER10
+SHP-0020,3,2026-07-04, Kahf Triple Protection Sunscreen Moisturizer SPF 30 ,1,54900.00,Farah Kusuma,Denpasar,COD,completed,5490.00,NEWUSER10
+SHP-0021,1,2026-02-06, Emina Sun Battle SPF 50 PA++++ 30ml ,1,49900.00,Gilang Ananda,Tangerang,E-Wallet,completed,0.00,
+SHP-0021,2,2026-02-06,KAHF FACE WASH OIL AND COMEDO DEFENSE 100ML,1,42900.00,Gilang Ananda,Tangerang,E-Wallet,COMPLETED,0.00,
+SHP-0021,3,2026-02-06,Instaperfect-Skincover-Air-Cushion-02-Beige,3,149000.00,Gilang Ananda,Tangerang,COD,completed,0.00,
+SHP-0021,4,2026-02-06,WARDAH UV SHIELD AQUA FRESH ESSENCE SPF 50 PA++++ 30ML,1,68900.00,Gilang Ananda,Tangerang,Transfer Bank,COMPLETED,0.00,
+SHP-0022,1,2026-09-28,Crystallure-Supreme-Revitalizing-Oil-Serum-20ml,2,219000.00,Bima Sari,Bandung,Transfer Bank,completed,0.00,NEWUSER10
+SHP-0022,2,2026-09-28,Wardah-Lightening-Micellar-Water-100ml,1,28900.00,Bima Sari,Bandung,E-Wallet,COMPLETED,0.00,NEWUSER10
+SHP-0022,3,2026-09-28, Make Over Powerstay Weightless Liquid Foundation W22 ,1,169000.00,Bima Sari,Bandung,Cash,completed,0.00,NEWUSER10
+SHP-0022,4,2026-09-28,Biodef-Body-Wash-Fresh-Care-450ml,1,35900.00,Bima Sari,Bandung,E-Wallet,COMPLETED,0.00,NEWUSER10
+SHP-0022,5,2026-09-28,KAHF TRIPLE PROTECTION SUNSCREEN MOISTURIZER SPF 30,2,54900.00,Bima Sari,Bandung,E-Wallet,completed,0.00,NEWUSER10
+SHP-0023,1,2026-04-03, Instaperfect Skincover Air Cushion 02 Beige ,1,149000.00,Bella Ananda,Medan,Transfer Bank,cancelled,0.00,
+SHP-0023,2,2026-04-03, Kahf Face Wash Oil and Comedo Defense 100ml ,3,42900.00,Bella Ananda,Medan,E-Wallet,CANCELLED,0.00,
+SHP-0023,3,2026-04-03,Wardah-Aloe-Hydramild-Moisturizer-40ml,2,45900.00,Bella Ananda,Medan,E-Wallet,cancelled,0.00,
+SHP-0024,1,2026-10-05,LABORE-BiomeProtect-Physical-Sunscreen-SPF-50-30ml,1,129000.00,Citra Hidayat,Makassar,E-Wallet,completed,12900.00,NEWUSER10
+SHP-0024,2,2026-10-05,TAVI-Urban-Shield-Sunscreen-SPF-50-30ml,1,89900.00,Citra Hidayat,Makassar,Cash,COMPLETED,8990.00,NEWUSER10
+SHP-0024,3,2026-10-05,Make-Over-Powerstay-Weightless-Liquid-Foundation-W22,3,169000.00,Citra Hidayat,Makassar,COD,completed,50700.00,NEWUSER10
+SHP-0024,4,2026-10-05,Emina-Glossy-Stain-01-Autumn-Bell,2,52900.00,Citra Hidayat,Makassar,Transfer Bank,COMPLETED,10580.00,NEWUSER10
+SHP-0025,1,2026-08-04,Wardah UV Shield Aqua Fresh Essence SPF 50 PA++++ 30ml,1,68900.00,Maya Nugraha,Denpasar,Cash,completed,0.00,
+SHP-0025,2,2026-08-04,Emina Bright Stuff Face Wash 100ml,2,27900.00,Maya Nugraha,Denpasar,E-Wallet,COMPLETED,0.00,
+SHP-0025,3,2026-08-04,Emina-Glossy-Stain-01-Autumn-Bell,1,52900.00,Maya Nugraha,Denpasar,E-Wallet,completed,0.00,
+SHP-0025,4,2026-08-04, Wardah Colorfit Perfect Glow Cushion 13N ,3,109000.00,Maya Nugraha,Denpasar,Transfer Bank,COMPLETED,0.00,
+SHP-0026,1,2026-10-17, Wardah UV Shield Aqua Fresh Essence SPF 50 PA++++ 30ml ,3,68900.00,Aditya Kurniawan,Bandung,E-Wallet,completed,0.00,FIXED10K
+SHP-0026,2,2026-10-17,Wardah Lightening Micellar Water 100ml,1,28900.00,Aditya Kurniawan,Bandung,Cash,COMPLETED,0.00,FIXED10K
+SHP-0026,3,2026-10-17, Instaperfect Skincover Air Cushion 02 Beige ,2,149000.00,Aditya Kurniawan,Bandung,Credit Card,completed,0.00,FIXED10K
+SHP-0026,4,2026-10-17,EMINA GLOSSY STAIN 01 AUTUMN BELL,1,52900.00,Aditya Kurniawan,Bandung,Transfer Bank,COMPLETED,0.00,FIXED10K
+SHP-0027,1,2026-02-19,TAVI-Urban-Shield-Sunscreen-SPF-50-30ml,2,89900.00,Sinta Putri,Bekasi,COD,completed,0.00,
+SHP-0027,2,2026-02-19, LABORE BiomeProtect Physical Sunscreen SPF 50 30ml ,2,129000.00,Sinta Putri,Bekasi,E-Wallet,COMPLETED,0.00,
+SHP-0027,3,2026-02-19,Make Over Powerstay Matte Powder Foundation N20,1,179000.00,Sinta Putri,Bekasi,E-Wallet,completed,0.00,
+SHP-0027,4,2026-02-19,EMINA SUN BATTLE SPF 50 PA++++ 30ML,1,49900.00,Sinta Putri,Bekasi,E-Wallet,COMPLETED,0.00,
+SHP-0027,5,2026-02-19,Emina Bright Stuff Face Wash 100ml,1,27900.00,Sinta Putri,Bekasi,E-Wallet,completed,0.00,
+SHP-0028,1,2026-08-22, Crystallure Supreme Revitalizing Oil Serum 20ml ,1,219000.00,Reza Permata,Malang,E-Wallet,completed,21900.00,NEWUSER10
+SHP-0028,2,2026-08-22,WARDAH UV SHIELD AQUA FRESH ESSENCE SPF 50 PA++++ 30ML,1,68900.00,Reza Permata,Malang,Transfer Bank,COMPLETED,6890.00,NEWUSER10
+SHP-0028,3,2026-08-22, Emina Cheek Lit Cream Blush Peach ,4,46900.00,Reza Permata,Malang,E-Wallet,completed,18760.00,NEWUSER10
+SHP-0028,4,2026-08-22, Make Over Powerstay Weightless Liquid Foundation W22 ,2,169000.00,Reza Permata,Malang,E-Wallet,COMPLETED,33800.00,NEWUSER10
+SHP-0028,5,2026-08-22,LABORE BIOMEPROTECT PHYSICAL SUNSCREEN SPF 50 30ML,2,129000.00,Reza Permata,Malang,Transfer Bank,completed,25800.00,NEWUSER10
+SHP-0029,1,2026-06-09,KAHF FACE WASH OIL AND COMEDO DEFENSE 100ML,1,42900.00,Galih Kusuma,Bekasi,COD,completed,0.00,
+SHP-0029,2,2026-06-09,Emina Bright Stuff Face Wash 100ml,1,27900.00,Galih Kusuma,Bekasi,Transfer Bank,COMPLETED,0.00,
+SHP-0029,3,2026-06-09,LABORE Barrier Revive Cream 30ml,2,119000.00,Galih Kusuma,Bekasi,Transfer Bank,completed,0.00,
+SHP-0029,4,2026-06-09,LABORE-BiomeProtect-Physical-Sunscreen-SPF-50-30ml,1,129000.00,Galih Kusuma,Bekasi,Transfer Bank,COMPLETED,0.00,
+SHP-0029,5,2026-06-09,Emina Cheek Lit Cream Blush Peach,1,46900.00,Galih Kusuma,Bekasi,Transfer Bank,completed,0.00,
+SHP-0030,1,2026-05-31, Biodef Body Wash Fresh Care 450ml ,1,35900.00,Ari Wulandari,Yogyakarta,COD,completed,0.00,NEWUSER10
+SHP-0030,2,2026-05-31,Emina-Sun-Battle-SPF-50-PA++++-30ml,2,49900.00,Ari Wulandari,Yogyakarta,Transfer Bank,COMPLETED,0.00,NEWUSER10
+SHP-0030,3,2026-05-31,WONDERLY BODY MIST SWEET BLOSSOM 100ML,1,45900.00,Ari Wulandari,Yogyakarta,Transfer Bank,completed,0.00,NEWUSER10
+SHP-0003,1,2026-10-31,Wardah Colorfit Perfect Glow Cushion 13N,1,109000.00,Hana Saputra,Semarang,COD,completed,0.00,
+SHP-QA-CONFLICT,1,2026-10-31,Wardah Colorfit Perfect Glow Cushion 13N,1,109000.00,Hana Saputra,Semarang,COD,completed,0.00,
+SHP-QA-CONFLICT,1,2026-10-31,Wardah Colorfit Perfect Glow Cushion 13N,2,109000.00,Hana Saputra,Semarang,COD,completed,0.00,
+SHP-QA-MISSING,1,2026-10-31,Wardah Colorfit Perfect Glow Cushion 13N,,109000.00,Hana Saputra,Semarang,COD,completed,0.00,
+SHP-QA-DATE,1,not-a-date,Wardah Colorfit Perfect Glow Cushion 13N,1,109000.00,Hana Saputra,Semarang,COD,completed,0.00,
+SHP-QA-STATUS,1,2026-10-31,Wardah Colorfit Perfect Glow Cushion 13N,1,109000.00,Hana Saputra,Semarang,COD,IN_TRANSIT,0.00,
+SHP-QA-PRODUCT,1,2026-10-31,Produk QA Tidak Terdaftar 50ml,1,109000.00,Hana Saputra,Semarang,COD,completed,0.00,
+SHP-QA-OPTIONAL,1,2026-10-31,Wardah Colorfit Perfect Glow Cushion 13N,1,109000.00,,Semarang,COD,completed,0.00,

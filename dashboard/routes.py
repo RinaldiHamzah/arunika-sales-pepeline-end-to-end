@@ -18,6 +18,7 @@ from dashboard.services.analytics import (
     default_date_range,
     query_dashboard_analytics,
     query_dashboard_data,
+    query_return_analytics,
 )
 from dashboard.services.formatting import operation_runs_for_display, serializable
 from dashboard.services.ingestion import append_csv_batch
@@ -239,6 +240,9 @@ def dashboard_data():
         analytics, charts = query_dashboard_analytics(
             _engine(), start, end, channels, statuses, categories, brands, products
         )
+        returns = query_return_analytics(
+            _engine(), start, end, channels, statuses, categories, brands, products
+        )
         gross_sales, net_sales = float(analytics["gross_sales"] or 0), float(analytics["net_sales"] or 0)
         eligible_count = int(analytics["eligible_orders"] or 0)
         completed_count = int(analytics["completed_orders"] or 0)
@@ -310,6 +314,7 @@ def dashboard_data():
                     "unresolved_city_records": unresolved_city_records,
                 },
                 "charts": charts,
+                "returns": returns,
                 "rows": serializable(rows),
             }
         )

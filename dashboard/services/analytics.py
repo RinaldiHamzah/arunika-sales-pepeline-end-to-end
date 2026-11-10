@@ -188,6 +188,97 @@ def query_dashboard_analytics(engine, start, end, channels, statuses, categories
     return dict(metrics), {name: serializable(rows) for name, rows in charts.items()}
 
 
+def query_return_analytics(engine, start, end, channels, statuses, categories, brands=None, products=None):
+    """Ambil ringkasan operasional dan event retur menurut tanggal retur."""
+    conditions = ["r.return_date BETWEEN :start AND :end"]
+    params = {"start": start, "end": end}
+    for name, column, values in (
+        ("channel", "c.channel_name", channels),
+        ("sale_status", "s.sale_status", statuses),
+        ("category", "p.category", categories),
+        ("brand", "p.brand", brands or []),
+        ("product", "p.sku", products or []),
+    ):
+        if values:
+            placeholders = []
+            for index, value in enumerate(values):
+                key = f"return_{name}_{index}"
+                placeholders.append(f":{key}")
+                params[key] = value
+            conditions.append(f"{column} IN ({', '.join(placeholders)})")
+    where = " AND ".join(conditions)
+    source = """
+        FROM warehouse.fact_returns r
+        JOIN warehouse.fact_sales s
+          ON s.source_name = r.source_name
+         AND s.source_order_id = r.source_order_id
+         AND s.source_line_number = r.source_line_number
+        JOIN warehouse.dim_channel c ON c.channel_key = s.channel_key
+        JOIN warehouse.dim_product p ON p.product_key = s.product_key
+    """
+    with engine.connect() as connection:
+        result = {
+            "by_status": connection.execute(text(f"""
+                SELECT r.return_status AS label, COUNT(*) AS events,
+                       COALESCE(SUM(r.quantity_returned), 0) AS units,
+                       COUNT(*) FILTER (WHERE r.refund_status = 'PROCESSED') AS refunded_events,
+                       COALESCE(SUM(r.refund_amount) FILTER (WHERE r.refund_status = 'PROCESSED'), 0)
+                           AS processed_refund_amount
+                {source} WHERE {where}
+                GROUP BY r.return_status
+                ORDER BY CASE r.return_status
+                    WHEN 'PENDING' THEN 1 WHEN 'APPROVED' THEN 2
+                    WHEN 'REJECTED' THEN 3 WHEN 'PROCESSED' THEN 4 ELSE 5 END
+            """), params).mappings().all(),
+            "by_refund_status": connection.execute(text(f"""
+                SELECT r.refund_status AS label, COUNT(*) AS events,
+                       COALESCE(SUM(r.refund_amount) FILTER (WHERE r.refund_status = 'PROCESSED'), 0)
+                           AS processed_refund_amount
+                {source} WHERE {where}
+                GROUP BY r.refund_status
+                ORDER BY CASE r.refund_status
+                    WHEN 'PENDING' THEN 1 WHEN 'PROCESSED' THEN 2
+                    WHEN 'FAILED' THEN 3 WHEN 'NOT_APPLICABLE' THEN 4 ELSE 5 END
+            """), params).mappings().all(),
+            "by_channel": connection.execute(text(f"""
+                SELECT c.channel_name AS label, COUNT(*) AS events,
+                       COALESCE(SUM(r.quantity_returned), 0) AS units,
+                       COUNT(*) FILTER (WHERE r.return_status = 'PENDING') AS pending_events,
+                       COUNT(*) FILTER (WHERE r.return_status = 'REJECTED') AS rejected_events,
+                       COALESCE(SUM(r.refund_amount) FILTER (WHERE r.refund_status = 'PROCESSED'), 0)
+                           AS processed_refund_amount
+                {source} WHERE {where}
+                GROUP BY c.channel_name ORDER BY events DESC, label
+            """), params).mappings().all(),
+            "by_reason": connection.execute(text(f"""
+                SELECT r.return_reason AS label, COUNT(*) AS events,
+                       COALESCE(SUM(r.quantity_returned), 0) AS units,
+                       COALESCE(SUM(r.refund_amount) FILTER (WHERE r.refund_status = 'PROCESSED'), 0)
+                           AS processed_refund_amount
+                {source} WHERE {where}
+                GROUP BY r.return_reason ORDER BY events DESC, label LIMIT 10
+            """), params).mappings().all(),
+            "monthly": connection.execute(text(f"""
+                SELECT TO_CHAR(r.return_date, 'YYYY-MM') AS label, COUNT(*) AS events,
+                       COALESCE(SUM(r.quantity_returned), 0) AS units,
+                       COALESCE(SUM(r.refund_amount) FILTER (WHERE r.refund_status = 'PROCESSED'), 0)
+                           AS processed_refund_amount
+                {source} WHERE {where}
+                GROUP BY DATE_TRUNC('month', r.return_date), TO_CHAR(r.return_date, 'YYYY-MM')
+                ORDER BY DATE_TRUNC('month', r.return_date)
+            """), params).mappings().all(),
+            "rows": connection.execute(text(f"""
+                SELECT r.return_date, r.return_id, r.return_line_number,
+                       c.channel_name, r.source_order_id AS order_id, r.source_line_number,
+                       p.sku AS product_id, p.product_name, r.return_status,
+                       r.return_reason, r.quantity_returned, r.refund_status, r.refund_amount
+                {source} WHERE {where}
+                ORDER BY r.return_date DESC, r.return_id, r.return_line_number
+            """), params).mappings().all(),
+        }
+    return {name: serializable(rows) for name, rows in result.items()}
+
+
 def query_dashboard_data(engine, start, end, channels, statuses, categories, brands=None, products=None):
     """Ambil baris rincian, pilihan filter, dan data pemantauan pipeline."""
     where, params = build_filter_clause(start, end, channels, statuses, categories, brands, products)

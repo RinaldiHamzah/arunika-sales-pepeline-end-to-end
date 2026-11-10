@@ -186,6 +186,9 @@
   align-items: start;
   gap: 24px;
 }
+.return-events-panel {
+  grid-column: 1 / -1;
+}
 .summary-chart {
   margin-top: 24px;
 }

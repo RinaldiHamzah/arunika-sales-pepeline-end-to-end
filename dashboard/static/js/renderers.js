@@ -84,6 +84,53 @@ function renderMetrics(metrics) {
     : `${change >= 0 ? '▲' : '▼'} ${percent(Math.abs(change))} dibanding periode sebelumnya`;
 }
 
+function renderReturnTable(id, rows, renderRow, colspan) {
+  const body = $(id);
+  if (!body) return;
+  body.innerHTML = rows?.length
+    ? rows.map(renderRow).join('')
+    : `<tr><td colspan="${colspan}" class="empty">Tidak ada data retur pada filter ini.</td></tr>`;
+}
+
+function renderReturnAnalytics(data = {}) {
+  const statuses = Object.fromEntries((data.by_status || []).map(row => [row.label, row]));
+  const refunds = Object.fromEntries((data.by_refund_status || []).map(row => [row.label, row]));
+  const total = (data.by_status || []).reduce((sum, row) => sum + Number(row.events || 0), 0);
+  const setText = (id, value) => { if ($(id)) $(id).textContent = value; };
+  setText('return-total', number(total));
+  setText('return-pending', number(statuses.PENDING?.events));
+  setText('return-approved', number(statuses.APPROVED?.events));
+  setText('return-rejected', number(statuses.REJECTED?.events));
+  setText('return-processed', number(statuses.PROCESSED?.events));
+  setText('return-refund-total', money(refunds.PROCESSED?.processed_refund_amount));
+  setText('return-event-count', `${number(data.rows?.length || 0)} event`);
+
+  renderReturnTable('return-status-rows', data.by_status, row => `
+    <tr><td>${statusBadge(row.label)}</td><td>${number(row.events)}</td><td>${number(row.units)}</td>
+    <td>${number(row.refunded_events)}</td><td>${money(row.processed_refund_amount)}</td></tr>
+  `, 5);
+  renderReturnTable('refund-status-rows', data.by_refund_status, row => `
+    <tr><td>${statusBadge(row.label)}</td><td>${number(row.events)}</td>
+    <td>${money(row.processed_refund_amount)}</td></tr>
+  `, 3);
+  renderReturnTable('return-channel-rows', data.by_channel, row => `
+    <tr><td>${escapeHtml(row.label)}</td><td>${number(row.events)}</td><td>${number(row.units)}</td>
+    <td>${number(row.pending_events)}</td><td>${number(row.rejected_events)}</td>
+    <td>${money(row.processed_refund_amount)}</td></tr>
+  `, 6);
+  renderReturnTable('return-reason-rows', data.by_reason, row => `
+    <tr><td>${escapeHtml(row.label)}</td><td>${number(row.events)}</td><td>${number(row.units)}</td>
+    <td>${money(row.processed_refund_amount)}</td></tr>
+  `, 4);
+  renderReturnTable('return-event-rows', data.rows, row => `
+    <tr><td>${escapeHtml(row.return_date)}</td><td>${escapeHtml(row.return_id)}${Number(row.return_line_number) > 1 ? ` · ${number(row.return_line_number)}` : ''}</td>
+    <td>${escapeHtml(row.channel_name)}</td><td>${escapeHtml(row.order_id)} · ${number(row.source_line_number)}</td>
+    <td>${escapeHtml(row.product_name)} <small>${escapeHtml(row.product_id)}</small></td>
+    <td>${statusBadge(row.return_status)}</td><td>${escapeHtml(row.return_reason)}</td>
+    <td>${number(row.quantity_returned)}</td><td>${statusBadge(row.refund_status)}</td><td>${money(row.refund_amount)}</td></tr>
+  `, 10);
+}
+
 function renderObservability(observability) {
   const run = observability.latest_run;
   $('pipeline-status').textContent = run?.status || 'BELUM ADA RUN';
@@ -113,6 +160,7 @@ export function renderDashboard(data) {
     if ($('transaction-search')) $('transaction-search').value = '';
   }
   renderMetrics(data.metrics || {});
+  renderReturnAnalytics(data.returns || {});
   renderObservability(data.observability || {});
   renderCharts(data);
   renderRankList('product-list', data.charts.product, 'quantity');

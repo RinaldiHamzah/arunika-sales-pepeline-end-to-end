@@ -4,7 +4,13 @@ export async function requestJson(url, options = {}) {
   const timeout = window.setTimeout(() => controller.abort(), 20000);
   try {
     const response = await fetch(url, { ...options, signal: controller.signal });
-    const data = await response.json();
+    let data;
+    try {
+      data = await response.json();
+    } catch (error) {
+      if (!(error instanceof SyntaxError)) throw error;
+      throw new Error(`Server mengirim respons yang tidak dapat dibaca (HTTP ${response.status}, ${url.split('?')[0]}). Periksa log dashboard.`);
+    }
     if (!response.ok) {
       if (response.status === 409 && data.status === 'already_running') return data;
       throw new Error(data.error || 'Permintaan gagal. Silakan coba lagi.');
@@ -14,7 +20,6 @@ export async function requestJson(url, options = {}) {
     if (error.name === 'AbortError') {
       throw new Error('Respons lebih dari 20 detik. Periksa koneksi lalu coba lagi.');
     }
-    if (error instanceof SyntaxError) throw new Error('Respons server bukan JSON yang valid.');
     throw error;
   } finally {
     window.clearTimeout(timeout);

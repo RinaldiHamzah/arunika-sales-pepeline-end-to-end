@@ -202,6 +202,8 @@ try {
   await evaluate("document.getElementById('return-prev-page').click()");
   console.log('Initial render ready');
   assert.equal(await evaluate("document.querySelectorAll('.chart-data').length"), 7);
+  await evaluate("document.querySelector('[data-overview-tab=sales]').click()");
+  await until("!!window.Chart.getChart(document.getElementById('promo-chart'))");
   assert.equal(await evaluate("window.Chart.getChart(document.getElementById('promo-chart')).data.labels.includes('—')"), true);
   for (const width of [320, 375, 640, 768, 1024, 1440]) {
     await send('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: false });

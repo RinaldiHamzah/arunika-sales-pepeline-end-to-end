@@ -121,8 +121,10 @@
   }
   .navigation-link {
     flex: 1;
+    min-width: 0;
     justify-content: center;
-    font-size: 13px;
+    padding-inline: 4px;
+    font-size: 12px;
   }
   .main-content {
     padding: 24px 16px 36px;

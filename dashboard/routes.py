@@ -23,7 +23,7 @@ from dashboard.services.analytics import (
 from dashboard.services.formatting import operation_runs_for_display, serializable
 from dashboard.services.ingestion import append_csv_batch
 from pipeline.config import settings
-from pipeline.execution import PipelineBusyError, reserve_run
+from pipeline.execution import PipelineBusyError, pipeline_lock, reserve_run
 
 dashboard_routes = Blueprint("dashboard", __name__)
 
@@ -182,7 +182,8 @@ def upload_source_batch():
     if len(payload) > 10 * 1024 * 1024:
         return jsonify({"error": "Ukuran CSV maksimum adalah 10 MB."}), 413
     try:
-        rows = append_csv_batch(source_key, payload)
+        with pipeline_lock(_engine()):
+            rows = append_csv_batch(source_key, payload)
         return jsonify(
             {
                 "status": "accepted",
@@ -193,6 +194,15 @@ def upload_source_batch():
         ), 201
     except ValueError as error:
         return jsonify({"error": str(error)}), 400
+    except PipelineBusyError:
+        return jsonify({"error": "Pipeline atau upload lain sedang berjalan. Tunggu hingga selesai, lalu coba lagi."}), 409
+    except PermissionError:
+        current_app.logger.exception("Upload CSV gagal karena akses berkas sumber ditolak")
+        return jsonify({"error": (
+            "CSV belum tersimpan karena akses ke berkas sumber ditolak. "
+            "Tutup aplikasi yang sedang memakai CSV, pastikan berkas OneDrive tersedia di perangkat, "
+            "lalu coba lagi. Jika berlanjut, periksa izin folder data/source pada Docker."
+        )}), 503
 
 
 @dashboard_routes.get("/api/admin/operations")

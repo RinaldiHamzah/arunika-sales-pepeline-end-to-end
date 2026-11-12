@@ -34,11 +34,20 @@ Transaksi mengikuti filter terakhir yang diterapkan pada Ringkasan. Gunakan pagi
 ### Pengaturan dan token administrator
 
 1. Masukkan token pada area **Token Administrator**.
-2. Pilih sumber data dan unggah CSV pada Langkah 1. Kontrak header lama tetap diterima; untuk mencatat promo tingkat baris, tambahkan `discount_amount` dan `promo_code` di akhir header. Jika sumber hanya memberikan diskon tingkat order, gunakan `order_promotions.csv`; jangan memasukkan diskon aktual yang sama melalui kedua jalur. Upload dashboard menambahkan batch ke CSV yang sudah ada.
+2. Pilih sumber data dan unggah CSV pada Langkah 1. Upload mendukung empat kanal, master produk, master promo, penggunaan promo per pesanan, dan return/refund. Header diperiksa saat upload; validasi isi dilakukan pipeline saat dijalankan. Kontrak header lama kanal tetap diterima; untuk mencatat promo tingkat baris, tambahkan `discount_amount` dan `promo_code` di akhir header. Jika sumber hanya memberikan diskon tingkat order, gunakan `order_promotions.csv`; jangan memasukkan diskon aktual yang sama melalui kedua jalur. Upload dashboard menambahkan batch ke CSV yang sudah ada.
 3. Jalankan pipeline pada Langkah 2.
 4. Klik **Check Status** untuk memuat riwayat pipeline.
 
 Token hanya digunakan untuk request admin selama halaman aktif dan tidak disimpan ke `localStorage`.
+
+CSV aktif tetap berada di `data/source` pada folder proyek. Untuk header lengkap, upload
+menambahkan batch ke berkas yang sama tanpa mengganti berkas melalui rename, sehingga
+sesuai dengan mount Windows yang mengizinkan penulisan tetapi menolak penggantian berkas.
+Upload dan pipeline memakai kunci PostgreSQL yang sama; tunggu proses aktif selesai
+sebelum mengunggah. Jika penulisan batch gagal, panjang berkas dikembalikan ke ukuran
+sebelumnya. Penghentian paksa proses saat menulis tetap perlu pemeriksaan integritas CSV.
+Peningkatan header lama menjadi header lengkap masih menggunakan penggantian berkas
+dan memerlukan izin tersebut. Unggah hanya batch baru agar tidak menggandakan isi sumber.
 
 ## Status koneksi dan refresh
 

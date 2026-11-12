@@ -5,6 +5,7 @@ import json
 import os
 import shutil
 import tempfile
+from decimal import Decimal
 from pathlib import Path
 from uuid import uuid4
 
@@ -80,6 +81,11 @@ def _append_valid_website_rows(source_dir, count=20):
         # Business key unik membuat tes dapat diulang pada basis data pengembangan
         # yang datanya tetap tersimpan setelah tes penerimaan sebelumnya.
         row["invoice_no"] = f"WEB-TEST-{test_batch}-{index:04d}"
+        # Sebagian fixture sumber sengaja memiliki total_amount yang tidak cocok.
+        # Batch incremental di sini harus valid agar benar-benar menguji pemuatan.
+        gross = Decimal(row["quantity"]) * Decimal(row["unit_price"])
+        discount = Decimal(row.get("discount_amount") or "0")
+        row["total_amount"] = str((gross - discount).quantize(Decimal("0.01")))
         rows.append(row)
     with path.open("w", newline="", encoding="utf-8") as file:
         writer = csv.DictWriter(file, fieldnames=fields)
@@ -105,7 +111,9 @@ def _website_order_lines(source_dir, order_id, count, changed_line=None):
     for line in range(1, count + 1):
         row = dict(template)
         row.update(invoice_no=order_id, line_item_no=str(line), quantity="4" if line == changed_line else "1")
-        row["total_amount"] = str(int(row["quantity"]) * int(row["unit_price"]))
+        gross = Decimal(row["quantity"]) * Decimal(row["unit_price"])
+        discount = Decimal(row.get("discount_amount") or "0")
+        row["total_amount"] = str((gross - discount).quantize(Decimal("0.01")))
         rows.append(row)
     with path.open("w", newline="", encoding="utf-8") as stream:
         writer = csv.DictWriter(stream, fieldnames=fields)
@@ -136,7 +144,16 @@ def test_full_pipeline_and_incremental_acceptance():
     runtime_root.mkdir(exist_ok=True)
     source_dir = Path(tempfile.mkdtemp(dir=runtime_root)) / "source"
     source_dir.mkdir()
-    for name in ("product.csv", "shopee.csv", "tokopedia.csv", "website.csv", "offline.csv", "returns.csv"):
+    for name in (
+        "product.csv",
+        "shopee.csv",
+        "tokopedia.csv",
+        "website.csv",
+        "offline.csv",
+        "promo_master.csv",
+        "order_promotions.csv",
+        "returns.csv",
+    ):
         shutil.copy2(ROOT / "data" / "source" / name, source_dir / name)
     (source_dir / "source_manifest.json").write_text(
         json.dumps(
@@ -388,7 +405,12 @@ def test_full_pipeline_and_incremental_acceptance():
             {"run_id": reconciled_run},
         ).one()
     assert tuple(removed_line) == (False, 0)
-    assert tuple(reconciliation_record) == ("SUCCESS", 5, 1)
+    with (source_dir / "website.csv").open(newline="", encoding="utf-8") as stream:
+        expected_keys = {
+            (row["invoice_no"].strip(), int(row["line_item_no"])) for row in csv.DictReader(stream)
+        }
+    # Audit mencakup seluruh snapshot Website, termasuk order di luar skenario ini.
+    assert tuple(reconciliation_record) == ("SUCCESS", len(expected_keys), 1)
 
     _website_order_lines(source_dir, order_id, 6)
     run(source_dir)

@@ -89,6 +89,7 @@ def load_staging(connection: Connection, run_id: UUID, rows) -> int:
             source_record_hash = EXCLUDED.source_record_hash,
             transformed_at = CURRENT_TIMESTAMP
         WHERE staging.stg_sales.source_record_hash IS DISTINCT FROM EXCLUDED.source_record_hash
+           OR staging.stg_sales.ingestion_run_id IS DISTINCT FROM EXCLUDED.ingestion_run_id
     """)
     result = connection.execute(statement, records)
     return result.rowcount

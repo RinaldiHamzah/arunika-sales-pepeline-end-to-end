@@ -9,7 +9,7 @@ from pathlib import Path
 if __package__ is None:
     sys.path.insert(0, str(Path.cwd()))
 
-from flask import Flask, request
+from flask import Flask, jsonify, request
 from sqlalchemy import create_engine
 
 from dashboard.routes import dashboard_routes
@@ -68,6 +68,13 @@ def create_app() -> Flask:
         return response
 
     app.register_blueprint(dashboard_routes)
+
+    @app.errorhandler(500)
+    def internal_error(error):
+        if request.path.startswith("/api/"):
+            return jsonify({"error": "Terjadi kesalahan pada server. Periksa log dashboard sebelum mencoba lagi."}), 500
+        return error
+
     return app
 
 

@@ -8,8 +8,9 @@ import tempfile
 from io import StringIO
 from pathlib import Path
 
-from pipeline.promotions import ORDER_PROMOTION_COLUMNS, PROMO_MASTER_COLUMNS
-from pipeline.returns import RETURN_COLUMNS
+from pipeline.promotions import PROMO_MASTER_COLUMNS
+from pipeline.extract.product import PRODUCT_SOURCE_FILE
+from pipeline.returns import RETURN_COLUMNS, RETURN_SOURCE_FILE
 from pipeline.validation.contracts import RAW_COLUMNS, SOURCE_SPECS, required_raw_columns
 
 SOURCE_DIR = Path(__file__).resolve().parents[2] / "data" / "source"
@@ -18,15 +19,13 @@ SOURCE_FILES = {
     "tokopedia": "tokopedia.csv",
     "website": "website.csv",
     "offline": "offline.csv",
-    "product": "product.csv",
+    "product": PRODUCT_SOURCE_FILE,
     "promo_master": "promo_master.csv",
-    "order_promotions": "order_promotions.csv",
-    "returns": "returns.csv",
+    "returns": RETURN_SOURCE_FILE,
 }
 SOURCE_COLUMNS = {
     **RAW_COLUMNS,
     "promo_master": PROMO_MASTER_COLUMNS,
-    "order_promotions": ORDER_PROMOTION_COLUMNS,
     "returns": RETURN_COLUMNS,
 }
 
@@ -104,7 +103,6 @@ def append_csv_batch(source_key: str, payload: bytes, mode: str = "append") -> i
         else:
             keys = {
                 "product": ("sku",), "promo_master": ("promo_code",),
-                "order_promotions": ("source_name", "order_id"),
                 "returns": ("source_name", "return_id", "return_line_number"),
             }[source_key]
 

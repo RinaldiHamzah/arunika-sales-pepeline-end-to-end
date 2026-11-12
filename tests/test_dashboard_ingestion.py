@@ -14,6 +14,11 @@ from pipeline.execution import PipelineBusyError
 from pipeline.validation.contracts import RAW_COLUMNS, required_raw_columns
 
 
+def test_order_promotion_is_no_longer_an_upload_source():
+    assert "order_promotions" not in dashboard_ingestion.SOURCE_FILES
+    assert "order_promotions" not in dashboard_ingestion.SOURCE_COLUMNS
+
+
 def _csv_bytes(source: str, rows: list[dict]) -> bytes:
     output = StringIO()
     fields = list(RAW_COLUMNS[source])
@@ -67,7 +72,7 @@ def test_append_csv_batch_upgrades_legacy_header_without_losing_rows(tmp_path, m
     assert rows[1]["discount_amount"] == "new-value"
 
 
-@pytest.mark.parametrize("source", ["promo_master", "order_promotions", "returns"])
+@pytest.mark.parametrize("source", ["promo_master", "returns"])
 def test_append_csv_batch_supports_auxiliary_sources(tmp_path, monkeypatch, source):
     fields = list(dashboard_ingestion.SOURCE_COLUMNS[source])
     target = tmp_path / dashboard_ingestion.SOURCE_FILES[source]
@@ -126,7 +131,7 @@ def test_upload_storage_errors_return_json(monkeypatch, failure, status):
     response = dashboard_app.app.test_client().post(
         "/api/ingestion/upload",
         headers={"X-Admin-Token": "test-token"},
-        data={"source": "returns", "file": (BytesIO(b"header\nrow\n"), "returns.csv")},
+        data={"source": "returns", "file": (BytesIO(b"header\nrow\n"), "return_refund.csv")},
     )
     assert response.status_code == status
     assert response.is_json
@@ -156,20 +161,6 @@ def test_explicit_correction_replaces_key_and_preserves_other_rows(tmp_path, mon
     original = target.read_bytes()
     with pytest.raises(ValueError, match="belum ada"):
         dashboard_ingestion.append_csv_batch(source, payload([dict.fromkeys(columns, "3")]), mode="correct")
-    assert target.read_bytes() == original
-
-
-def test_correction_permission_failure_preserves_original(tmp_path, monkeypatch):
-    columns = dashboard_ingestion.SOURCE_COLUMNS["order_promotions"]
-    target = tmp_path / "order_promotions.csv"
-    original = (",".join(columns) + "\nSHOPEE,SHP-1,NEW,100\n").encode()
-    target.write_bytes(original)
-    monkeypatch.setattr(dashboard_ingestion, "SOURCE_DIR", tmp_path)
-    def denied(*args):
-        raise PermissionError("blocked")
-    monkeypatch.setattr(dashboard_ingestion.os, "replace", denied)
-    with pytest.raises(PermissionError):
-        dashboard_ingestion.append_csv_batch("order_promotions", original.replace(b",100", b",200"), mode="correct")
     assert target.read_bytes() == original
 
 
@@ -229,7 +220,7 @@ def test_upload_rejects_when_pipeline_busy(monkeypatch):
     monkeypatch.setattr(dashboard_routes, "pipeline_lock", busy)
     response = dashboard_app.app.test_client().post(
         "/api/ingestion/upload", headers={"X-Admin-Token": "test-token"},
-        data={"source": "returns", "file": (BytesIO(b"header\nrow\n"), "returns.csv")},
+        data={"source": "returns", "file": (BytesIO(b"header\nrow\n"), "return_refund.csv")},
     )
     assert response.status_code == 409
     assert response.is_json

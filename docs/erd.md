@@ -75,7 +75,7 @@ View berikut adalah objek baca saja. View tidak ditampilkan sebagai tabel pada E
 | `raw.offline_store_sales` | Satu baris mentah CSV toko offline dalam satu ingestion run. |
 | `raw.product_master` | Satu baris master produk dalam satu ingestion run. |
 | `raw.promo_master` | Satu definisi kode promo pada satu ingestion run. |
-| `raw.order_promotions` | Satu penerapan kode promo untuk satu kanal dan order pada satu ingestion run. |
+| `raw.order_promotions` | Tabel legacy untuk payload penggunaan promo order dari versi sumber lama; pipeline baru tidak memuat data ke tabel ini. |
 | `raw.return_events` | Satu baris mentah CSV retur dalam satu ingestion run. |
 | `staging.stg_sales` | Satu line item transaksi canonical yang valid. |
 | `warehouse.fact_sales` | Satu baris item dalam satu transaksi source. Business key: `(source_name, source_order_id, source_line_number)`. |

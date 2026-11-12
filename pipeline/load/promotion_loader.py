@@ -56,7 +56,7 @@ def load_promotion_raw(connection: Connection, run_id: UUID, sources: list[Extra
 
 
 def load_promotion_dimension(connection: Connection, promotions: dict[str, dict]) -> int:
-    """Sinkronkan definisi promo aktif; nominal aktual tetap berasal dari redemption."""
+    """Sinkronkan definisi promo aktif; nominal aktual berasal dari CSV kanal."""
     connection.execute(text("UPDATE warehouse.dim_promotion SET is_active = FALSE"))
     rows = [
         {

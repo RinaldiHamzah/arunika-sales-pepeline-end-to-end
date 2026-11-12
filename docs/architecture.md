@@ -64,7 +64,7 @@ Biaya lookup ini mengikuti jumlah kandidat valid pada run saat ini, bukan jumlah
 6. Email pelanggan atau kombinasi nama dan kota digunakan untuk membentuk natural key pelanggan pada dimensi.
 7. Baris yang lolos validasi dimuat ke `staging.stg_sales`. Pipeline kemudian menentukan surrogate key dimensi dan memuat atau memperbarui fact berdasarkan business key dan hash.
 
-`promo_master.csv` adalah katalog kode dan periode promo. Diskon aktual dapat disediakan per baris pada CSV kanal, atau per order di `order_promotions.csv`; penggunaan per baris dicocokkan ke master, sedangkan nilai tingkat order dialokasikan secara proporsional ke item. Kedua sumber nilai tidak boleh mengisi diskon bersamaan pada order yang sama. Pipeline tidak menebak nominal aktual dari aturan di master.
+`promo_master.csv` adalah katalog kode dan periode promo. Kode promo dan diskon aktual dicatat langsung pada setiap baris item di CSV kanal, lalu kode divalidasi terhadap master. Bila platform hanya memberi diskon tingkat order, sumber data harus mengalokasikannya secara proporsional ke item sebelum upload; total alokasi harus sama persis dengan diskon order. Pipeline tidak menebak nominal aktual dari aturan di master.
 
 ## Incremental loading
 

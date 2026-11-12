@@ -89,8 +89,8 @@ Semua sumber canonical berada di `data/source/`. Pipeline menggunakan allowlist 
 | Tokopedia | `data/source/tokopedia.csv` | Satu item per baris order | `transaction_id` + `item_sequence` | `DD/MM/YYYY` | Marketplace |
 | Website | `data/source/website.csv` | Satu item per baris invoice | `invoice_no` + `line_item_no` | ISO datetime | Direct channel |
 | Offline Store | `data/source/offline.csv` | Satu item per baris struk | `pos_receipt_no` + `receipt_line_no` | `DD-Mon-YYYY` | Toko fisik |
-| Product Master | `data/source/product.csv` | Satu SKU produk | `sku` | Tidak berlaku | Referensi produk |
-| Return Events | `data/source/returns.csv` | Satu item dalam satu event retur | `source_name` + `return_id` + `return_line_number` | `YYYY-MM-DD` | Referensi item penjualan, status retur, jumlah unit, dan refund aktual |
+| Product Master | `data/source/product_master.csv` | Satu SKU produk | `sku` | Tidak berlaku | Referensi produk |
+| Return Events | `data/source/return_refund.csv` | Satu item dalam satu event retur | `source_name` + `return_id` + `return_line_number` | `YYYY-MM-DD` | Referensi item dalam satu event retur, status retur, jumlah unit, dan refund aktual |
 
 ### 2.2 Shopee
 
@@ -152,7 +152,7 @@ Baseline hasil generator adalah:
 | Offline Store | 120 | 112 | 1 | 7 |
 | **Total transaksi** | **480** | **448** | **4** | **28** |
 
-Diskon pada sebagian transaksi dialokasikan ke baris produk, sedangkan sebagian penukaran dicatat sebagai promo tingkat order di `order_promotions.csv`; keduanya tidak diterapkan ganda pada order yang sama. Generator menyiapkan penukaran promo tingkat order serta 25 event retur per kanal. Seluruh nama dan kontak pelanggan bersifat sintetis (`@example.test`), bukan data pelanggan nyata. Angka ini adalah baseline file contoh, bukan jumlah isi database pada setiap waktu. Jumlah database dapat berubah setelah pipeline dijalankan dan snapshot sumber direkonsiliasi.
+Kode promo dan diskon aktual dicatat pada setiap baris item di empat CSV kanal. Generator mengalokasikan diskon order ke item secara proporsional dan menjaga total alokasi tepat sama dengan nilai sumber; pipeline memvalidasi hasilnya terhadap `promo_master.csv`. Generator juga menyiapkan 25 event return per kanal. Seluruh nama dan kontak pelanggan bersifat sintetis (`@example.test`), bukan data pelanggan nyata. Angka ini adalah baseline file contoh, bukan jumlah isi database pada setiap waktu. Jumlah database dapat berubah setelah pipeline dijalankan dan snapshot sumber direkonsiliasi.
 
 ---
 
@@ -311,7 +311,7 @@ File sumber diagram yang dapat diedit menggunakan Draw.io tersedia pada `docs/di
 - quantity menjadi integer positif;
 - harga dan amount menjadi `Decimal`/`NUMERIC`;
 - `discount_amount` dipetakan per baris item dan `net_amount` dihitung sebagai gross dikurangi diskon; `promo_code` dipertahankan bila sumber menyediakannya;
-- `promo_master.csv` menyimpan aturan kode, sedangkan `order_promotions.csv` mencatat kode dan diskon aktual per `(source_name, order_id)`; diskon order dialokasikan proporsional ke gross item;
+- `promo_master.csv` menyimpan aturan kode, sedangkan kode dan diskon aktual dicatat pada baris item kanal; diskon order dialokasikan sebelum masuk ke pipeline;
 - kota dan metode pembayaran dinormalisasi melalui mapping yang terkontrol;
 - customer natural key dibentuk dari identitas yang tersedia;
 - `source_record_hash` dihitung untuk membedakan record identik dari koreksi.
@@ -368,7 +368,7 @@ Warehouse menggunakan **star schema** karena kebutuhan utama sistem adalah agreg
 
 File sumber diagram yang dapat diedit menggunakan Draw.io tersedia pada `docs/diagrams/erd.drawio`.
 
-Retur dan refund disimpan terpisah dari fact penjualan. `warehouse.fact_returns` menghubungkan setiap event ke baris fact penjualan asal. Baris `RET-DEMO-*` di `returns.csv` adalah data simulasi untuk pengujian/demo, bukan bukti retur bisnis aktual. Untuk simulasi berstatus `PROCESSED`, refund dihitung proporsional dari net item setelah diskon sesuai quantity retur; gunakan nilai refund aktual sebelum melaporkan metrik sebagai angka bisnis.
+Retur dan refund disimpan terpisah dari fact penjualan. `warehouse.fact_returns` menghubungkan setiap event ke baris fact penjualan asal. Baris `RET-DEMO-*` di `return_refund.csv` adalah data simulasi untuk pengujian/demo, bukan bukti retur bisnis aktual. Untuk simulasi berstatus `PROCESSED`, refund dihitung proporsional dari net item setelah diskon sesuai quantity retur; gunakan nilai refund aktual sebelum melaporkan metrik sebagai angka bisnis.
 
 ERD lengkap, termasuk Raw dan Audit, tersedia pada `docs/erd.md` dan dapat diperiksa melalui repository proyek.
 

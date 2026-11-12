@@ -69,7 +69,16 @@ def test_missing_returns_file_is_treated_as_empty_optional_source(tmp_path):
 
 
 def test_returns_csv_requires_the_documented_header(tmp_path):
-    (tmp_path / "returns.csv").write_text("return_id,order_id\nRET-1,ORD-1\n", encoding="utf-8")
+    (tmp_path / "return_refund.csv").write_text("return_id,order_id\nRET-1,ORD-1\n", encoding="utf-8")
 
     with pytest.raises(ValueError, match="header harus persis"):
         extract_return_events(tmp_path)
+
+
+def test_legacy_returns_filename_remains_supported(tmp_path):
+    from pipeline.returns import RETURN_COLUMNS
+
+    target = tmp_path / "returns.csv"
+    target.write_text(",".join(RETURN_COLUMNS) + "\n", encoding="utf-8")
+    source = extract_return_events(tmp_path)
+    assert source.file_path.name == "returns.csv"

@@ -19,19 +19,16 @@ from pipeline.reporting import (
 
 def test_auxiliary_summary_preserves_scope_and_noop_metrics():
     master = source([{}, {}], "PROMO_MASTER")
-    orders = source([{}, {}, {}], "ORDER_PROMOTIONS")
     returns = source([{}, {}, {}, {}], "RETURN_EVENTS")
     delta = source([], "RETURN_EVENTS")
-    metrics = {"PROMO_MASTER": {"valid": 1, "duplicates": 1},
-               "ORDER_PROMOTIONS": {"valid": 2, "duplicates": 1}}
-    result = auxiliary_source_summary([master, orders], [], metrics, returns, delta)
+    metrics = {"PROMO_MASTER": {"valid": 1, "duplicates": 1}}
+    result = auxiliary_source_summary([master], [], metrics, returns, delta)
     assert result[0]["raw_inserted"] == 0
     assert result[0]["validated"] == 1
     assert result[0]["duplicates"] == 1
-    assert result[1]["warehouse_written"] is None
-    assert result[2]["unchanged"] == 4
-    assert result[2]["validated"] == 0
-    assert result[2]["warehouse_written"] == 0
+    assert result[1]["unchanged"] == 4
+    assert result[1]["validated"] == 0
+    assert result[1]["warehouse_written"] == 0
 
 
 def test_auxiliary_summary_records_return_work_without_sales():
@@ -220,7 +217,7 @@ def test_report_includes_return_event_counts_when_present():
     assert "Event ditolak: 1" in body
 
 
-def test_email_report_includes_reconciliation_counts():
+def test_email_report_hides_reconciliation_details():
     body = format_pipeline_report(
         {
             "status": "SUCCESS",
@@ -231,9 +228,8 @@ def test_email_report_includes_reconciliation_counts():
         }
     )
 
-    assert "REKONSILIASI SUMBER" in body
-    assert "Snapshot lengkap diperiksa: 1" in body
-    assert "Baris fact dinonaktifkan: 12" in body
+    assert "REKONSILIASI SUMBER" not in body
+    assert "Snapshot lengkap diperiksa" not in body
 
 
 def test_run_summary_separates_run_metrics_from_table_inventory():

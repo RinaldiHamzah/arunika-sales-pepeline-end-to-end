@@ -20,7 +20,7 @@ def extract_all(source_dir: Path, snapshots=None, *, force_refresh: bool = False
             extract_delimited(
                 name,
                 table,
-                source_dir / f"{key}.csv",
+                product.source_path(source_dir) if key == "product" else source_dir / f"{key}.csv",
                 raw_column_mapping(key),
                 None if force_refresh and name != "PRODUCT_MASTER" else snapshots.get(name),
             )
@@ -31,5 +31,5 @@ def extract_all(source_dir: Path, snapshots=None, *, force_refresh: bool = False
         tokopedia.extract(source_dir / "tokopedia.csv"),
         website.extract(source_dir / "website.csv"),
         offline.extract(source_dir / "offline.csv"),
-        product.extract(source_dir / "product.csv"),
+        product.extract(product.source_path(source_dir)),
     ]

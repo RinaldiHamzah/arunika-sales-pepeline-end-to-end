@@ -25,6 +25,8 @@ RETURN_COLUMNS = (
     "refund_amount",
     "refund_status",
 )
+RETURN_SOURCE_FILE = "return_refund.csv"
+LEGACY_RETURN_SOURCE_FILE = "returns.csv"
 CHANNEL_NAMES = {
     "SHOPEE": "SHOPEE",
     "TOKOPEDIA": "TOKOPEDIA",
@@ -37,8 +39,11 @@ REFUND_STATUSES = {"NOT_APPLICABLE", "PENDING", "PROCESSED", "FAILED"}
 
 
 def extract_return_events(source_dir: Path, snapshot=None) -> ExtractedSource:
-    """Baca returns.csv; file boleh belum tersedia untuk proyek lama."""
-    path = Path(source_dir) / "returns.csv"
+    """Baca return_refund.csv; dukung returns.csv untuk proyek lama."""
+    source_dir = Path(source_dir)
+    path = source_dir / RETURN_SOURCE_FILE
+    if not path.exists() and (source_dir / LEGACY_RETURN_SOURCE_FILE).exists():
+        path = source_dir / LEGACY_RETURN_SOURCE_FILE
     mapping = {column: column for column in RETURN_COLUMNS}
     if not path.exists():
         return ExtractedSource(
@@ -53,7 +58,7 @@ def extract_return_events(source_dir: Path, snapshot=None) -> ExtractedSource:
         )
     source = extract_delimited("RETURN_EVENTS", "raw.return_events", path, mapping, snapshot)
     if tuple(source.frame.columns) != RETURN_COLUMNS:
-        raise ValueError(f"returns.csv: header harus persis {','.join(RETURN_COLUMNS)}")
+        raise ValueError(f"{path.name}: header harus persis {','.join(RETURN_COLUMNS)}")
     return source
 
 

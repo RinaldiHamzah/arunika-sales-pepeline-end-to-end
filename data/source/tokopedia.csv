@@ -1,7 +1,7 @@
 transaction_id,item_sequence,transaction_date,item_name,quantity,price,buyer_name,city,payment,status,discount_amount,promo_code
 TKP-0101,1,28/02/2026,Emina Sun Battle SPF 50 PA++++ 30ml,0,49900.00,Vina Permata,Malang,COD,completed,0.00,
-TKP-0102,1,07/03/2026, Kahf Triple Protection Sunscreen Moisturizer SPF 30 ,1,54900.00,Yusuf Anggraini,Semarang,Credit Card,completed,0.00,NEWUSER10
-TKP-0102,2,07/03/2026,LABORE-BiomeProtect-Physical-Sunscreen-SPF-50-30ml,1,129000.00,Yusuf Anggraini,Semarang,Cash,COMPLETED,0.00,NEWUSER10
+TKP-0102,1,07/03/2026, Kahf Triple Protection Sunscreen Moisturizer SPF 30 ,1,54900.00,Yusuf Anggraini,Semarang,Credit Card,completed,5490.00,NEWUSER10
+TKP-0102,2,07/03/2026,LABORE-BiomeProtect-Physical-Sunscreen-SPF-50-30ml,1,129000.00,Yusuf Anggraini,Semarang,Cash,COMPLETED,12900.00,NEWUSER10
 TKP-0103,1,30/05/2026, Emina Sun Battle SPF 50 PA++++ 30ml ,1,49900.00,Luthfi Setiawan,Medan,Credit Card,cancelled,0.00,
 TKP-0103,2,30/05/2026,TAVI-Urban-Shield-Sunscreen-SPF-50-30ml,1,89900.00,Luthfi Setiawan,Medan,Cash,CANCELLED,0.00,
 TKP-0103,3,30/05/2026,Emina-Cheek-Lit-Cream-Blush-Peach,1,46900.00,Luthfi Setiawan,Medan,Cash,cancelled,0.00,
@@ -13,10 +13,10 @@ TKP-0104,3,01/07/2026,EMINA BRIGHT STUFF FACE WASH 100ML,2,27900.00,Gilang Setia
 TKP-0105,1,25/02/2026,WARDAH LIGHTENING MICELLAR WATER 100ML,1,28900.00,Dimas Utomo,Bogor,Transfer Bank,returned,0.00,
 TKP-0105,2,25/02/2026,INSTAPERFECT SKINCOVER AIR CUSHION 02 BEIGE,1,149000.00,Dimas Utomo,Bogor,E-Wallet,RETURNED,0.00,
 TKP-0105,3,25/02/2026, Wardah Colorfit Perfect Glow Cushion 13N ,1,109000.00,Dimas Utomo,Bogor,Credit Card,returned,0.00,
-TKP-0106,1,19/02/2026,WARDAH COLORFIT PERFECT GLOW CUSHION 13N,4,109000.00,Luthfi Ramadhan,Bandung,E-Wallet,completed,0.00,NEWUSER10
-TKP-0106,2,19/02/2026, Emina Bright Stuff Face Wash 100ml ,1,27900.00,Luthfi Ramadhan,Bandung,Credit Card,COMPLETED,0.00,NEWUSER10
-TKP-0106,3,19/02/2026,Instaperfect-Skincover-Air-Cushion-02-Beige,3,149000.00,Luthfi Ramadhan,Bandung,Cash,completed,0.00,NEWUSER10
-TKP-0106,4,19/02/2026,Make Over Powerstay Weightless Liquid Foundation W22,3,169000.00,Luthfi Ramadhan,Bandung,COD,COMPLETED,0.00,NEWUSER10
+TKP-0106,1,19/02/2026,WARDAH COLORFIT PERFECT GLOW CUSHION 13N,4,109000.00,Luthfi Ramadhan,Bandung,E-Wallet,completed,43600.00,NEWUSER10
+TKP-0106,2,19/02/2026, Emina Bright Stuff Face Wash 100ml ,1,27900.00,Luthfi Ramadhan,Bandung,Credit Card,COMPLETED,2790.00,NEWUSER10
+TKP-0106,3,19/02/2026,Instaperfect-Skincover-Air-Cushion-02-Beige,3,149000.00,Luthfi Ramadhan,Bandung,Cash,completed,44700.00,NEWUSER10
+TKP-0106,4,19/02/2026,Make Over Powerstay Weightless Liquid Foundation W22,3,169000.00,Luthfi Ramadhan,Bandung,COD,COMPLETED,50700.00,NEWUSER10
 TKP-0107,1,21/08/2026, TAVI Urban Shield Sunscreen SPF 50 30ml ,2,89900.00,Kirana Amalia,Depok,Credit Card,completed,0.00,
 TKP-0107,2,21/08/2026,Wardah Colorfit Velvet Matte Lip Mousse 03,1,62900.00,Kirana Amalia,Depok,COD,COMPLETED,0.00,
 TKP-0107,3,21/08/2026,Crystallure-Supreme-Revitalizing-Oil-Serum-20ml,1,219000.00,Kirana Amalia,Depok,E-Wallet,completed,0.00,
@@ -30,11 +30,11 @@ TKP-0109,2,08/08/2026,WARDAH COLORFIT PERFECT GLOW CUSHION 13N,2,109000.00,Alya 
 TKP-0109,3,08/08/2026, Wonderly Body Mist Sweet Blossom 100ml ,1,45900.00,Alya Kurniawan,Bandung,Cash,completed,0.00,
 TKP-0109,4,08/08/2026,Emina Glossy Stain 01 Autumn Bell,1,52900.00,Alya Kurniawan,Bandung,Transfer Bank,COMPLETED,0.00,
 TKP-0109,5,08/08/2026,Wardah-Colorfit-Velvet-Matte-Lip-Mousse-03,1,62900.00,Alya Kurniawan,Bandung,E-Wallet,completed,0.00,
-TKP-0110,1,19/03/2026,WARDAH COLORFIT PERFECT GLOW CUSHION 13N,2,109000.00,Intan Kusuma,Bekasi,COD,completed,0.00,NEWUSER10
-TKP-0110,2,19/03/2026,INSTAPERFECT SKINCOVER AIR CUSHION 02 BEIGE,3,149000.00,Intan Kusuma,Bekasi,Credit Card,COMPLETED,0.00,NEWUSER10
-TKP-0110,3,19/03/2026,TAVI URBAN SHIELD SUNSCREEN SPF 50 30ML,1,89900.00,Intan Kusuma,Bekasi,Credit Card,completed,0.00,NEWUSER10
-TKP-0110,4,19/03/2026, Emina Cheek Lit Cream Blush Peach ,1,46900.00,Intan Kusuma,Bekasi,E-Wallet,COMPLETED,0.00,NEWUSER10
-TKP-0110,5,19/03/2026,Emina-Glossy-Stain-01-Autumn-Bell,1,52900.00,Intan Kusuma,Bekasi,Credit Card,completed,0.00,NEWUSER10
+TKP-0110,1,19/03/2026,WARDAH COLORFIT PERFECT GLOW CUSHION 13N,2,109000.00,Intan Kusuma,Bekasi,COD,completed,21800.00,NEWUSER10
+TKP-0110,2,19/03/2026,INSTAPERFECT SKINCOVER AIR CUSHION 02 BEIGE,3,149000.00,Intan Kusuma,Bekasi,Credit Card,COMPLETED,44700.00,NEWUSER10
+TKP-0110,3,19/03/2026,TAVI URBAN SHIELD SUNSCREEN SPF 50 30ML,1,89900.00,Intan Kusuma,Bekasi,Credit Card,completed,8990.00,NEWUSER10
+TKP-0110,4,19/03/2026, Emina Cheek Lit Cream Blush Peach ,1,46900.00,Intan Kusuma,Bekasi,E-Wallet,COMPLETED,4690.00,NEWUSER10
+TKP-0110,5,19/03/2026,Emina-Glossy-Stain-01-Autumn-Bell,1,52900.00,Intan Kusuma,Bekasi,Credit Card,completed,5290.00,NEWUSER10
 TKP-0111,1,20/05/2026,Wardah Colorfit Velvet Matte Lip Mousse 03,1,62900.00,Reza Nugraha,Denpasar,Transfer Bank,completed,0.00,
 TKP-0111,2,20/05/2026,EMINA GLOSSY STAIN 01 AUTUMN BELL,3,52900.00,Reza Nugraha,Denpasar,E-Wallet,COMPLETED,0.00,
 TKP-0111,3,20/05/2026,Emina Bright Stuff Face Wash 100ml,1,27900.00,Reza Nugraha,Denpasar,Credit Card,completed,0.00,
@@ -65,10 +65,10 @@ TKP-0117,2,27/05/2026,EMINA BRIGHT STUFF FACE WASH 100ML,2,27900.00,Nadia Utomo,
 TKP-0117,3,27/05/2026,LABORE Barrier Revive Cream 30ml,2,119000.00,Nadia Utomo,Bogor,Cash,cancelled,0.00,
 TKP-0117,4,27/05/2026, Kahf Triple Protection Sunscreen Moisturizer SPF 30 ,1,54900.00,Nadia Utomo,Bogor,E-Wallet,CANCELLED,0.00,
 TKP-0117,5,27/05/2026, Make Over Powerstay Weightless Liquid Foundation W22 ,1,169000.00,Nadia Utomo,Bogor,E-Wallet,cancelled,0.00,
-TKP-0118,1,08/01/2026, Wardah Lightening Micellar Water 100ml ,1,28900.00,Hasna Saputra,Semarang,COD,completed,0.00,NEWUSER10
-TKP-0118,2,08/01/2026,Wardah-Colorfit-Perfect-Glow-Cushion-13N,1,109000.00,Hasna Saputra,Semarang,E-Wallet,COMPLETED,0.00,NEWUSER10
-TKP-0118,3,08/01/2026,LABORE Barrier Revive Cream 30ml,1,119000.00,Hasna Saputra,Semarang,E-Wallet,completed,0.00,NEWUSER10
-TKP-0118,4,08/01/2026,Wonderly-Body-Mist-Sweet-Blossom-100ml,2,45900.00,Hasna Saputra,Semarang,COD,COMPLETED,0.00,NEWUSER10
+TKP-0118,1,08/01/2026, Wardah Lightening Micellar Water 100ml ,1,28900.00,Hasna Saputra,Semarang,COD,completed,2890.00,NEWUSER10
+TKP-0118,2,08/01/2026,Wardah-Colorfit-Perfect-Glow-Cushion-13N,1,109000.00,Hasna Saputra,Semarang,E-Wallet,COMPLETED,10900.00,NEWUSER10
+TKP-0118,3,08/01/2026,LABORE Barrier Revive Cream 30ml,1,119000.00,Hasna Saputra,Semarang,E-Wallet,completed,11900.00,NEWUSER10
+TKP-0118,4,08/01/2026,Wonderly-Body-Mist-Sweet-Blossom-100ml,2,45900.00,Hasna Saputra,Semarang,COD,COMPLETED,9180.00,NEWUSER10
 TKP-0119,1,30/08/2026,KAHF TRIPLE PROTECTION SUNSCREEN MOISTURIZER SPF 30,1,54900.00,Reza Santoso,Yogyakarta,Cash,completed,0.00,
 TKP-0119,2,30/08/2026,CRYSTALLURE SUPREME REVITALIZING OIL SERUM 20ML,2,219000.00,Reza Santoso,Yogyakarta,COD,COMPLETED,0.00,
 TKP-0119,3,30/08/2026,Emina-Bright-Stuff-Face-Wash-100ml,3,27900.00,Reza Santoso,Yogyakarta,Transfer Bank,completed,0.00,

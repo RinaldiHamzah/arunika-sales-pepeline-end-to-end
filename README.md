@@ -271,16 +271,15 @@ Baris sumber yang sama dengan snapshot sukses sebelumnya dihitung sebagai `skipp
 Sumber data berada di folder `data/source/`:
 
 ```text
-data/source/product.csv
+data/source/product_master.csv
 data/source/shopee.csv
 data/source/tokopedia.csv
 data/source/website.csv
 data/source/offline.csv
 data/source/promo_master.csv
-data/source/order_promotions.csv
 ```
 
-CSV transaksi dapat ditambahkan melalui dashboard atau ditempatkan langsung di folder sumber. `promo_master.csv` adalah katalog promo. Nilai penggunaan promo boleh berada di CSV kanal pada grain item, atau di `order_promotions.csv` pada grain order; pipeline memetakan kodenya ke master dan mengalokasikan diskon order secara proporsional ke item. Jangan masukkan satu diskon aktual melalui kedua jalur. Nilai master menjelaskan aturan, bukan untuk menebak potongan aktual.
+CSV transaksi dapat ditambahkan melalui dashboard atau ditempatkan langsung di folder sumber. `promo_master.csv` berisi katalog promo; kode dan diskon aktual dicatat di empat CSV kanal pada grain baris item. Jika sumber memberi diskon tingkat order, alokasikan terlebih dahulu ke item dan pastikan total alokasi sama dengan diskon order. Pipeline memvalidasi kode dan nilai, tetapi tidak menebak atau mengalokasikan nominalnya. CSV order-promo versi lama serta salinan kanal sebelum migrasi tersimpan di `data/source/archive/` dan tidak diproses pipeline.
 
 Data di repository hanya untuk simulasi; data tersebut bukan katalog atau harga resmi Arunika.
 
@@ -300,7 +299,7 @@ Schema PostgreSQL dibagi menjadi beberapa area:
 
 | Schema | Tabel penting | Grain, key, dan fungsi |
 | --- | --- | --- |
-| `raw` | `shopee_orders`, `tokopedia_transactions`, `website_transactions`, `offline_store_sales`, `product_master`, `promo_master`, `order_promotions` | Satu baris sumber per ingestion. `raw_record_id` adalah PK; `ingestion_run_id` menghubungkan record ke run audit. Nilai sumber dan payload asli disimpan sebelum validasi. |
+| `raw` | `shopee_orders`, `tokopedia_transactions`, `website_transactions`, `offline_store_sales`, `product_master`, `promo_master`, `order_promotions` (legacy) | Satu baris sumber per ingestion. `raw_record_id` adalah PK; `ingestion_run_id` menghubungkan record ke run audit. Nilai sumber dan payload asli disimpan sebelum validasi. Tabel `order_promotions` dipertahankan untuk data historis, bukan untuk ingest baru. |
 | `staging` | `stg_sales` | Satu line transaksi canonical yang lolos validasi. `staging_sales_id` adalah PK; kombinasi source, order ID, dan nomor baris menjadi business key. Menyimpan `source_raw_record_id` untuk lineage. |
 | `warehouse` | `fact_sales`, `dim_date`, `dim_product`, `dim_customer`, `dim_channel`, `dim_payment`, `dim_promotion` | Star schema untuk analitik. Grain fact adalah satu baris item transaksi source. `sales_key` adalah PK; `date_key`, `product_key`, `customer_key`, `channel_key`, dan `payment_key` adalah FK. Business key fact adalah `(source_name, source_order_id, source_line_number)`. |
 | `audit` | `pipeline_runs`, `pipeline_stage_runs`, `source_ingestions`, `source_snapshots`, `data_quality_results`, `rejected_records`, `pipeline_watermarks` | Satu baris per run, tahap, source, rule, record rejected, atau snapshot sesuai fungsi tabel. Menyimpan hasil operasional, durasi, kualitas, dan jejak incremental. |
@@ -334,8 +333,8 @@ SQL dalam `database/schema/` digunakan saat volume PostgreSQL baru dibuat. Untuk
 - `Sales After Discount` mengurangi diskon dari gross eligible. `Net Sales After Refund` mengurangi hanya refund berstatus `PROCESSED`, setelah refund diagregasikan pada grain sales line.
 - Unit Return Rate = unit retur `APPROVED`/`PROCESSED` ÷ unit eligible; Order Return Rate dan Order-Line Return Rate tersedia terpisah.
 - CSV lama tanpa kolom diskon tetap didukung; kolom hilang atau kosong diperlakukan sebagai diskon nol, sehingga metrik diskon hanya selengkap data yang dilaporkan sumber.
-- Pemakaian promo dicocokkan dengan `(source_name, order_id)`. Versi ini mendukung satu promo per order; nilai diskon aktual order dialokasikan proporsional ke gross tiap item dan total alokasi dijaga tetap sama dengan nilai order.
-- Promo per baris pada CSV kanal dapat dipetakan ke `promo_master.csv`. Jangan mengirim diskon aktual yang sama sekaligus di CSV kanal dan `order_promotions.csv`.
+- Kode promo dan diskon aktual ada pada setiap baris item di CSV kanal; jika sumber memberi diskon order, alokasi dilakukan sebelum upload dan jumlahnya harus tetap sama dengan diskon order.
+- Kode promo pada tiap baris kanal dipetakan ke `promo_master.csv`; nilai `discount_amount` harus sudah berada pada grain item dan tidak boleh dihitung ulang dari aturan master.
 - Tanpa `data/source/source_manifest.json`, sumber dianggap batch incremental dan baris yang hilang tidak dinonaktifkan. Rekonsiliasi hanya berlaku untuk `FULL_SNAPSHOT`, scope `ALL_HISTORY`, timestamp berzona waktu, dan `COMPLETE`; fact hilang di-soft-deactivate, tidak dihapus.
 - Koreksi dengan business key sama dan hash berbeda di-upsert; baris nonaktif yang muncul lagi diaktifkan kembali.
 - CSV dalam repository adalah data sample/simulasi, bukan data operasional atau harga resmi.

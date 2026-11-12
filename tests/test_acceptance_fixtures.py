@@ -7,9 +7,9 @@ from tests.test_integration_postgres import ROOT, _append_valid_website_rows, _w
 
 
 def test_acceptance_website_batches_pass_quality_validation(tmp_path):
-    for name in ("product.csv", "website.csv"):
+    for name in ("product_master.csv", "website.csv"):
         shutil.copy2(ROOT / "data/source" / name, tmp_path / name)
-    products = analyze(tmp_path / "product.csv", "product").clean
+    products = analyze(tmp_path / "product_master.csv", "product").clean
     before = analyze(tmp_path / "website.csv", "website", products)
 
     _append_valid_website_rows(tmp_path, 20)

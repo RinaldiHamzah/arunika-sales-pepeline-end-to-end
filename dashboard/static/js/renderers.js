@@ -244,13 +244,12 @@ function renderRunExplanation(run) {
   }).join('');
   const sourceQuality = sourceQualityFor(quality);
   const auxiliary = summary?.auxiliary_sources;
-  const auxiliaryLabels = { PROMO_MASTER: 'Master Promo', ORDER_PROMOTIONS: 'Order Promotion', RETURN_EVENTS: 'Return' };
+  const auxiliaryLabels = { PROMO_MASTER: 'Master Promo', RETURN_EVENTS: 'Return' };
   const auxiliaryMetric = value => value == null ? 'Belum tercatat' : number(value);
   const auxiliaryDetail = `${Array.isArray(auxiliary) ? auxiliary.map(source => {
     const processed = source.validation_scope === 'delta'
       ? source.processed : source.source_records;
-    const warehouseValue = source.source_name === 'ORDER_PROMOTIONS'
-      ? 'Diterapkan ke Fact Penjualan' : auxiliaryMetric(source.warehouse_written);
+    const warehouseValue = auxiliaryMetric(source.warehouse_written);
     return `<details class="quality-source-detail">
       <summary><strong>${escapeHtml(auxiliaryLabels[source.source_name] || source.source_name)}</strong><span>${auxiliaryMetric(processed)} diproses · ${auxiliaryMetric(source.validated)} valid</span></summary>
       <dl class="quality-source-stats">
@@ -259,11 +258,11 @@ function renderRunExplanation(run) {
         <dt>Data ditolak</dt><dd>${auxiliaryMetric(source.rejected)}</dd>
         <dt>Duplikat identik</dt><dd>${auxiliaryMetric(source.duplicates)}</dd>
         <dt>Data dimuat ke Raw Layer</dt><dd>${auxiliaryMetric(source.raw_inserted)}</dd>
-        <dt>${source.source_name === 'PROMO_MASTER' ? 'Aturan dimuat ke Dimensi Promo' : source.source_name === 'RETURN_EVENTS' ? 'Event dimuat ke Fact Return' : 'Pemakaian promo'}</dt><dd>${warehouseValue}</dd>
+        <dt>${source.source_name === 'PROMO_MASTER' ? 'Aturan dimuat ke Dimensi Promo' : 'Event dimuat ke Fact Return'}</dt><dd>${warehouseValue}</dd>
         ${source.validation_scope === 'delta' ? `<dt>Data sumber tidak berubah</dt><dd>${auxiliaryMetric(source.unchanged)}</dd>` : `<dt>Validasi</dt><dd>Seluruh file sumber</dd>`}
       </dl>
     </details>`;
-  }).join('') : ['PROMO_MASTER', 'ORDER_PROMOTIONS', 'RETURN_EVENTS'].map(name => `
+  }).join('') : ['PROMO_MASTER', 'RETURN_EVENTS'].map(name => `
     <details class="quality-source-detail"><summary><strong>${auxiliaryLabels[name]}</strong><span>Belum tercatat</span></summary>
       <dl class="quality-source-stats"><dt>Status laporan</dt><dd>Belum tercatat pada run ini</dd></dl>
     </details>`).join('')}`;

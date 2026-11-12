@@ -4,205 +4,100 @@ import pandas as pd
 import pytest
 
 from pipeline.extract.base import ExtractedSource
-from pipeline.promotions import apply_order_promotions, extract_promotion_sources
+from pipeline.promotions import _read_master, apply_channel_promotions, extract_promotion_sources
 from pipeline.validation.contracts import SOURCE_SPECS
 
 
 def _source(name, path, records):
     frame = pd.DataFrame(records, dtype="string")
     return ExtractedSource(
-        name.upper(),
-        f"raw.{name}",
-        Path(path),
-        "CSV",
-        frame,
-        {column: column for column in frame.columns},
-        source_records=len(frame),
+        name.upper(), f"raw.{name}", Path(path), "CSV", frame,
+        {column: column for column in frame.columns}, source_records=len(frame),
     )
 
 
-def _promo_files(tmp_path, redemption="SHOPEE,ORDER-1,NEW15,10.00"):
+def _master_file(tmp_path):
     (tmp_path / "promo_master.csv").write_text(
         "promo_code,promo_name,discount_type,discount_value,start_date,end_date,status\n"
         "NEW15,Promo Pengguna Baru,percentage,15,2026-01-01,2026-12-31,active\n",
-        encoding="utf-8",
-    )
-    (tmp_path / "order_promotions.csv").write_text(
-        "source_name,order_id,promo_code,discount_amount\n" + redemption + "\n",
         encoding="utf-8",
     )
     return extract_promotion_sources(tmp_path)
 
 
-def test_identical_promo_rows_are_safe_but_conflicts_are_not(tmp_path):
-    from pipeline.promotions import _read_master
-    promotions = _promo_files(tmp_path, "SHOPEE,ORDER-1,NEW15,10.00\nSHOPEE,ORDER-1,NEW15,10")
-    master = promotions[0]
-    master.frame.loc[len(master.frame)] = master.frame.iloc[0]
-    assert len(_read_master(master)) == 1
-    # Tanpa transaksi, uji aturan deduplikasi penukaran secara terisolasi.
-    apply_order_promotions([], promotions)
-    promotions[1].frame.loc[1, "discount_amount"] = "11"
-    with pytest.raises(ValueError, match="isi berbeda"):
-        apply_order_promotions([], promotions)
-
-
-def test_discount_order_allocated_by_gross_and_channel_scoped(tmp_path):
-    promotions = _promo_files(tmp_path, " SHOPEE , ORDER-1 , new15 , 10.00")
+def _shopee_row(order="ORDER-1", line="1", *, qty="1", price="100", discount="0", code=""):
     spec = SOURCE_SPECS["shopee"]
     columns = list(spec.values()) + ["discount_amount", "promo_code"]
-    shopee = _source(
-        "shopee",
-        tmp_path / "shopee.csv",
-        [
-            dict(
-                zip(
-                    columns,
-                    ["ORDER-1", "1", "2026-06-01", "Serum", "1", "30", "A", "Jakarta", "COD", "completed", "0", ""],
-                )
-            ),
-            dict(
-                zip(
-                    columns,
-                    ["ORDER-1", "2", "2026-06-01", "Toner", "1", "70", "A", "Jakarta", "COD", "completed", "0", ""],
-                )
-            ),
-        ],
-    )
-    tokopedia = _source(
-        "tokopedia",
-        tmp_path / "tokopedia.csv",
-        [
-            dict(
-                zip(
-                    list(SOURCE_SPECS["tokopedia"].values()) + ["discount_amount", "promo_code"],
-                    ["ORDER-1", "1", "01/06/2026", "Powder", "1", "100", "B", "Jakarta", "COD", "completed", "0", ""],
-                )
-            )
-        ],
-    )
-    website = _source(
-        "website",
-        tmp_path / "website.csv",
-        [
-            {
-                "invoice_no": "ORDER-1",
-                "line_item_no": "1",
-                "created_at": "2026-06-01T10:00:00",
-                "product_identifier": "SKU-1",
-                "quantity": "1",
-                "unit_price": "100",
-                "discount_amount": "0",
-                "promo_code": "",
-            }
-        ],
-    )
-    offline = _source(
-        "offline",
-        tmp_path / "offline.csv",
-        [
-            {
-                "pos_receipt_no": "ORDER-1",
-                "receipt_line_no": "1",
-                "sold_at": "01-Jun-2026",
-                "item_description": "Toner",
-                "units": "1",
-                "item_price": "100",
-                "discount_amount": "0",
-                "promo_code": "",
-            }
-        ],
-    )
+    return dict(zip(columns, [order, line, "2026-06-01", "Serum", qty, price, "A", "Jakarta", "COD",
+                              "completed", discount, code]))
 
-    enriched, master = apply_order_promotions([shopee, tokopedia, website, offline], promotions)
+
+def test_promo_master_deduplicates_identical_rows_and_rejects_conflicts(tmp_path):
+    sources = _master_file(tmp_path)
+    master = sources[0]
+    master.frame.loc[len(master.frame)] = master.frame.iloc[0]
+    assert len(_read_master(master)) == 1
+    master.frame.loc[1, "discount_value"] = "16"
+    with pytest.raises(ValueError, match="duplikat dengan isi berbeda"):
+        _read_master(master)
+
+
+def test_each_channel_row_carries_its_own_allocated_discount(tmp_path):
+    promos = _master_file(tmp_path)
+    shopee = _source("shopee", tmp_path / "shopee.csv", [
+        _shopee_row(line="1", price="30", discount="3.00", code="new15"),
+        _shopee_row(line="2", price="70", discount="7.00", code="NEW15"),
+    ])
+    tokopedia = _source("tokopedia", tmp_path / "tokopedia.csv", [{
+        "transaction_id": "ORDER-1", "item_sequence": "1", "transaction_date": "01/06/2026",
+        "item_name": "Powder", "quantity": "1", "price": "100", "buyer_name": "B",
+        "city": "Jakarta", "payment": "COD", "status": "completed",
+        "discount_amount": "0", "promo_code": "",
+    }])
+
+    enriched, master = apply_channel_promotions([shopee, tokopedia], promos)
 
     assert master["NEW15"]["discount_type"] == "percentage"
     assert enriched[0].frame["discount_amount"].tolist() == ["3.00", "7.00"]
-    assert enriched[0].frame["promo_code"].tolist() == ["NEW15", "NEW15"]
+    assert enriched[0].frame["promo_code"].tolist() == ["new15", "NEW15"]
     assert enriched[1].frame["discount_amount"].tolist() == ["0"]
-    assert enriched[2].frame["discount_amount"].tolist() == ["0"]
-    assert enriched[3].frame["discount_amount"].tolist() == ["0"]
-    shopee.frame.loc[2] = shopee.frame.iloc[0]
-    shopee.frame.loc[3] = shopee.frame.iloc[1]
-    repeated, _ = apply_order_promotions([shopee], promotions)
-    assert repeated[0].frame["discount_amount"].tolist() == ["3.00", "7.00", "3.00", "7.00"]
 
 
-def test_redemption_must_reference_master_promo(tmp_path):
-    promotions = _promo_files(tmp_path, "SHOPEE,ORDER-1,UNKNOWN,10.00")
-
-    with pytest.raises(ValueError, match="tidak ada di promo_master"):
-        apply_order_promotions([], promotions)
-
-
-def test_channel_line_promo_code_must_map_to_master(tmp_path):
-    (tmp_path / "promo_master.csv").write_text(
-        "promo_code,promo_name,discount_type,discount_value,start_date,end_date,status\n"
-        "NEW15,Promo Pengguna Baru,percentage,15,2026-01-01,2026-12-31,active\n",
-        encoding="utf-8",
-    )
-    (tmp_path / "order_promotions.csv").write_text(
-        "source_name,order_id,promo_code,discount_amount\n", encoding="utf-8"
-    )
-    promotions = extract_promotion_sources(tmp_path)
-    spec = SOURCE_SPECS["shopee"]
-    frame = dict(
-        zip(
-            list(spec.values()) + ["discount_amount", "promo_code"],
-            ["ORDER-2", "1", "2026-06-01", "Serum", "1", "100", "A", "Jakarta", "COD", "completed", "5.00", "NEW15"],
-        )
-    )
-    source = _source("shopee", tmp_path / "shopee.csv", [frame])
-
-    enriched, _ = apply_order_promotions([source], promotions)
-
-    assert enriched[0].frame.loc[0, "discount_amount"] == "5.00"
-    assert enriched[0].frame.loc[0, "promo_code"] == "NEW15"
+def test_channel_promo_code_must_map_to_master_and_be_in_date_range(tmp_path):
+    promos = _master_file(tmp_path)
+    with pytest.raises(ValueError, match="tidak ditemukan di promo_master"):
+        apply_channel_promotions([_source("shopee", "shopee.csv", [_shopee_row(code="UNKNOWN")])], promos)
+    invalid_date = _shopee_row(code="NEW15")
+    invalid_date["order_date"] = "2027-01-01"
+    with pytest.raises(ValueError, match="tidak berlaku"):
+        apply_channel_promotions([_source("shopee", "shopee.csv", [invalid_date])], promos)
 
 
-def test_order_level_and_nonzero_line_discount_cannot_be_counted_twice(tmp_path):
-    promotions = _promo_files(tmp_path)
-    spec = SOURCE_SPECS["shopee"]
-    source = _source(
-        "shopee",
-        tmp_path / "shopee.csv",
-        [
-            dict(
-                zip(
-                    list(spec.values()) + ["discount_amount", "promo_code"],
-                    [
-                        "ORDER-1",
-                        "1",
-                        "2026-06-01",
-                        "Serum",
-                        "1",
-                        "100",
-                        "A",
-                        "Jakarta",
-                        "COD",
-                        "completed",
-                        "2.00",
-                        "NEW15",
-                    ],
-                )
-            )
-        ],
-    )
-
-    with pytest.raises(ValueError, match="tingkat order dan promo baris"):
-        apply_order_promotions([source], promotions)
+def test_discount_requires_promo_code_and_cannot_exceed_item_gross(tmp_path):
+    promos = _master_file(tmp_path)
+    no_code = _shopee_row(discount="1.00")
+    with pytest.raises(ValueError, match="memerlukan promo_code"):
+        apply_channel_promotions([_source("shopee", "shopee.csv", [no_code])], promos)
+    too_large = _shopee_row(discount="101.00", code="NEW15")
+    with pytest.raises(ValueError, match="melebihi gross"):
+        apply_channel_promotions([_source("shopee", "shopee.csv", [too_large])], promos)
 
 
-def test_promo_master_requires_explicit_discount_value(tmp_path):
-    (tmp_path / "promo_master.csv").write_text(
-        "promo_code,promo_name,discount_type,discount_value,start_date,end_date,status\n"
-        "WEEKEND15,Promo Akhir Pekan,percentage,,2026-01-01,2026-12-31,active\n",
-        encoding="utf-8",
-    )
-    (tmp_path / "order_promotions.csv").write_text(
-        "source_name,order_id,promo_code,discount_amount\n", encoding="utf-8"
-    )
-    sources = extract_promotion_sources(tmp_path)
+def test_extract_only_requires_promo_master(tmp_path):
+    promos = _master_file(tmp_path)
+    assert len(promos) == 1
+    assert promos[0].source_name == "PROMO_MASTER"
 
-    with pytest.raises(ValueError, match="discount_value"):
-        apply_order_promotions([], sources)
+
+def test_email_report_does_not_treat_channel_promo_as_separate_source(tmp_path):
+    from pipeline.alerts import format_pipeline_report
+
+    body = format_pipeline_report({
+        "status": "SUCCESS",
+        "report_summary": {
+            "raw": {},
+            "auxiliary_sources": [{"source_name": "PROMO_MASTER", "source_records": 1, "validated": 1}],
+        },
+    })
+    assert "MASTER PROMO" in body
+    assert "ORDER PROMOTION" not in body

@@ -28,7 +28,7 @@ from pipeline.load.raw_loader import load_raw, load_source_snapshots, save_sourc
 from pipeline.load.return_loader import load_return_events, load_return_raw
 from pipeline.load.staging_loader import load_staging
 from pipeline.logger import get_logger
-from pipeline.promotions import apply_order_promotions, extract_promotion_sources, snapshot_source
+from pipeline.promotions import apply_channel_promotions, extract_promotion_sources
 from pipeline.reporting import (
     auxiliary_source_summary,
     outcome_message,
@@ -301,7 +301,6 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
             snapshots.get(source.source_name, {}).get("file_checksum_sha256") != source.checksum_sha256
             for source in promo_sources
         )
-        promotion_checksum = ":".join(source.checksum_sha256 for source in promo_sources)
         promo_deltas = [
             source for source in promo_sources
             if snapshots.get(source.source_name, {}).get("file_checksum_sha256") != source.checksum_sha256
@@ -318,11 +317,12 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
             lambda: extract_all(source_dir, snapshots, force_refresh=promo_changed or has_full_snapshot),
         )
         promo_metrics = {}
-        effective_scanned_sources, promotion_master = stage(
-            "promotion_match", lambda: apply_order_promotions(scanned_sources, promo_sources, metrics=promo_metrics)
+        scanned_sources, promotion_master = stage(
+            "promotion_validation",
+            lambda: apply_channel_promotions(scanned_sources, promo_sources, metrics=promo_metrics),
         )
         channel_names = set(SOURCE_NAMES.values())
-        reconciliation_sources = [source for source in effective_scanned_sources if source.source_name in channel_names]
+        reconciliation_sources = [source for source in scanned_sources if source.source_name in channel_names]
         raw_hashes = {
             source.source_name: set(snapshots.get(source.source_name, {}).get("payload_hashes", []))
             for source in scanned_sources
@@ -331,19 +331,9 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
             "raw_incremental_extract",
             lambda: [filter_unseen_rows(source, raw_hashes[source.source_name]) for source in scanned_sources],
         )
-        effective_hashes = {
-            source.source_name: set(
-                snapshots.get(f"{source.source_name}_EFFECTIVE", snapshots.get(source.source_name, {})).get(
-                    "payload_hashes", []
-                )
-            )
-            for source in effective_scanned_sources
-        }
         sources = stage(
             "incremental_extract",
-            lambda: [
-                filter_unseen_rows(source, effective_hashes[source.source_name]) for source in effective_scanned_sources
-            ],
+            lambda: [filter_unseen_rows(source, raw_hashes[source.source_name]) for source in scanned_sources],
         )
         promo_deltas = [
             source
@@ -354,16 +344,7 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
         return_delta = stage(
             "return_incremental_extract", lambda: filter_unseen_rows(return_source, return_source_hashes)
         )
-        snapshot_sources = [
-            *scanned_sources,
-            *[
-                snapshot_source(source, effective=True, promotion_checksum=promotion_checksum)
-                for source in effective_scanned_sources
-                if source.source_name != "PRODUCT_MASTER"
-            ],
-            *promo_sources,
-            return_source,
-        ]
+        snapshot_sources = [*scanned_sources, *promo_sources, return_source]
         stages[-1]["records_processed"] = sum(len(source.frame) for source in sources)
         extracted_count = sum(len(source.frame) for source in sources if source.source_name != "PRODUCT_MASTER")
         report_metrics = {
@@ -418,7 +399,7 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
                 if source.source_name == "PRODUCT_MASTER"
                 else source.source_name.lower().replace("_store", "")
             ): (source.frame.copy(), source.checksum_sha256)
-            for source in effective_scanned_sources
+            for source in scanned_sources
         }
         quality_results = stage(
             "validate",
@@ -542,7 +523,7 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
             if extracted_count == 0 and (promo_changed or not return_delta.frame.empty):
                 report_metrics["outcome_message"] = (
                     "Pemrosesan sumber tambahan selesai. Tidak ada transaksi penjualan baru atau berubah; "
-                    "lihat rincian Master Promo, Order Promotion, dan Return."
+                    "lihat rincian Master Promo dan Return."
                 )
             report_metrics["report_summary"]["source_reconciliation"] = reconciliation
             save_source_snapshots(connection, run_id, snapshot_sources, snapshots)

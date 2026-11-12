@@ -96,7 +96,7 @@ def _append_valid_website_rows(source_dir, count=20):
 def _source_row_count(source_dir):
     return sum(
         len(list(csv.DictReader((Path(source_dir) / name).open(encoding="utf-8", newline=""))))
-        for name in ("product.csv", "shopee.csv", "tokopedia.csv", "website.csv", "offline.csv")
+        for name in ("product_master.csv", "shopee.csv", "tokopedia.csv", "website.csv", "offline.csv")
     )
 
 
@@ -145,14 +145,13 @@ def test_full_pipeline_and_incremental_acceptance(monkeypatch):
     source_dir = Path(tempfile.mkdtemp(dir=runtime_root)) / "source"
     source_dir.mkdir()
     for name in (
-        "product.csv",
+        "product_master.csv",
         "shopee.csv",
         "tokopedia.csv",
         "website.csv",
         "offline.csv",
         "promo_master.csv",
-        "order_promotions.csv",
-        "returns.csv",
+        "return_refund.csv",
     ):
         shutil.copy2(ROOT / "data" / "source" / name, source_dir / name)
     (source_dir / "source_manifest.json").write_text(
@@ -340,7 +339,7 @@ def test_full_pipeline_and_incremental_acceptance(monkeypatch):
         summary = connection.execute(text("SELECT report_summary FROM audit.pipeline_runs WHERE run_id=:id"),
                                      {"id": unchanged_run}).scalar_one()
         auxiliary = {item["source_name"]: item for item in summary["auxiliary_sources"]}
-        assert set(auxiliary) == {"PROMO_MASTER", "ORDER_PROMOTIONS", "RETURN_EVENTS"}
+        assert set(auxiliary) == {"PROMO_MASTER", "RETURN_EVENTS"}
         assert auxiliary["RETURN_EVENTS"]["raw_inserted"] == 0
         assert auxiliary["RETURN_EVENTS"]["warehouse_written"] == 0
         assert auxiliary["PROMO_MASTER"]["file_changed"] is False
@@ -435,15 +434,6 @@ def test_full_pipeline_and_incremental_acceptance(monkeypatch):
 
     # Partial batches may omit a historical line; they must never deactivate it.
     _declare_website_snapshot(source_dir, mode="INCREMENTAL_BATCH", completeness="PARTIAL")
-    order_promotions_path = source_dir / "order_promotions.csv"
-    with order_promotions_path.open(newline="", encoding="utf-8") as stream:
-        redemptions = list(csv.DictReader(stream))
-        promo_fields = list(redemptions[0])
-    redemptions = [row for row in redemptions if row["source_name"] != "WEBSITE"]
-    with order_promotions_path.open("w", newline="", encoding="utf-8") as stream:
-        writer = csv.DictWriter(stream, fieldnames=promo_fields)
-        writer.writeheader()
-        writer.writerows(redemptions)
     _website_order_lines(source_dir, order_id, 5)
     batch_run = run(source_dir)
     with engine.connect() as connection:
@@ -558,7 +548,7 @@ def test_full_pipeline_and_incremental_acceptance(monkeypatch):
     assert float(payload["metrics"]["return_rate"]) == float(expected_kpi["return_rate"])
     assert {"month", "channel", "category", "city", "product", "status"} <= set(payload["charts"])
 
-    # Alur HTTP upload -> ETL -> Warehouse: pengulangan promo tidak menggandakan diskon.
+    # Alur HTTP upload -> ETL -> Warehouse: upload koreksi memperbarui diskon baris.
     from dataclasses import replace
     from io import BytesIO, StringIO
 
@@ -568,7 +558,7 @@ def test_full_pipeline_and_incremental_acceptance(monkeypatch):
     monkeypatch.setattr(routes, "settings", replace(routes.settings, dashboard_admin_token="integration-token"))
     monkeypatch.setattr(ingestion, "SOURCE_DIR", source_dir)
     headers = {"X-Admin-Token": "integration-token"}
-    for source_key in ("promo_master", "order_promotions", "returns"):
+    for source_key in ("promo_master", "returns"):
         path = source_dir / ingestion.SOURCE_FILES[source_key]
         result = client.post("/api/ingestion/upload", headers=headers, data={
             "source": source_key, "file": (BytesIO(path.read_bytes()), path.name),
@@ -578,22 +568,24 @@ def test_full_pipeline_and_incremental_acceptance(monkeypatch):
     repeated = client.get("/api/dashboard?start=2026-01-01&end=2026-12-31").get_json()
     assert repeated["metrics"] == payload["metrics"]
 
-    with (source_dir / "order_promotions.csv").open(newline="", encoding="utf-8") as file:
-        redemption = next(csv.DictReader(file))
-    redemption["discount_amount"] = "1.00"
+    with (source_dir / "shopee.csv").open(newline="", encoding="utf-8") as file:
+        sales_rows = list(csv.DictReader(file))
+        sales_fields = list(sales_rows[0])
+    corrected_sale = next(row for row in sales_rows if row["promo_code"] and row["discount_amount"] != "1.00")
+    corrected_sale["discount_amount"] = "1.00"
     output = StringIO()
-    writer = csv.DictWriter(output, fieldnames=ingestion.SOURCE_COLUMNS["order_promotions"])
+    writer = csv.DictWriter(output, fieldnames=sales_fields)
     writer.writeheader()
-    writer.writerow(redemption)
+    writer.writerow(corrected_sale)
     result = client.post("/api/ingestion/upload", headers=headers, data={
-        "source": "order_promotions", "mode": "correct",
+        "source": "shopee", "mode": "correct",
         "file": (BytesIO(output.getvalue().encode()), "correction.csv"),
     })
     assert result.status_code == 201, result.get_json()
     run(source_dir)
     with engine.connect() as connection:
         total = connection.execute(text("""
-            SELECT SUM(discount_amount) FROM warehouse.fact_sales
-            WHERE source_name=:source_name AND source_order_id=:order_id AND is_source_active
-        """), redemption).scalar_one()
+            SELECT discount_amount FROM warehouse.fact_sales
+            WHERE source_name='SHOPEE' AND source_order_id=:order_id AND source_line_number=:line
+        """), {"order_id": corrected_sale["order_id"], "line": int(corrected_sale["order_line_id"])}).scalar_one()
     assert total == Decimal("1.00")

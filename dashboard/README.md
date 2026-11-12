@@ -34,7 +34,7 @@ Transaksi mengikuti filter terakhir yang diterapkan pada Ringkasan. Gunakan pagi
 ### Pengaturan dan token administrator
 
 1. Masukkan token pada area **Token Administrator**.
-2. Pilih sumber data dan unggah CSV pada Langkah 1. Upload mendukung empat kanal, master produk, master promo, penggunaan promo per pesanan, dan return/refund. Header diperiksa saat upload; validasi isi dilakukan pipeline saat dijalankan. Kontrak header lama kanal tetap diterima; untuk mencatat promo tingkat baris, tambahkan `discount_amount` dan `promo_code` di akhir header. Jika sumber hanya memberikan diskon tingkat order, gunakan `order_promotions.csv`; jangan memasukkan diskon aktual yang sama melalui kedua jalur. Upload dashboard menambahkan batch ke CSV yang sudah ada.
+2. Pilih sumber data dan unggah CSV pada Langkah 1. Upload mendukung empat kanal, master produk, master promo, dan return/refund. Header diperiksa saat upload; validasi isi dilakukan pipeline saat dijalankan. Empat CSV kanal dapat memakai header lama atau header lengkap dengan `discount_amount` dan `promo_code`. Diskon harus sudah dicatat pada grain baris item; jika sumber memberi diskon per order, alokasikan dahulu ke item dengan jumlah alokasi yang sama persis dengan diskon order. Upload dashboard menambahkan batch ke CSV yang sudah ada.
 3. Jalankan pipeline pada Langkah 2.
 4. Klik **Check Status** untuk memuat riwayat pipeline.
 
@@ -110,7 +110,7 @@ Test membutuhkan Node.js 22+ serta Chrome atau Edge. Test memakai server sementa
 
 Pada Pengaturan, pilih sumber dan file CSV lalu klik **Upload CSV**. UI hanya menyediakan satu alur: menambahkan data sumber, kemudian menjalankan pipeline untuk validasi. Keberhasilan upload bukan jaminan data lolos validasi bisnis. Mode koreksi eksplisit tetap tersedia pada API untuk kompatibilitas, tetapi tidak ditampilkan sebagai pilihan di UI. Koreksi API mengganti baris dengan key yang sudah ada; key baru atau beberapa versi berbeda untuk key yang sama dalam batch koreksi ditolak.
 
-Key kanal adalah ID order + nomor baris (kanal ditentukan dari pilihan sumber); master produk menggunakan SKU; master promo menggunakan kode promo; order promotion menggunakan kanal + ID order; return menggunakan kanal + ID return + nomor baris return. Jangan mengubah key untuk mengoreksi nilai transaksi.
+Key kanal adalah ID order + nomor baris (kanal ditentukan dari pilihan sumber); master produk menggunakan SKU; master promo menggunakan kode promo; return menggunakan kanal + ID return + nomor baris return. Jangan mengubah key untuk mengoreksi nilai transaksi.
 
 Promo dan return identik diproses sekali. Konflik promo tetap menggagalkan validasi, bukan memilih baris terakhir secara diam-diam; konflik return dicatat sebagai penolakan. Payload promo sekarang disimpan ke Raw sebelum validasi bisnis, termasuk pada run gagal. Gunakan koreksi eksplisit untuk menyelesaikan konflik.
 

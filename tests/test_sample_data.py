@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 
 from pipeline.extract.sources import extract_all
-from pipeline.promotions import apply_order_promotions, extract_promotion_sources
+from pipeline.promotions import apply_channel_promotions, extract_promotion_sources
 from pipeline.returns import extract_return_events, normalize_return_record
 from pipeline.transform.standardize import clean_results_to_staging, filter_incremental_results, source_record_hash
 from pipeline.validation.contracts import SOURCE_NAMES, SOURCE_SPECS, order_line_key
@@ -57,14 +57,14 @@ def test_sample_data_generator_is_deterministic_and_etl_consistent(tmp_path):
     source_dir = tmp_path / "input"
     first_dir, second_dir = tmp_path / "first", tmp_path / "second"
     source_dir.mkdir()
-    shutil.copy2(Path(__file__).resolve().parents[1] / "data/source/product.csv", source_dir / "product.csv")
+    shutil.copy2(Path(__file__).resolve().parents[1] / "data/source/product_master.csv", source_dir / "product_master.csv")
 
     generate(source_dir, first_dir)
     generate(source_dir, second_dir)
-    shutil.copy2(source_dir / "product.csv", first_dir / "product.csv")
-    shutil.copy2(source_dir / "product.csv", second_dir / "product.csv")
+    shutil.copy2(source_dir / "product_master.csv", first_dir / "product_master.csv")
+    shutil.copy2(source_dir / "product_master.csv", second_dir / "product_master.csv")
 
-    product_master = analyze(first_dir / "product.csv", "product").clean
+    product_master = analyze(first_dir / "product_master.csv", "product").clean
     quality = {}
     for channel in CHANNELS:
         path = first_dir / channel["filename"]
@@ -87,22 +87,22 @@ def test_sample_data_generator_is_deterministic_and_etl_consistent(tmp_path):
 
     assert order_sizes(29) and order_sizes(30) and order_sizes(31)
     sources = extract_all(first_dir)
-    effective_sources, _master = apply_order_promotions(sources, extract_promotion_sources(first_dir))
+    channel_sources, _master = apply_channel_promotions(sources, extract_promotion_sources(first_dir))
     assert any(
         str(code).strip()
-        for source in effective_sources
+        for source in channel_sources
         if source.source_name != "PRODUCT_MASTER"
         for code in source.frame.get("promo_code", [])
     )
     promo_master_rows = pd.read_csv(first_dir / "promo_master.csv", dtype=str).set_index("promo_code")
-    redemption_rows = pd.read_csv(first_dir / "order_promotions.csv", dtype=str)
-    assert not redemption_rows.empty
-    assert all(promo_master_rows.loc[code, "status"] == "active" for code in redemption_rows["promo_code"])
-    assert len(redemption_rows) >= 8
-    for source in effective_sources:
+    for source in channel_sources:
         if source.source_name in SOURCE_NAMES.values():
             amounts = pd.to_numeric(source.frame["discount_amount"], errors="coerce").fillna(0)
+            codes = source.frame["promo_code"].fillna("").str.strip()
             assert amounts.gt(0).any()
+            assert all(code in promo_master_rows.index for code in codes if code)
+            assert amounts[codes.eq("")].eq(0).all()
+    assert not (first_dir / "order_promotions.csv").exists()
 
     returns = extract_return_events(first_dir)
     assert len(returns.frame) == 100

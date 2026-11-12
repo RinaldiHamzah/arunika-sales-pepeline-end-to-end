@@ -222,13 +222,7 @@ def format_pipeline_report(report):
                 f"Duplikat identik: {auxiliary_metric('PROMO_MASTER', 'duplicates')}",
                 f"Dimuat ke Raw: {auxiliary_metric('PROMO_MASTER', 'raw_inserted')}",
                 f"Dimuat ke Dimensi Promo: {auxiliary_metric('PROMO_MASTER', 'warehouse_written')}",
-                "",
-                "ORDER PROMOTION",
-                f"Baris sumber: {auxiliary_metric('ORDER_PROMOTIONS', 'source_records')}",
-                f"Penukaran promo valid: {auxiliary_metric('ORDER_PROMOTIONS', 'validated')}",
-                f"Duplikat identik: {auxiliary_metric('ORDER_PROMOTIONS', 'duplicates')}",
-                f"Dimuat ke Raw: {auxiliary_metric('ORDER_PROMOTIONS', 'raw_inserted')}",
-                "Diskon diterapkan ke Fact Penjualan, bukan tabel Warehouse terpisah.",
+                "Kode promo dan diskon aktual berasal langsung dari empat CSV kanal.",
                 "",
                 "RINCIAN RETURN & REFUND",
                 f"Baris sumber: {auxiliary_metric('RETURN_EVENTS', 'source_records')}",
@@ -245,8 +239,8 @@ def format_pipeline_report(report):
     else:
         lines.extend(
             [
-                "MASTER PROMO & ORDER PROMOTION",
-                "Rincian belum direkam pada run ini.",
+                "MASTER PROMO",
+                "Rincian master promo belum direkam pada run ini.",
                 "",
             ]
         )

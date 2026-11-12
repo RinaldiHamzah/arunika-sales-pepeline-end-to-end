@@ -35,7 +35,7 @@ product_id,product_name,brand,kategori,harga_satuan
 | Harga dan total | Nilai uang positif, maksimal dua desimal. | Nilai tidak valid ditolak. |
 | Diskon item | `discount_amount` harus bernilai nol atau positif, maksimal dua desimal, dan tidak melebihi gross item. | Nilai negatif, format salah, atau diskon lebih besar dari gross ditolak. |
 | Master promo | Kode unik, nama, tipe `fixed`/`percentage`, nilai, rentang tanggal, dan status divalidasi dari `promo_master.csv`. | Baris tidak valid atau kode duplikat menghentikan ingestion dengan informasi baris. |
-| Penggunaan promo | `order_promotions.csv` menghubungkan kanal + `order_id` dengan kode master dan diskon aktual. | Kode tak dikenal, order tak ditemukan, penggunaan ganda per order, tanggal di luar periode, atau diskon melebihi gross menghentikan ingestion. |
+| Promo pada item | `promo_code` dan `discount_amount` berada pada baris item kanal; kode harus ada di master, tanggal order berada dalam periode promo, diskon nonnegatif dan tidak melebihi gross item. Diskon positif wajib memiliki kode promo. | Kode tak dikenal, periode tidak sesuai, nilai salah, atau diskon melebihi gross menghentikan ingestion. |
 | Total Website | `total_amount` harus sama dengan gross atau net item yang dihitung. | Missing atau mismatch ditolak. |
 | Status | Hanya `COMPLETED`, `CANCELLED`, `RETURNED`. | Status lain ditolak. |
 | Tanggal | Format setiap sumber dibaca sesuai aturan lalu diubah ke `YYYY-MM-DD`. | Tanggal yang tidak mungkin atau format yang tidak dikenali ditolak. |
@@ -53,7 +53,7 @@ product_id,product_name,brand,kategori,harga_satuan
 - Quantity memakai integer nullable, tanggal memakai datetime, dan uang memakai `Decimal`.
 - `gross_amount = quantity × unit_price`; `net_amount = gross_amount - discount_amount`.
 - Kolom diskon dan promo boleh tidak ada pada CSV lama. Untuk kompatibilitas, kolom yang tidak tersedia atau kosong diperlakukan sebagai diskon `0.00` tanpa kode promo; nilai ini bukan bukti bahwa kanal telah menyediakan data promosi lengkap.
-- Diskon aktual tingkat order dialokasikan proporsional ke gross item; pembulatan dijaga agar jumlah alokasi sama persis dengan nilai order. Versi ini mendukung satu kode promo per order.
+- Diskon promo disimpan per baris item. Jika sumber hanya memberi nominal tingkat order, alokasi proporsional harus dilakukan sebelum masuk ke CSV kanal dan total alokasi harus sama persis dengan nominal sumber. Pipeline tidak mengalokasikan atau menebak diskon dari master promo.
 - Kota kosong tidak ditebak. Kota hanya diperkaya dari customer natural key yang sama dan sudah terverifikasi.
 
 ## Disposisi record
@@ -89,7 +89,7 @@ Warehouse memakai business key `(source_name, source_order_id, source_line_numbe
 
 ## Validasi retur dan refund
 
-File `data/source/returns.csv` diproses sebagai event terpisah dari transaksi penjualan. Kolom header-nya harus sesuai kontrak pada [kamus data](data_dictionary.md). Setiap event harus menyebut kanal, ID retur, nomor item retur, order dan nomor item asal, tanggal ISO, alasan, status, serta quantity yang positif.
+File `data/source/return_refund.csv` diproses sebagai event terpisah dari transaksi penjualan. Kolom header-nya harus sesuai kontrak pada [kamus data](data_dictionary.md). Setiap event harus menyebut kanal, ID retur, nomor item retur, order dan nomor item asal, tanggal ISO, alasan, status, serta quantity yang positif.
 
 - `return_status` dibatasi ke `PENDING`, `APPROVED`, `REJECTED`, atau `PROCESSED`; `refund_status` ke `NOT_APPLICABLE`, `PENDING`, `PROCESSED`, atau `FAILED`.
 - Nilai refund hanya dicatat jika `refund_status=PROCESSED`, harus nonnegatif dan maksimal dua desimal. Refund kumulatif tidak boleh melebihi `net_amount` item penjualan.
@@ -98,7 +98,7 @@ File `data/source/returns.csv` diproses sebagai event terpisah dari transaksi pe
 - Event valid di-upsert ke `warehouse.fact_returns` dengan business key `(source_name, return_id, return_line_number)`. Payload baru/berubah disimpan lebih dulu di `raw.return_events`.
 - Baris invalid, referensi penjualan yang tidak ditemukan, duplikat business key dalam file, atau pelanggaran batas kuantitas/refund dicatat pada `audit.rejected_records` serta `audit.data_quality_results`.
 
-Baris `RET-DEMO-*` pada `returns.csv` adalah **data simulasi untuk pengujian/demo**, bukan bukti retur bisnis aktual. Data tersebut dipasangkan ke baris transaksi contoh yang tersedia agar alur end-to-end dapat diuji. Untuk simulasi `PROCESSED`, refund dihitung proporsional dari net item setelah diskon berdasarkan quantity yang diretur. Ganti dengan nilai aktual dari sumber retur sebelum menggunakan metriknya sebagai laporan bisnis.
+Baris `RET-DEMO-*` pada `return_refund.csv` adalah **data simulasi untuk pengujian/demo**, bukan bukti retur bisnis aktual. Data tersebut dipasangkan ke baris transaksi contoh yang tersedia agar alur end-to-end dapat diuji. Untuk simulasi `PROCESSED`, refund dihitung proporsional dari net item setelah diskon berdasarkan quantity yang diretur. Ganti dengan nilai aktual dari sumber retur sebelum menggunakan metriknya sebagai laporan bisnis.
 
 ## Output dan perintah
 

@@ -181,7 +181,7 @@ def analyze(path, source, products=None, selected_row_numbers=None, captured=Non
             row["discount_amount"], err = nonnegative_money(row["discount_amount"])
             if err:
                 issue(err, optional_mapping["discount_amount"])
-            row["promo_code"] = clean_text(row["promo_code"])
+            row["promo_code"] = (clean_text(row["promo_code"]) or "").upper() or None
             if row["gross_amount"] is not None and row["discount_amount"] is not None:
                 if row["discount_amount"] > row["gross_amount"]:
                     issue("DISCOUNT_EXCEEDS_GROSS", optional_mapping["discount_amount"])
@@ -306,7 +306,9 @@ def run_quality(source_dir=None, output_dir=None, selected_row_numbers=None, cap
     """Daftar sumber yang diizinkan secara eksplisit agar ekspor lama atau salinan tidak ikut dimuat."""
     source_dir = Path(source_dir) if source_dir else ROOT / "data/source"
     captured = captured_sources or {}
-    results = {"product": analyze(source_dir / "product.csv", "product", captured=captured.get("product"))}
+    from pipeline.extract.product import source_path
+
+    results = {"product": analyze(source_path(source_dir), "product", captured=captured.get("product"))}
     for source in SPECS:
         selected_rows = (selected_row_numbers or {}).get(source)
         results[source] = analyze(

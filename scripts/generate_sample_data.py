@@ -205,9 +205,12 @@ def write_csv(directory: Path, filename: str, fields: tuple[str, ...], rows: lis
 
 
 def product_catalog(source_dir: Path) -> list[dict]:
-    products = read_csv(source_dir / "product.csv")
+    product_path = source_dir / "product_master.csv"
+    if not product_path.exists():
+        product_path = source_dir / "product.csv"
+    products = read_csv(product_path)
     if not products:
-        raise ValueError("product.csv harus berisi Product Master sebelum data demo dibuat")
+        raise ValueError("product_master.csv harus berisi Product Master sebelum data demo dibuat")
     return [
         {**row, "price": Decimal(row["price"]), "sku": row["sku"].strip(), "product_name": row["product_name"].strip()}
         for row in products
@@ -306,7 +309,7 @@ def build_channel(source_dir: Path, channel: dict, products: list[dict], custome
     rng.shuffle(remaining)
     sizes = [1, *remaining]
 
-    rows, redemptions = [], []
+    rows = []
     cursor = 0
     for order_index, (order_id, item_count) in enumerate(zip(order_ids, sizes)):
         customer = rng.choice(customers)
@@ -350,22 +353,9 @@ def build_channel(source_dir: Path, channel: dict, products: list[dict], custome
         promotion = (
             None if order_index == 0 or status != "COMPLETED" else promotion_for_order(order_date, order_index, gross)
         )
-        order_level_promotion = promotion is not None and order_index % 4 == 1
-        line_discounts = (
-            allocate_discount(promotion[1], order_rows)
-            if promotion is not None and not order_level_promotion
-            else [Decimal("0.00")] * len(order_rows)
-        )
-        if promotion and order_level_promotion:
-            code, discount = promotion
-            redemptions.append(
-                {
-                    "source_name": channel["source"],
-                    "order_id": order_id,
-                    "promo_code": code,
-                    "discount_amount": f"{discount:.2f}",
-                }
-            )
+        line_discounts = allocate_discount(promotion[1], order_rows) if promotion else [
+            Decimal("0.00")
+        ] * len(order_rows)
 
         for line_index, row in enumerate(order_rows):
             row["promo_code"] = promotion[0] if promotion else ""
@@ -375,7 +365,7 @@ def build_channel(source_dir: Path, channel: dict, products: list[dict], custome
 
     if cursor != BUSINESS_ROW_COUNT:
         raise AssertionError(f"{channel['source']} menghasilkan {cursor}, bukan {BUSINESS_ROW_COUNT} baris bisnis")
-    return rows, redemptions
+    return rows
 
 
 def render_sales_row(row: dict, channel: dict) -> dict:
@@ -536,7 +526,10 @@ def quality_case_rows(rows: list[dict], channel: dict) -> list[dict]:
 
 def build_returns(source_dir: Path, built_rows: dict[str, list[dict]]) -> list[dict]:
     rng = random.Random(SEED + 900)
-    old_rows = read_csv(source_dir / "returns.csv")
+    old_path = source_dir / "return_refund.csv"
+    if not old_path.exists():
+        old_path = source_dir / "returns.csv"
+    old_rows = read_csv(old_path)
     result = []
     by_channel: dict[str, list[dict]] = {}
     for channel in CHANNELS:
@@ -595,11 +588,10 @@ def generate(source_dir: Path, output_dir: Path) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     products = product_catalog(source_dir)
     customers = customer_profiles()
-    all_sales, all_redemptions = {}, []
+    all_sales = {}
     for index, channel in enumerate(CHANNELS, start=1):
-        rows, redemptions = build_channel(source_dir, channel, products, customers, index * 100)
+        rows = build_channel(source_dir, channel, products, customers, index * 100)
         all_sales[channel["source"]] = rows
-        all_redemptions.extend(redemptions)
         fields = (
             tuple(read_csv(source_dir / channel["filename"])[0]) if (source_dir / channel["filename"]).exists() else ()
         )
@@ -667,8 +659,6 @@ def generate(source_dir: Path, output_dir: Path) -> None:
 
     promo_fields = ("promo_code", "promo_name", "discount_type", "discount_value", "start_date", "end_date", "status")
     write_csv(output_dir, "promo_master.csv", promo_fields, [dict(zip(promo_fields, row)) for row in PROMOS])
-    redemption_fields = ("source_name", "order_id", "promo_code", "discount_amount")
-    write_csv(output_dir, "order_promotions.csv", redemption_fields, all_redemptions)
     return_fields = (
         "source_name",
         "return_id",
@@ -682,10 +672,11 @@ def generate(source_dir: Path, output_dir: Path) -> None:
         "refund_amount",
         "refund_status",
     )
-    write_csv(output_dir, "returns.csv", return_fields, build_returns(source_dir, all_sales))
-    write_csv(
-        output_dir, "product.csv", tuple(read_csv(source_dir / "product.csv")[0]), read_csv(source_dir / "product.csv")
-    )
+    write_csv(output_dir, "return_refund.csv", return_fields, build_returns(source_dir, all_sales))
+    product_path = source_dir / "product_master.csv"
+    if not product_path.exists():
+        product_path = source_dir / "product.csv"
+    write_csv(output_dir, "product_master.csv", tuple(read_csv(product_path)[0]), read_csv(product_path))
     print(f"Data demo deterministik dibuat di: {output_dir}")
     print(
         f"Empat kanal: masing-masing {BUSINESS_ROW_COUNT} baris bisnis dengan order 1–5 baris item, "

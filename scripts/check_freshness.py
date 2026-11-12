@@ -12,7 +12,7 @@ if __package__ is None and str(ROOT) not in sys.path:
 
 from pipeline.config import settings  # noqa: E402  # Root path is prepared for direct script execution.
 
-SOURCES = ("product.csv", "shopee.csv", "tokopedia.csv", "website.csv", "offline.csv")
+SOURCES = ("product_master.csv", "shopee.csv", "tokopedia.csv", "website.csv", "offline.csv")
 max_age = float(os.getenv("MAX_SOURCE_AGE_HOURS", "48"))
 APP_TIMEZONE = ZoneInfo(settings.app_timezone)
 now = datetime.now(APP_TIMEZONE).timestamp()

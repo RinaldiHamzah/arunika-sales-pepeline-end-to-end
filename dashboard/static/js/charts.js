@@ -54,6 +54,11 @@ const compactMoney = value => 'Rp ' + new Intl.NumberFormat('id-ID', {
   notation: 'compact', maximumFractionDigits: 1,
 }).format(value);
 
+function chartLabel(value) {
+  const label = String(value ?? '').trim();
+  return ['nan', 'undefined', 'null'].includes(label.toLowerCase()) ? '—' : label;
+}
+
 const BAR_PALETTE = ['#176b61', '#ed8b65', '#668aaa', '#d4ac50', '#99799d', '#75b9a7', '#c86b8c'];
 const STATUS_COLORS = { CANCELLED: '#8a9592', COMPLETED: '#176b61', RETURNED: '#ed8b65' };
 const PRODUCT_RANK_COLORS = ['#347f75', '#4c9287', '#65a499', '#7eb5ab', '#9ac6bd', '#b7d7d0'];
@@ -76,7 +81,7 @@ function horizontalChart(items, colors, formatter = money, datasetLabel = 'Penju
   return {
     type: 'bar',
     data: {
-      labels: items.map(item => item.label),
+      labels: items.map(item => chartLabel(item.label)),
       datasets: [{ label: datasetLabel, data: items.map(item => item.value), backgroundColor, borderRadius: 5 }],
     },
     options: {
@@ -103,7 +108,7 @@ export function renderCharts(data) {
   drawChart('month', {
     type: 'line',
     data: {
-      labels: month.map(item => item.label),
+      labels: month.map(item => chartLabel(item.label)),
       datasets: [
         { label: 'Penjualan Bersih', data: month.map(item => item.net), borderColor: '#176b61', backgroundColor: '#176b6115', fill: true, tension: .25 },
         { label: 'Penjualan Kotor', data: month.map(item => item.gross), borderColor: '#ed8b65', tension: .25 },
@@ -125,7 +130,7 @@ export function renderCharts(data) {
   drawChart('channel', {
     type: 'doughnut',
     data: {
-      labels: channel.map(item => item.label),
+      labels: channel.map(item => chartLabel(item.label)),
       datasets: [{ data: channel.map(item => item.value), backgroundColor: ['#176b61', '#ed8b65', '#75b9a7', '#d4ac50', '#668aaa', '#99799d', '#a6a99b'], borderWidth: 2 }],
     },
     options: {

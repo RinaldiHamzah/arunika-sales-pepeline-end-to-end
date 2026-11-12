@@ -31,6 +31,7 @@ const fixture = {
     channel: examples, brand: examples, category: examples, sku: examples, status: examples,
     product: [{ label: 'Wardah UV Shield Aqua Fresh Essence SPF 50 PA++++ 30ml', quantity: 30, net_sales: 1000000 }],
     city: [{ label: 'Yogyakarta', value: 1000000 }],
+    promo: [{ label: 'NaN', value: 0, orders: 1 }],
   },
   returns: {
     by_status: [{ label: 'PENDING', events: 21, units: 21, refunded_events: 0, processed_refund_amount: 0 }],
@@ -201,6 +202,7 @@ try {
   await evaluate("document.getElementById('return-prev-page').click()");
   console.log('Initial render ready');
   assert.equal(await evaluate("document.querySelectorAll('.chart-data').length"), 7);
+  assert.equal(await evaluate("window.Chart.getChart(document.getElementById('promo-chart')).data.labels.includes('—')"), true);
   for (const width of [320, 375, 640, 768, 1024, 1440]) {
     await send('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: false });
     for (const tab of ['summary', 'sales', 'products']) {

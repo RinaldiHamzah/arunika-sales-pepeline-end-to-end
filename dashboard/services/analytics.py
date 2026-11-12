@@ -177,7 +177,9 @@ def query_dashboard_analytics(engine, start, end, channels, statuses, categories
                 SELECT promo_code AS label,
                        COALESCE(SUM(discount_amount), 0) AS value,
                        COUNT(DISTINCT source_name || '|' || order_id) AS orders
-                {eligible_source} AND promo_code IS NOT NULL AND TRIM(promo_code) <> ''
+                {eligible_source}
+                AND promo_code IS NOT NULL
+                AND LOWER(TRIM(promo_code)) NOT IN ('', 'nan', 'none', 'null', 'n/a', 'na')
                 GROUP BY promo_code ORDER BY value DESC, label LIMIT 10
             """),
                 params,

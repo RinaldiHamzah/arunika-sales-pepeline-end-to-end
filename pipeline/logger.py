@@ -235,8 +235,13 @@ def _configure_logging() -> None:
     console.setFormatter(formatter)
     root.addHandler(console)
 
-    for prefix, filename in (("pipeline", "pipeline.log"), ("dashboard", "dashboard.log")):
-        file_handler = logging.FileHandler(log_dir / filename, encoding="utf-8")
+    log_files = {
+        "pipeline": Path(os.getenv("PIPELINE_LOG_FILE", str(log_dir / "pipeline.log"))),
+        "dashboard": log_dir / "dashboard.log",
+    }
+    for prefix, path in log_files.items():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        file_handler = logging.FileHandler(path, encoding="utf-8")
         file_handler.setFormatter(_PrettyConsoleFormatter())
         file_handler.addFilter(_LoggerNameFilter(prefix))
         root.addHandler(file_handler)

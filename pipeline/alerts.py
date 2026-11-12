@@ -145,9 +145,20 @@ def format_pipeline_report(report):
     raw = run_summary.get("raw") or {}
     product_master = raw.get("product_master") or {}
     returns = run_summary.get("returns") or {}
+    auxiliary_sources = {
+        source.get("source_name"): source
+        for source in run_summary.get("auxiliary_sources", [])
+        if isinstance(source, dict)
+    }
     quality_staging = run_summary.get("quality_staging")
     warehouse = run_summary.get("warehouse") or {}
-    reconciliation = run_summary.get("reconciliation") or {}
+    source_metrics = report.get("source_metrics") or []
+
+    def auxiliary_metric(source_name, key):
+        source = auxiliary_sources.get(source_name)
+        if source is None or source.get(key) is None:
+            return "Belum direkam"
+        return str(source[key])
 
     lines = [
         "PT Arunika Beauty Indonesia",
@@ -160,6 +171,16 @@ def format_pipeline_report(report):
         f"Selesai: {report.get('ended_at', '—')}",
         f"Durasi: {duration()}",
         "",
+        "RINGKASAN UNTUK REVIEW",
+        f"Kesimpulan: {explanation}",
+        f"Baris transaksi pada sumber: {report.get('source_records', raw.get('source_total', 'Belum direkam'))}",
+        f"Transaksi baru atau berubah: {raw.get('new_or_changed', metric('extracted_records'))}",
+        f"Transaksi tidak berubah: {report.get('skipped_unchanged_records', 'Belum direkam')}",
+        f"Baris fact baru: {warehouse.get('inserted_facts', report.get('fact_inserted_records', 'Belum direkam'))}",
+        f"Baris fact diperbarui: {warehouse.get('updated_facts', 'Belum direkam')}",
+        f"Baris fact ditulis: {warehouse.get('facts_written', report.get('loaded_records', 'Belum direkam'))}",
+        "Alur: sumber CSV → Raw → validasi dan Staging → Warehouse.",
+        "",
         "RAW LAYER",
         f"Total transaksi Raw Layer: {raw.get('total_transactions_in_raw', '—')}",
         f"Transaksi baru atau berubah: {raw.get('new_or_changed', metric('extracted_records'))}",
@@ -169,6 +190,19 @@ def format_pipeline_report(report):
         f"Master Produk dimuat ke Raw Layer: {product_master.get('inserted_to_raw', 0)}",
         "",
     ]
+    if source_metrics:
+        lines.extend(["PERUBAHAN PER SUMBER", "Format: jumlah baris sumber | baru/berubah | tidak berubah"])
+        for source in source_metrics:
+            if not isinstance(source, dict):
+                continue
+            source_name = source.get("source_name", "Sumber")
+            lines.append(
+                f"{source_name}: {source.get('source_records', '—')} | "
+                f"{source.get('extracted_records', '—')} | "
+                f"{source.get('skipped_unchanged_records', '—')}"
+            )
+        lines.append("")
+    # Pertahankan ringkasan return lama; detail per baris sumber ditambahkan di bawahnya.
     if any(returns.get(key, 0) for key in ("raw_records_inserted", "loaded_events", "rejected_events")):
         lines.extend(
             [
@@ -179,16 +213,44 @@ def format_pipeline_report(report):
                 "",
             ]
         )
-    if any(reconciliation.get(key, 0) for key in ("sources_checked", "sources_skipped", "deactivated_records")):
+    if auxiliary_sources:
         lines.extend(
             [
-                "REKONSILIASI SUMBER",
-                f"Snapshot lengkap diperiksa: {reconciliation.get('sources_checked', 0)}",
-                f"Batch/snapshot tidak aman dilewati: {reconciliation.get('sources_skipped', 0)}",
-                f"Baris fact dinonaktifkan: {reconciliation.get('deactivated_records', 0)}",
+                "MASTER PROMO",
+                f"Baris sumber: {auxiliary_metric('PROMO_MASTER', 'source_records')}",
+                f"Aturan valid: {auxiliary_metric('PROMO_MASTER', 'validated')}",
+                f"Duplikat identik: {auxiliary_metric('PROMO_MASTER', 'duplicates')}",
+                f"Dimuat ke Raw: {auxiliary_metric('PROMO_MASTER', 'raw_inserted')}",
+                f"Dimuat ke Dimensi Promo: {auxiliary_metric('PROMO_MASTER', 'warehouse_written')}",
+                "",
+                "ORDER PROMOTION",
+                f"Baris sumber: {auxiliary_metric('ORDER_PROMOTIONS', 'source_records')}",
+                f"Penukaran promo valid: {auxiliary_metric('ORDER_PROMOTIONS', 'validated')}",
+                f"Duplikat identik: {auxiliary_metric('ORDER_PROMOTIONS', 'duplicates')}",
+                f"Dimuat ke Raw: {auxiliary_metric('ORDER_PROMOTIONS', 'raw_inserted')}",
+                "Diskon diterapkan ke Fact Penjualan, bukan tabel Warehouse terpisah.",
+                "",
+                "RINCIAN RETURN & REFUND",
+                f"Baris sumber: {auxiliary_metric('RETURN_EVENTS', 'source_records')}",
+                f"Baris diproses: {auxiliary_metric('RETURN_EVENTS', 'processed')}",
+                f"Tidak berubah: {auxiliary_metric('RETURN_EVENTS', 'unchanged')}",
+                f"Event valid: {auxiliary_metric('RETURN_EVENTS', 'validated')}",
+                f"Duplikat identik: {auxiliary_metric('RETURN_EVENTS', 'duplicates')}",
+                f"Event ditolak: {auxiliary_metric('RETURN_EVENTS', 'rejected')}",
+                f"Dimuat ke Raw: {auxiliary_metric('RETURN_EVENTS', 'raw_inserted')}",
+                f"Dimuat ke Fact Return: {auxiliary_metric('RETURN_EVENTS', 'warehouse_written')}",
                 "",
             ]
         )
+    else:
+        lines.extend(
+            [
+                "MASTER PROMO & ORDER PROMOTION",
+                "Rincian belum direkam pada run ini.",
+                "",
+            ]
+        )
+
     if quality_staging and raw.get("new_or_changed", report.get("extracted_records", 0)):
         lines.extend(["", "DATA QUALITY"])
         findings = []
@@ -198,6 +260,14 @@ def format_pipeline_report(report):
                 fields = ", ".join(f"{field}: {count}" for field, count in finding.get("by_field", {}).items())
                 findings.append(f"{label}: {finding['total']}" + (f" ({fields})" if fields else ""))
         lines.extend(findings or ["Tidak ada temuan quality check yang memblokir data."])
+        for source in quality_staging.get("by_source", []):
+            if not isinstance(source, dict):
+                continue
+            lines.append(
+                f"{source.get('source_name', 'Sumber')}: "
+                f"diproses {source.get('processed', 0)}, valid {source.get('valid', 0)}, "
+                f"ditolak {source.get('rejected', 0)}, duplikat {source.get('duplicate', 0)}"
+            )
         lines.extend(
             [
                 "",

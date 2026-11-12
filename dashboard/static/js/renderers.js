@@ -229,26 +229,11 @@ function renderRunExplanation(run) {
     return [`<li><strong>${label}</strong>: ${number(finding.total)}${fields ? `<br><small>${fields}</small>` : ''}</li>`];
   }).join('');
   const findings = quality ? findingsFor(quality) : '';
-  const sourceQualityFor = target => (target?.by_source || []).map(source => {
-    const sourceFindings = findingsFor(source.issues);
-    return `<details class="quality-source-detail">
-      <summary><strong>${escapeHtml(sourceLabels[source.source_name] || source.source_name)}</strong><span>${number(source.processed)} diproses · ${number(source.valid)} valid</span></summary>
-      <dl class="quality-source-stats">
-        <dt>Data diproses</dt><dd>${number(source.processed)}</dd>
-        <dt>Data valid</dt><dd>${number(source.valid)}</dd>
-        <dt>Data ditolak</dt><dd>${number(source.rejected)}</dd>
-        <dt>Duplikat validasi</dt><dd>${number(source.duplicate)}</dd>
-      </dl>
-      ${sourceFindings ? `<ul class="run-findings">${sourceFindings}</ul>` : '<p>Tidak ada masalah kualitas data pada sumber ini.</p>'}
-    </details>`;
-  }).join('');
-  const sourceQuality = sourceQualityFor(quality);
   const auxiliary = summary?.auxiliary_sources;
   const auxiliaryLabels = { PROMO_MASTER: 'Master Promo', RETURN_EVENTS: 'Return' };
   const auxiliaryMetric = value => value == null ? 'Belum tercatat' : number(value);
-  const auxiliaryDetail = `${Array.isArray(auxiliary) ? auxiliary.map(source => {
-    const processed = source.validation_scope === 'delta'
-      ? source.processed : source.source_records;
+  const renderAuxiliarySource = source => {
+    const processed = source.validation_scope === 'delta' ? source.processed : source.source_records;
     const warehouseValue = auxiliaryMetric(source.warehouse_written);
     return `<details class="quality-source-detail">
       <summary><strong>${escapeHtml(auxiliaryLabels[source.source_name] || source.source_name)}</strong><span>${auxiliaryMetric(processed)} diproses · ${auxiliaryMetric(source.validated)} valid</span></summary>
@@ -262,10 +247,30 @@ function renderRunExplanation(run) {
         ${source.validation_scope === 'delta' ? `<dt>Data sumber tidak berubah</dt><dd>${auxiliaryMetric(source.unchanged)}</dd>` : `<dt>Validasi</dt><dd>Seluruh file sumber</dd>`}
       </dl>
     </details>`;
-  }).join('') : ['PROMO_MASTER', 'RETURN_EVENTS'].map(name => `
+  };
+  const auxiliaryPlaceholder = name => `
     <details class="quality-source-detail"><summary><strong>${auxiliaryLabels[name]}</strong><span>Belum tercatat</span></summary>
       <dl class="quality-source-stats"><dt>Status laporan</dt><dd>Belum tercatat pada run ini</dd></dl>
-    </details>`).join('')}`;
+    </details>`;
+  const promoSource = Array.isArray(auxiliary) ? auxiliary.find(source => source.source_name === 'PROMO_MASTER') : null;
+  const promoDetail = promoSource ? renderAuxiliarySource(promoSource) : auxiliaryPlaceholder('PROMO_MASTER');
+  const sourceQualityFor = target => (target?.by_source || []).map(source => {
+    const sourceFindings = findingsFor(source.issues);
+    const detail = `<details class="quality-source-detail">
+      <summary><strong>${escapeHtml(sourceLabels[source.source_name] || source.source_name)}</strong><span>${number(source.processed)} diproses · ${number(source.valid)} valid</span></summary>
+      <dl class="quality-source-stats">
+        <dt>Data diproses</dt><dd>${number(source.processed)}</dd>
+        <dt>Data valid</dt><dd>${number(source.valid)}</dd>
+        <dt>Data ditolak</dt><dd>${number(source.rejected)}</dd>
+        <dt>Duplikat validasi</dt><dd>${number(source.duplicate)}</dd>
+      </dl>
+      ${sourceFindings ? `<ul class="run-findings">${sourceFindings}</ul>` : '<p>Tidak ada masalah kualitas data pada sumber ini.</p>'}
+    </details>`;
+    return detail + (source.source_name === 'PRODUCT_MASTER' ? promoDetail : '');
+  }).join('');
+  const sourceQuality = sourceQualityFor(quality);
+  const returnSource = Array.isArray(auxiliary) ? auxiliary.find(source => source.source_name === 'RETURN_EVENTS') : null;
+  const auxiliaryDetail = returnSource ? renderAuxiliarySource(returnSource) : auxiliaryPlaceholder('RETURN_EVENTS');
   const detail = !summary ? `
     <dl>
       <dt>Data diproses</dt><dd>${metric(run.extracted_records)}</dd>

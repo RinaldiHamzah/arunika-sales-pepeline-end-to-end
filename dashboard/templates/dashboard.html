@@ -3,81 +3,12 @@
 {% block page_content %}
       <section id="overview" class="dashboard-page active" data-page="overview">
 
-
-        <section class="card filter-card">
-          <details class="filter-disclosure" open>
-            <summary>
-              <span>
-                <strong>Periode &amp; Filter</strong>
-                <small id="filter-summary">Memuat periode data…</small>
-              </span>
-            </summary>
-            <div class="filter-body">
-          <div class="filter-grid">
-            <div class="quick-ranges" aria-label="Rentang tanggal cepat">
-              <button data-preset="today" type="button">Hari ini</button>
-              <button data-preset="7" type="button">Minggu ini</button>
-              <button data-preset="30" type="button">Bulan ini</button>
-              <button data-preset="ytd" type="button">Tahun ini</button>
-            </div>
-            <label>
-              Dari
-              <input id="start-date" type="date">
-            </label>
-            <label>
-              Sampai
-              <input id="end-date" type="date">
-            </label>
-            <label>
-              Channel
-              <select id="channel-filter">
-                <option value="">Semua channel</option>
-              </select>
-            </label>
-            <label>
-              Status
-              <select id="status-filter">
-                <option value="">Semua status</option>
-              </select>
-            </label>
-              <button id="apply-button" class="button button-primary" type="button">Apply</button>
-          </div>
-
-          <details class="advanced-filters">
-            <summary>Filter kategori, brand, dan produk</summary>
-            <div class="advanced-grid">
-              <label>
-                Kategori
-                <select id="category-filter">
-                  <option value="">Semua kategori</option>
-                </select>
-              </label>
-              <label>
-                Brand
-                <select id="brand-filter">
-                  <option value="">Semua brand</option>
-                </select>
-              </label>
-              <label>
-                Produk / SKU
-                <select id="product-filter">
-                  <option value="">Semua produk</option>
-                </select>
-              </label>
-            </div>
-          </details>
-              <div class="filter-footer">
-                <button id="reset-button" class="text-button" type="button">Reset</button>
-              </div>
-            </div>
-          </details>
-        </section>
+        {% include "filters.html" %}
 
         <nav class="analysis-tabs" role="tablist" aria-label="Kelompok analisis">
           <button id="tab-summary" role="tab" aria-controls="analysis-summary" aria-selected="true" tabindex="0" data-overview-tab="summary">Overview</button>
           <button id="tab-sales" role="tab" aria-controls="analysis-sales" aria-selected="false" tabindex="-1" data-overview-tab="sales">Penjualan</button>
           <button id="tab-products" role="tab" aria-controls="analysis-products" aria-selected="false" tabindex="-1" data-overview-tab="products">Produk</button>
-          <button id="tab-returns" role="tab" aria-controls="analysis-returns" aria-selected="false" tabindex="-1" data-overview-tab="returns">Retur</button>
         </nav>
         <section id="analysis-summary" class="analysis-panel" role="tabpanel" aria-labelledby="tab-summary" data-overview-panel="summary">
         <section class="overview-section">
@@ -92,13 +23,13 @@
             <article class="kpi-card featured">
               <span>Penjualan Bersih (Net)</span>
               <strong id="metric-sales">—</strong>
-              <small id="metric-sales-note">COMPLETED/RETURNED setelah diskon dan refund diproses; cohort tanggal order</small>
+              <small id="metric-sales-note">COMPLETED/RETURNED order setelah diskon dan refund diproses</small>
               <small id="metric-sales-change">Dibanding periode sebelumnya</small>
             </article>
             <article class="kpi-card">
               <span>Penjualan Kotor (Gross)</span>
               <strong id="metric-gross">—</strong>
-              <small>COMPLETED/RETURNED sebelum diskon; pembatalan dikecualikan</small>
+              <small>COMPLETED/RETURNED sebelum diskon dan CANCELLED dikecualikan</small>
             </article>
             <article class="kpi-card">
               <span>Diskon Pesanan Selesai</span>
@@ -108,7 +39,7 @@
             <article class="kpi-card">
               <span>Pesanan Eligible</span>
               <strong id="metric-orders">—</strong>
-              <small>Order COMPLETED atau RETURNED; CANCELLED dikecualikan</small>
+              <small>Order COMPLETED/RETURNED dan CANCELLED dikecualikan</small>
             </article>
             <article class="kpi-card">
               <span>Unit Terjual</span>
@@ -118,7 +49,7 @@
             <article class="kpi-card">
               <span>Rata-rata Nilai Pesanan (AOV)</span>
               <strong id="metric-aov">—</strong>
-              <small>Net setelah refund diproses per order eligible</small>
+              <small>Net setelah refund diproses setiap order eligible</small>
             </article>
             <article class="kpi-card">
               <span>Unit Diretur</span>
@@ -128,12 +59,12 @@
             <article class="kpi-card">
               <span>Tingkat Retur Unit</span>
               <strong id="metric-return-rate">—</strong>
-              <small>Unit retur disetujui/diproses ÷ unit order eligible</small>
+              <small>Unit retur disetujui/diproses</small>
             </article>
             <article class="kpi-card">
               <span>Refund Diproses</span>
               <strong id="metric-refunds">—</strong>
-              <small>Nilai refund berstatus PROCESSED</small>
+              <small>Refund PROCESSED untuk order bertanggal dalam periode terpilih</small>
             </article>
           </div>
 
@@ -238,50 +169,11 @@
             </article>
           </div>
         </section>
-        <section id="analysis-returns" class="analysis-panel" role="tabpanel" aria-labelledby="tab-returns" data-overview-panel="returns" hidden>
-          <section class="overview-section">
-            <div class="section-heading overview-heading">
-              <div>
-                <p class="eyebrow">Pemantauan operasional</p>
-                <h2>Analisis Retur dan Refund</h2>
-                <p class="helper-text">Periode pada tab ini memakai tanggal retur. Filter channel dan produk tetap berlaku; status di atas memfilter status pesanan asal.</p>
-              </div>
-            </div>
-            <div class="kpi-grid return-kpi-grid">
-              <article class="kpi-card"><span>Pengajuan Retur</span><strong id="return-total">—</strong><small>Semua event retur pada periode</small></article>
-              <article class="kpi-card"><span>Menunggu Keputusan</span><strong id="return-pending">—</strong><small>Status retur PENDING</small></article>
-              <article class="kpi-card"><span>Disetujui</span><strong id="return-approved">—</strong><small>Status retur APPROVED</small></article>
-              <article class="kpi-card"><span>Ditolak</span><strong id="return-rejected">—</strong><small>Status retur REJECTED</small></article>
-              <article class="kpi-card"><span>Retur Selesai</span><strong id="return-processed">—</strong><small>Status retur PROCESSED</small></article>
-              <article class="kpi-card"><span>Refund Diproses</span><strong id="return-refund-total">—</strong><small>Hanya refund berstatus PROCESSED</small></article>
-            </div>
-            <div class="chart-grid return-analysis-grid">
-              <article class="panel">
-                <div class="panel-title"><div><p class="eyebrow">Keputusan retur</p><h3>Ringkasan Status Retur</h3></div><span>Event dan unit</span></div>
-                <div class="table-container"><table><thead><tr><th>Status retur</th><th>Event</th><th>Unit</th><th>Event refund diproses</th><th>Nilai refund diproses</th></tr></thead><tbody id="return-status-rows"></tbody></table></div>
-              </article>
-              <article class="panel">
-                <div class="panel-title"><div><p class="eyebrow">Pembayaran kembali</p><h3>Ringkasan Status Refund</h3></div><span>Status refund terpisah dari status retur</span></div>
-                <div class="table-container"><table><thead><tr><th>Status refund</th><th>Event</th><th>Nilai refund diproses</th></tr></thead><tbody id="refund-status-rows"></tbody></table></div>
-              </article>
-              <article class="panel">
-                <div class="panel-title"><div><p class="eyebrow">Per kanal</p><h3>Retur per Channel</h3></div><span>Event, unit, refund</span></div>
-                <div class="table-container"><table><thead><tr><th>Channel</th><th>Event</th><th>Unit</th><th>Pending</th><th>Ditolak</th><th>Refund diproses</th></tr></thead><tbody id="return-channel-rows"></tbody></table></div>
-              </article>
-              <article class="panel">
-                <div class="panel-title"><div><p class="eyebrow">Penyebab</p><h3>Alasan Retur Terbanyak</h3></div><span>Maksimal 10 alasan</span></div>
-                <div class="table-container"><table><thead><tr><th>Alasan</th><th>Event</th><th>Unit</th><th>Refund diproses</th></tr></thead><tbody id="return-reason-rows"></tbody></table></div>
-              </article>
-              <article class="panel return-events-panel">
-                <div class="panel-title"><div><p class="eyebrow">Riwayat</p><h3>Rincian Event Retur</h3></div><span id="return-event-count">—</span></div>
-                <div class="table-container"><table><thead><tr><th>Tanggal</th><th>ID Retur</th><th>Channel</th><th>Order</th><th>Produk</th><th>Status retur</th><th>Alasan</th><th>Unit</th><th>Status refund</th><th>Nilai refund</th></tr></thead><tbody id="return-event-rows"></tbody></table></div>
-              </article>
-            </div>
-          </section>
-        </section>
       </section>
 
       {% include "transactions.html" %}
+
+      {% include "returns.html" %}
 
       {% include "settings.html" %}
 {% endblock %}

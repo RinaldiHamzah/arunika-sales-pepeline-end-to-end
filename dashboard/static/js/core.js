@@ -9,6 +9,9 @@ export const state = {
   activeTab: 'summary',
   page: 1,
   pageSize: 25,
+  returnPage: 1,
+  returnPageSize: 10,
+  returnRows: [],
   transactionSearch: '',
   defaultFilters: { start: '', end: '' },
   pipelineProgressTimer: null,
@@ -25,16 +28,38 @@ export const pageMetadata = {
     title: 'Transaksi',
     subtitle: 'Data transaksi yang telah tervalidasi proses data quality.',
   },
+  returns: {
+    title: 'Retur & Refund',
+    subtitle: 'Pantau proses retur, status refund, dan riwayat event berdasarkan tanggal retur.',
+  },
   settings: {
     title: 'Pengaturan',
     subtitle: 'Kelola batch data, jalankan pipeline, dan pantau riwayat eksekusi.',
   },
 };
-
 export const $ = (id) => document.getElementById(id);
-export const money = (value) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(value || 0);
-export const number = (value) => new Intl.NumberFormat('id-ID').format(value || 0);
-export const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[char]);
+const missingSentinels = new Set(['nan', 'none', 'null', 'n/a', 'na']);
+const numericValue = (value) => {
+  if (value == null || value === '') return 0;
+  if (typeof value === 'string' && missingSentinels.has(value.trim().toLowerCase())) return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+export const money = (value) => {
+  const parsed = numericValue(value);
+  return parsed == null
+    ? '—'
+    : new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(parsed);
+};
+export const number = (value) => {
+  const parsed = numericValue(value);
+  return parsed == null ? '—' : new Intl.NumberFormat('id-ID').format(parsed);
+};
+export const escapeHtml = (value) => {
+  const text = String(value ?? '');
+  const normalized = missingSentinels.has(text.trim().toLowerCase()) ? '—' : text;
+  return normalized.replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[char]);
+};
 
 export function formatJakartaDateTime(value) {
   return value

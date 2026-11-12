@@ -1,0 +1,46 @@
+      <section class="card filter-card">
+        <details class="filter-disclosure" open>
+          <summary>
+            <span>
+              <strong>Periode &amp; Filter</strong>
+              <small id="filter-summary">Memuat periode data…</small>
+            </span>
+          </summary>
+          <div class="filter-body">
+            <div class="filter-grid">
+              <div class="quick-ranges" aria-label="Rentang tanggal cepat">
+                <button data-preset="today" type="button">Hari ini</button>
+                <button data-preset="7" type="button">Minggu ini</button>
+                <button data-preset="30" type="button">Bulan ini</button>
+                <button data-preset="ytd" type="button">Tahun ini</button>
+              </div>
+              <label>Dari<input id="start-date" type="date"></label>
+              <label>Sampai<input id="end-date" type="date"></label>
+              <label>Channel
+                <select id="channel-filter"><option value="">Semua channel</option></select>
+              </label>
+              <label>Status
+                <select id="status-filter"><option value="">Semua status</option></select>
+              </label>
+              <button id="apply-button" class="button button-primary" type="button">Apply</button>
+            </div>
+            <details class="advanced-filters">
+              <summary>Filter kategori, brand, dan produk</summary>
+              <div class="advanced-grid">
+                <label>Kategori
+                  <select id="category-filter"><option value="">Semua kategori</option></select>
+                </label>
+                <label>Brand
+                  <select id="brand-filter"><option value="">Semua brand</option></select>
+                </label>
+                <label>Produk / SKU
+                  <select id="product-filter"><option value="">Semua produk</option></select>
+                </label>
+              </div>
+            </details>
+            <div class="filter-footer">
+              <button id="reset-button" class="text-button" type="button">Reset</button>
+            </div>
+          </div>
+        </details>
+      </section>

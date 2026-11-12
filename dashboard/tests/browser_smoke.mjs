@@ -32,6 +32,19 @@ const fixture = {
     product: [{ label: 'Wardah UV Shield Aqua Fresh Essence SPF 50 PA++++ 30ml', quantity: 30, net_sales: 1000000 }],
     city: [{ label: 'Yogyakarta', value: 1000000 }],
   },
+  returns: {
+    by_status: [{ label: 'PENDING', events: 21, units: 21, refunded_events: 0, processed_refund_amount: 0 }],
+    by_refund_status: [{ label: 'PENDING', events: 21, processed_refund_amount: 0 }],
+    by_channel: [{ label: 'Shopee', events: 21, units: 21, pending_events: 21, rejected_events: 0, processed_refund_amount: 0 }],
+    by_reason: [{ label: 'Produk rusak', events: 21, units: 21, processed_refund_amount: 0 }],
+    monthly: [],
+    rows: Array.from({ length: 21 }, (_, index) => ({ return_date: '2026-09-20',
+      return_id: 'RET-' + String(index + 1).padStart(3, '0'), return_line_number: 1,
+      channel_name: 'Shopee', order_id: 'ORDER-' + (index + 1), source_line_number: 1,
+      product_id: 'WRD-SKC-001', product_name: 'Wardah UV Shield', return_status: 'PENDING',
+      return_reason: 'Produk rusak', quantity_returned: 1,
+      refund_status: 'PENDING', refund_amount: null })),
+  },
   observability: {},
   rows: Array.from({ length: 61 }, (_, i) => ({
     order_id: 'ORDER-' + i, order_date: '2026-09-20', channel_name: 'Shopee',
@@ -80,7 +93,7 @@ const server = createServer(async (req, res) => {
       if (content === undefined) throw new Error('Dashboard content block was not found');
       let template = await readFile(path.join(root, 'templates/base.html'), 'utf8');
       template = template.replace('{% block page_content %}{% endblock %}', content);
-      for (const partial of ['transactions', 'settings']) {
+      for (const partial of ['filters', 'transactions', 'returns', 'settings']) {
         const include = `{% include "${partial}.html" %}`;
         const markup = await readFile(path.join(root, `templates/${partial}.html`), 'utf8');
         template = template.replace(include, markup);
@@ -179,8 +192,15 @@ try {
   await send('Page.navigate', { url: origin });
   await until("document.getElementById('metric-orders')?.textContent === '241'");
   await until("document.getElementById('metric-returned-units')?.textContent === '8'");
+  await until("document.getElementById('return-total')?.textContent === '21 event'");
+  assert.equal(await evaluate("document.querySelector('.return-events-disclosure').open"), false);
+  assert.equal(await evaluate("document.getElementById('return-event-rows').textContent.includes('Produk rusak')"), true);
+  assert.equal(await evaluate("document.getElementById('return-page-info').textContent.includes('Halaman 1 / 3')"), true);
+  await evaluate("document.getElementById('return-next-page').click()");
+  assert.equal(await evaluate("document.getElementById('return-page-info').textContent.includes('Halaman 2 / 3')"), true);
+  await evaluate("document.getElementById('return-prev-page').click()");
   console.log('Initial render ready');
-  assert.equal(await evaluate("document.querySelectorAll('.chart-data').length"), 6);
+  assert.equal(await evaluate("document.querySelectorAll('.chart-data').length"), 7);
   for (const width of [320, 375, 640, 768, 1024, 1440]) {
     await send('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: false });
     for (const tab of ['summary', 'sales', 'products']) {
@@ -189,8 +209,10 @@ try {
       assert.equal(await evaluate('document.documentElement.scrollWidth <= innerWidth'), true, 'Overflow at ' + width + '/' + tab);
       assert.equal(await evaluate("document.querySelectorAll('[data-overview-panel]:not([hidden])').length"), 1);
     }
-    for (const page of ['transactions', 'settings']) {
+    for (const page of ['transactions', 'returns', 'settings']) {
       await evaluate("location.hash='" + page + "'");
+      await until("document.querySelector('.dashboard-page.active')?.dataset.page === '" + page + "'");
+      assert.equal(await evaluate("document.querySelector('[data-page-link=\\\"" + page + "\\\"]')?.classList.contains('active')"), true);
       await wait(100);
       assert.equal(await evaluate('document.documentElement.scrollWidth <= innerWidth'), true, 'Overflow at ' + width + '/' + page);
     }
@@ -245,7 +267,7 @@ try {
   await send('Page.navigate', { url: origin + '/?case=screenshots' });
   await until("document.getElementById('metric-orders')?.textContent==='241'");
   await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1000, deviceScaleFactor: 1, mobile: false });
-  for (const [page, name] of [['overview', 'dashboard-overview'], ['transactions', 'dashboard-transactions'], ['settings', 'dashboard-settings']]) {
+  for (const [page, name] of [['overview', 'dashboard-overview'], ['transactions', 'dashboard-transactions'], ['returns', 'dashboard-returns'], ['settings', 'dashboard-settings']]) {
     await evaluate(`location.hash='${page}'`);
     await wait(200);
     const screenshot = await send('Page.captureScreenshot', { format: 'png' });

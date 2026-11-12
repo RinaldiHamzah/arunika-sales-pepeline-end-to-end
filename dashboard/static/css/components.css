@@ -232,6 +232,22 @@ summary {
   color: #73540d;
   background: #fff5d8;
 }
+.status[data-status="PENDING"] {
+  color: #805b12;
+  background: #fff4d6;
+}
+.status[data-status="REJECTED"], .status[data-status="FAILED"] {
+  color: var(--danger);
+  background: #fff2ef;
+}
+.status[data-status="APPROVED"], .status[data-status="PROCESSED"] {
+  color: var(--teal-dark);
+  background: var(--teal-soft);
+}
+.status[data-status="NOT_APPLICABLE"] {
+  color: var(--muted);
+  background: var(--surface-soft);
+}
 .pipeline-status {
   display: grid;
   grid-template-columns: minmax(210px, 1.45fr) repeat(3, minmax(110px, 0.8fr)) minmax(190px, 1.35fr);
@@ -377,6 +393,40 @@ summary {
   border-collapse: collapse;
   font-size: 12px;
 }
+.table-container .return-summary-table {
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+  font-size: 11px;
+}
+.return-summary-table th,
+.return-summary-table td {
+  padding: 10px 6px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.return-summary-table td:not(:first-child) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.return-status-table th:nth-child(1) { width: 22%; }
+.return-status-table th:nth-child(2),
+.return-status-table th:nth-child(3) { width: 11%; }
+.return-status-table th:nth-child(4) { width: 25%; }
+.return-status-table th:nth-child(5) { width: 31%; }
+.return-refund-table th:nth-child(1) { width: 38%; }
+.return-refund-table th:nth-child(2) { width: 18%; }
+.return-refund-table th:nth-child(3) { width: 44%; }
+.return-channel-table th:nth-child(1) { width: 20%; }
+.return-channel-table th:nth-child(2),
+.return-channel-table th:nth-child(3),
+.return-channel-table th:nth-child(4),
+.return-channel-table th:nth-child(5) { width: 12%; }
+.return-channel-table th:nth-child(6) { width: 32%; }
+.return-reason-table th:nth-child(1) { width: 40%; }
+.return-reason-table th:nth-child(2),
+.return-reason-table th:nth-child(3) { width: 12%; }
+.return-reason-table th:nth-child(4) { width: 36%; }
 .table-container th {
   text-align: left;
   font-weight: 650;

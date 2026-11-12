@@ -8,7 +8,42 @@ import pandas as pd
 
 from pipeline.alerts import format_pipeline_report
 from pipeline.extract.base import ExtractedSource, extract_delimited, filter_unseen_rows, raw_payload_hash
-from pipeline.reporting import outcome_message, quality_staging_summary, run_report_summary, summarize_sources
+from pipeline.reporting import (
+    auxiliary_source_summary,
+    outcome_message,
+    quality_staging_summary,
+    run_report_summary,
+    summarize_sources,
+)
+
+
+def test_auxiliary_summary_preserves_scope_and_noop_metrics():
+    master = source([{}, {}], "PROMO_MASTER")
+    orders = source([{}, {}, {}], "ORDER_PROMOTIONS")
+    returns = source([{}, {}, {}, {}], "RETURN_EVENTS")
+    delta = source([], "RETURN_EVENTS")
+    metrics = {"PROMO_MASTER": {"valid": 1, "duplicates": 1},
+               "ORDER_PROMOTIONS": {"valid": 2, "duplicates": 1}}
+    result = auxiliary_source_summary([master, orders], [], metrics, returns, delta)
+    assert result[0]["raw_inserted"] == 0
+    assert result[0]["validated"] == 1
+    assert result[0]["duplicates"] == 1
+    assert result[1]["warehouse_written"] is None
+    assert result[2]["unchanged"] == 4
+    assert result[2]["validated"] == 0
+    assert result[2]["warehouse_written"] == 0
+
+
+def test_auxiliary_summary_records_return_work_without_sales():
+    returns = source([{}, {}, {}, {}], "RETURN_EVENTS")
+    delta = source([{}, {}, {}], "RETURN_EVENTS")
+    result = auxiliary_source_summary([], [], {}, returns, delta,
+        return_result={"loaded": 1, "valid": 1, "rejected": 1, "duplicates": 1})[0]
+    assert result["raw_inserted"] == 3
+    assert result["unchanged"] == 1
+    assert result["warehouse_written"] == 1
+    assert result["duplicates"] == 1
+    assert result["rejected"] == 1
 
 
 def source(rows, name="SHOPEE"):

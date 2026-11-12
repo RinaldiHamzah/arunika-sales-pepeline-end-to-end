@@ -75,6 +75,11 @@ const server = createServer(async (req, res) => {
         duplicate_records: 0, incremental_records: 18, loaded_records: 18,
         source_records: 120, skipped_unchanged_records: 100, fact_skipped_records: 0,
         outcome_message: '18 fact ditulis ke warehouse.',
+        report_summary: { raw: { new_or_changed: 0 }, auxiliary_sources: [
+          { source_name: 'RETURN_EVENTS', validation_scope: 'delta', source_records: 4,
+            processed: 3, unchanged: 1, raw_inserted: 3, validated: 1, duplicates: 1,
+            rejected: 1, warehouse_written: 1 },
+        ] },
         source_metrics: [{ source_name: 'SHOPEE', source_records: 120, skipped_unchanged_records: 100,
           extracted_records: 20, validated_records: 18, rejected_records: 2, duplicate_records: 0 }],
       }] }));
@@ -251,6 +256,10 @@ try {
     assert.equal(await evaluate('document.documentElement.scrollWidth <= innerWidth'), true, 'Run explanation overflow at ' + width);
   }
   await evaluate("document.getElementById('run-pipeline').click()");
+  assert.equal(await evaluate("document.querySelector('.run-explanation').textContent.includes('Rincian per sumber')"), true);
+  assert.equal(await evaluate("document.querySelector('.run-explanation').textContent.includes('Sumber Tambahan')"), false);
+  assert.equal(await evaluate("document.querySelectorAll('.run-explanation .quality-source-list').length"), 1);
+  assert.equal(await evaluate("document.querySelector('.run-explanation').textContent.includes('Warehouse tidak dijalankan')"), false);
   await until("document.getElementById('pipeline-progress').textContent.includes('staging_load')");
   assert.ok(requests.includes('/api/pipeline/run'));
   await evaluate("const input=document.getElementById('upload-file'); const dt=new DataTransfer(); dt.items.add(new File(['order_id\\n1'], 'new-batch.csv', {type:'text/csv'})); input.files=dt.files; input.dispatchEvent(new Event('change')); document.getElementById('upload-button').click()");

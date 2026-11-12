@@ -183,12 +183,14 @@ def upload_source_batch():
         return jsonify({"error": "Ukuran CSV maksimum adalah 10 MB."}), 413
     try:
         with pipeline_lock(_engine()):
-            rows = append_csv_batch(source_key, payload)
+            mode = request.form.get("mode", "append")
+            rows = append_csv_batch(source_key, payload, mode=mode)
         return jsonify(
             {
                 "status": "accepted",
                 "source": source_key,
                 "rows_appended": rows,
+                "mode": mode,
                 "next_step": "Jalankan pipeline untuk memvalidasi dan memuat batch ini.",
             }
         ), 201

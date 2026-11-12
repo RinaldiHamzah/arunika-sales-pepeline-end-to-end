@@ -10,7 +10,7 @@ from pathlib import Path
 
 from pipeline.promotions import ORDER_PROMOTION_COLUMNS, PROMO_MASTER_COLUMNS
 from pipeline.returns import RETURN_COLUMNS
-from pipeline.validation.contracts import RAW_COLUMNS, required_raw_columns
+from pipeline.validation.contracts import RAW_COLUMNS, SOURCE_SPECS, required_raw_columns
 
 SOURCE_DIR = Path(__file__).resolve().parents[2] / "data" / "source"
 SOURCE_FILES = {
@@ -55,10 +55,12 @@ def _append_rows(target: Path, rows: list[dict], columns: list[str]) -> None:
             raise
 
 
-def append_csv_batch(source_key: str, payload: bytes) -> int:
+def append_csv_batch(source_key: str, payload: bytes, mode: str = "append") -> int:
     """Validasi kontrak CSV sumber lalu tambahkan isinya ke berkas sumber terkait."""
     if source_key not in SOURCE_FILES:
         raise ValueError("Source tidak didukung.")
+    if mode not in {"append", "correct"}:
+        raise ValueError("Mode upload harus append atau correct.")
     try:
         decoded = payload.decode("utf-8-sig")
     except UnicodeDecodeError as error:
@@ -94,7 +96,49 @@ def append_csv_batch(source_key: str, payload: bytes) -> int:
         for column in expected:
             row.setdefault(column, "")
 
-    if existing.fieldnames == expected:
+    if mode == "correct":
+        # Koreksi eksplisit, bukan aturan ambigu 'baris terakhir menang'.
+        if source_key in SOURCE_SPECS:
+            spec = SOURCE_SPECS[source_key]
+            keys = (spec["order_id"], spec["line_number"])
+        else:
+            keys = {
+                "product": ("sku",), "promo_master": ("promo_code",),
+                "order_promotions": ("source_name", "order_id"),
+                "returns": ("source_name", "return_id", "return_line_number"),
+            }[source_key]
+
+        def key(row, *, strict=True):
+            values = []
+            for column in keys:
+                value = str(row[column]).strip()
+                if column in {"source_name", "promo_code"}:
+                    value = value.upper()
+                if column == "source_name" and value == "OFFLINE":
+                    value = "OFFLINE_STORE"
+                if column in {"order_line_id", "item_sequence", "line_item_no", "receipt_line_no", "return_line_number"}:
+                    if value.isdecimal() and int(value) > 0:
+                        value = str(int(value))
+                    elif strict:
+                        raise ValueError("Nomor baris business key koreksi harus bilangan bulat positif.")
+                if not value and strict:
+                    raise ValueError("Business key koreksi tidak boleh kosong.")
+                values.append(value)
+            return tuple(values)
+
+        updates = {}
+        for row in rows:
+            identity = key(row)
+            if identity in updates and updates[identity] != row:
+                raise ValueError("Batch koreksi memiliki business key sama dengan isi berbeda.")
+            updates[identity] = row
+        known = {key(row, strict=False) for row in existing_rows}
+        if updates.keys() - known:
+            raise ValueError("Key koreksi belum ada di sumber. Gunakan Tambah batch untuk data baru.")
+        existing_rows = [row for row in existing_rows if key(row, strict=False) not in updates]
+        rows = list(updates.values())
+
+    if existing.fieldnames == expected and mode == "append":
         _append_rows(target, rows, expected)
         return len(rows)
 

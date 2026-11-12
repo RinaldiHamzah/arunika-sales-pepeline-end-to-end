@@ -108,7 +108,13 @@ def load_return_events(connection: Connection, run_id: UUID, source: ExtractedSo
     for candidate, raw in candidates:
         key = (candidate["source_name"], candidate["return_id"], candidate["return_line_number"])
         by_event_key[key].append((candidate, raw))
-    duplicate_keys = {key for key, rows in by_event_key.items() if len(rows) > 1}
+    duplicate_keys = {
+        key for key, rows in by_event_key.items()
+        if len({_record_hash(candidate) for candidate, _ in rows}) > 1
+    }
+    # Duplikat identik diproses sekali; konflik tetap ditolak seluruh versinya.
+    duplicates = sum(len(rows) - 1 for key, rows in by_event_key.items() if key not in duplicate_keys)
+    candidates = [rows[0] for key, rows in by_event_key.items() if key not in duplicate_keys]
     for key in duplicate_keys:
         for candidate, raw in by_event_key[key]:
             rejected.append((candidate["source_row_number"], raw, "Business key retur duplikat dalam file"))
@@ -257,7 +263,7 @@ def load_return_events(connection: Connection, run_id: UUID, source: ExtractedSo
                 },
             )
             loaded_count += max(result.rowcount, 0)
-    return {"loaded": loaded_count, "rejected": len(rejected)}
+    return {"loaded": loaded_count, "rejected": len(rejected), "valid": len(accepted), "duplicates": duplicates}
 
 
 def _record_hash(row: dict) -> str:

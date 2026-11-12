@@ -106,3 +106,12 @@ node dashboard/tests/browser_smoke.mjs
 ```
 
 Test membutuhkan Node.js 22+ serta Chrome atau Edge. Test memakai server sementara dan data simulasi; tidak membaca `.env`, tidak mengirim email, dan tidak menjalankan pipeline sungguhan. Test mencakup viewport 320 sampai 1440 piksel, navigasi, keyboard, kartu mobile, filter, pagination, upload, polling, pemulihan API, dan fallback grafik.
+# Upload tambah dan koreksi
+
+Pada Pengaturan, pilih sumber dan file CSV lalu klik **Upload CSV**. UI hanya menyediakan satu alur: menambahkan data sumber, kemudian menjalankan pipeline untuk validasi. Keberhasilan upload bukan jaminan data lolos validasi bisnis. Mode koreksi eksplisit tetap tersedia pada API untuk kompatibilitas, tetapi tidak ditampilkan sebagai pilihan di UI. Koreksi API mengganti baris dengan key yang sudah ada; key baru atau beberapa versi berbeda untuk key yang sama dalam batch koreksi ditolak.
+
+Key kanal adalah ID order + nomor baris (kanal ditentukan dari pilihan sumber); master produk menggunakan SKU; master promo menggunakan kode promo; order promotion menggunakan kanal + ID order; return menggunakan kanal + ID return + nomor baris return. Jangan mengubah key untuk mengoreksi nilai transaksi.
+
+Promo dan return identik diproses sekali. Konflik promo tetap menggagalkan validasi, bukan memilih baris terakhir secara diam-diam; konflik return dicatat sebagai penolakan. Payload promo sekarang disimpan ke Raw sebelum validasi bisnis, termasuk pada run gagal. Gunakan koreksi eksplisit untuk menyelesaikan konflik.
+
+Koreksi memakai penggantian file atomik di bawah kunci pipeline. Jika Windows/OneDrive menolak penggantian, upload gagal dan file asli tidak berubah; jangan menganggap koreksi berhasil. Beri izin penggantian berkas pada folder proyek atau selesaikan penguncian file terlebih dahulu. Sumber tetap berada di folder proyek, bukan dipindahkan ke volume Docker.

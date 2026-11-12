@@ -128,6 +128,35 @@ def quality_staging_summary(results, *, passed_to_staging: int, written_to_stagi
     }
 
 
+def auxiliary_source_summary(promo_sources, promo_deltas, promo_metrics, return_source, return_delta,
+                             *, return_result=None, promotions_written=0):
+    """Metrik sumber tambahan; hitungan promo mencakup scan penuh, return memakai delta."""
+    changed = {source.source_name for source in promo_deltas}
+    result = []
+    for source in promo_sources:
+        metrics = promo_metrics[source.source_name]
+        result.append({
+            "source_name": source.source_name,
+            "source_records": source.source_records if source.source_records is not None else len(source.frame),
+            "validation_scope": "full_scan",
+            "file_changed": source.source_name in changed,
+            "raw_inserted": len(source.frame) if source.source_name in changed else 0,
+            "validated": metrics["valid"], "duplicates": metrics["duplicates"], "rejected": 0,
+            "warehouse_written": promotions_written if source.source_name == "PROMO_MASTER" else None,
+        })
+    returns = return_result or {"loaded": 0, "rejected": 0, "valid": 0, "duplicates": 0}
+    total = return_source.source_records if return_source.source_records is not None else len(return_source.frame)
+    result.append({
+        "source_name": "RETURN_EVENTS", "source_records": total,
+        "validation_scope": "delta", "processed": len(return_delta.frame),
+        "unchanged": max(0, total - len(return_delta.frame)),
+        "raw_inserted": len(return_delta.frame),
+        "validated": returns.get("valid"), "duplicates": returns.get("duplicates"),
+        "rejected": returns["rejected"], "warehouse_written": returns["loaded"],
+    })
+    return result
+
+
 def run_report_summary(
     report: dict,
     *,

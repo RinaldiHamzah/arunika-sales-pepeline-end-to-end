@@ -34,6 +34,19 @@ def _promo_files(tmp_path, redemption="SHOPEE,ORDER-1,NEW15,10.00"):
     return extract_promotion_sources(tmp_path)
 
 
+def test_identical_promo_rows_are_safe_but_conflicts_are_not(tmp_path):
+    from pipeline.promotions import _read_master
+    promotions = _promo_files(tmp_path, "SHOPEE,ORDER-1,NEW15,10.00\nSHOPEE,ORDER-1,NEW15,10")
+    master = promotions[0]
+    master.frame.loc[len(master.frame)] = master.frame.iloc[0]
+    assert len(_read_master(master)) == 1
+    # Tanpa transaksi, uji aturan deduplikasi penukaran secara terisolasi.
+    apply_order_promotions([], promotions)
+    promotions[1].frame.loc[1, "discount_amount"] = "11"
+    with pytest.raises(ValueError, match="isi berbeda"):
+        apply_order_promotions([], promotions)
+
+
 def test_discount_order_allocated_by_gross_and_channel_scoped(tmp_path):
     promotions = _promo_files(tmp_path, " SHOPEE , ORDER-1 , new15 , 10.00")
     spec = SOURCE_SPECS["shopee"]
@@ -109,6 +122,10 @@ def test_discount_order_allocated_by_gross_and_channel_scoped(tmp_path):
     assert enriched[1].frame["discount_amount"].tolist() == ["0"]
     assert enriched[2].frame["discount_amount"].tolist() == ["0"]
     assert enriched[3].frame["discount_amount"].tolist() == ["0"]
+    shopee.frame.loc[2] = shopee.frame.iloc[0]
+    shopee.frame.loc[3] = shopee.frame.iloc[1]
+    repeated, _ = apply_order_promotions([shopee], promotions)
+    assert repeated[0].frame["discount_amount"].tolist() == ["3.00", "7.00", "3.00", "7.00"]
 
 
 def test_redemption_must_reference_master_promo(tmp_path):

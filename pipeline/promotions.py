@@ -70,9 +70,7 @@ def _read_master(source: ExtractedSource) -> dict[str, dict]:
         value = _decimal(value_text, "discount_value")
         if kind == "percentage" and value > 100:
             raise ValueError(f"promo_master.csv baris {line}: persentase tidak boleh melebihi 100")
-        if code in master:
-            raise ValueError(f"promo_master.csv baris {line}: promo_code duplikat {code}")
-        master[code] = {
+        normalized = {
             **row,
             "promo_code": code,
             "promo_name": name,
@@ -82,6 +80,9 @@ def _read_master(source: ExtractedSource) -> dict[str, dict]:
             "end_date": end.date(),
             "status": status,
         }
+        if code in master and master[code] != normalized:
+            raise ValueError(f"promo_master.csv baris {line}: promo_code duplikat dengan isi berbeda {code}")
+        master[code] = normalized
     return master
 
 
@@ -103,7 +104,7 @@ def _allocate(discount: Decimal, gross_values: list[Decimal]) -> list[Decimal]:
 
 
 def apply_order_promotions(
-    transaction_sources: list[ExtractedSource], promo_sources: list[ExtractedSource]
+    transaction_sources: list[ExtractedSource], promo_sources: list[ExtractedSource], *, metrics: dict | None = None
 ) -> tuple[list[ExtractedSource], dict[str, dict]]:
     """Validasi penggunaan promo dan alokasikan diskon order ke grain baris produk."""
     master_source, order_source = promo_sources
@@ -119,11 +120,19 @@ def apply_order_promotions(
         if code not in master:
             raise ValueError(f"order_promotions.csv baris {line}: promo_code {code} tidak ada di promo_master.csv")
         key = (source_name, order_id)
-        if key in redemptions:
-            raise ValueError(f"order_promotions.csv baris {line}: promo ganda untuk {source_name}/{order_id}")
         amount = _decimal(row["discount_amount"], "discount_amount")
+        if key in redemptions:
+            previous = redemptions[key]
+            if previous["promo_code"] == code and previous["discount_amount"] == amount:
+                continue
+            raise ValueError(f"order_promotions.csv baris {line}: promo ganda dengan isi berbeda untuk {source_name}/{order_id}; gunakan koreksi data")
         redemptions[key] = {"promo_code": code, "discount_amount": amount, "line_number": line}
 
+    if metrics is not None:
+        metrics.update({
+            "PROMO_MASTER": {"valid": len(master), "duplicates": len(master_source.frame) - len(master)},
+            "ORDER_PROMOTIONS": {"valid": len(redemptions), "duplicates": len(order_source.frame) - len(redemptions)},
+        })
     output = []
     for source in transaction_sources:
         source_key = next((key for key, value in SOURCE_NAMES.items() if value == source.source_name), None)
@@ -163,6 +172,24 @@ def apply_order_promotions(
             if key[0] != source.source_name or key not in groups:
                 continue
             indices = groups[key]
+            # Upload ulang tidak boleh menggandakan basis alokasi diskon.
+            # Pertahankan salinan baris agar validasi downstream tetap mencatat duplikatnya.
+            unique_lines = {}
+            copies = {}
+            for index in indices:
+                line_id = str(frame.at[index, spec["line_number"]]).strip()
+                if line_id.isdecimal():
+                    line_id = str(int(line_id))
+                signature = tuple(str(frame.at[index, column]).strip() for column in frame.columns)
+                if line_id in unique_lines:
+                    first_index, first_signature = unique_lines[line_id]
+                    if signature != first_signature:
+                        raise ValueError(f"Baris order promo memiliki konflik isi: {key[0]}/{key[1]}/{line_id}")
+                    copies[first_index].append(index)
+                else:
+                    unique_lines[line_id] = (index, signature)
+                    copies[index] = [index]
+            indices = list(copies)
             source_codes = {
                 (clean_text(frame.at[index, "promo_code"]) or "").upper()
                 for index in indices
@@ -190,8 +217,9 @@ def apply_order_promotions(
                 raise ValueError(f"Promo {redemption['promo_code']} tidak berlaku pada tanggal order {key[0]}/{key[1]}")
             amounts = _allocate(redemption["discount_amount"], gross)
             for index, amount in zip(indices, amounts):
-                frame.at[index, "promo_code"] = redemption["promo_code"]
-                frame.at[index, "discount_amount"] = str(amount)
+                for copy_index in copies[index]:
+                    frame.at[copy_index, "promo_code"] = redemption["promo_code"]
+                    frame.at[copy_index, "discount_amount"] = str(amount)
         # Redemption hanya dapat dicocokkan jika file kanal dipindai penuh.
         full_scan = source.source_records is None or len(source.frame) == source.source_records
         if full_scan:

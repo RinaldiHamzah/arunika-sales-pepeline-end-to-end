@@ -278,7 +278,7 @@ async function uploadBatch() {
     const data = await requestJson('/api/ingestion/upload', {
       method: 'POST', headers: adminHeaders(), body,
     });
-    setUploadStatus(`${data.rows_appended} baris ditambahkan. Jalankan Pipeline untuk memproses data.`);
+    setUploadStatus(`${data.rows_appended} baris ditambahkan ke sumber. Jalankan Pipeline untuk memvalidasi dan memproses data.`);
     $('upload-file').value = '';
     updateFileName();
   } catch (error) {

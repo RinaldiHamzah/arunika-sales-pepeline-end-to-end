@@ -243,6 +243,30 @@ function renderRunExplanation(run) {
     </details>`;
   }).join('');
   const sourceQuality = sourceQualityFor(quality);
+  const auxiliary = summary?.auxiliary_sources;
+  const auxiliaryLabels = { PROMO_MASTER: 'Master Promo', ORDER_PROMOTIONS: 'Order Promotion', RETURN_EVENTS: 'Return' };
+  const auxiliaryMetric = value => value == null ? 'Belum tercatat' : number(value);
+  const auxiliaryDetail = `${Array.isArray(auxiliary) ? auxiliary.map(source => {
+    const processed = source.validation_scope === 'delta'
+      ? source.processed : source.source_records;
+    const warehouseValue = source.source_name === 'ORDER_PROMOTIONS'
+      ? 'Diterapkan ke Fact Penjualan' : auxiliaryMetric(source.warehouse_written);
+    return `<details class="quality-source-detail">
+      <summary><strong>${escapeHtml(auxiliaryLabels[source.source_name] || source.source_name)}</strong><span>${auxiliaryMetric(processed)} diproses · ${auxiliaryMetric(source.validated)} valid</span></summary>
+      <dl class="quality-source-stats">
+        <dt>Data diproses</dt><dd>${auxiliaryMetric(processed)}</dd>
+        <dt>Data valid</dt><dd>${auxiliaryMetric(source.validated)}</dd>
+        <dt>Data ditolak</dt><dd>${auxiliaryMetric(source.rejected)}</dd>
+        <dt>Duplikat identik</dt><dd>${auxiliaryMetric(source.duplicates)}</dd>
+        <dt>Data dimuat ke Raw Layer</dt><dd>${auxiliaryMetric(source.raw_inserted)}</dd>
+        <dt>${source.source_name === 'PROMO_MASTER' ? 'Aturan dimuat ke Dimensi Promo' : source.source_name === 'RETURN_EVENTS' ? 'Event dimuat ke Fact Return' : 'Pemakaian promo'}</dt><dd>${warehouseValue}</dd>
+        ${source.validation_scope === 'delta' ? `<dt>Data sumber tidak berubah</dt><dd>${auxiliaryMetric(source.unchanged)}</dd>` : `<dt>Validasi</dt><dd>Seluruh file sumber</dd>`}
+      </dl>
+    </details>`;
+  }).join('') : ['PROMO_MASTER', 'ORDER_PROMOTIONS', 'RETURN_EVENTS'].map(name => `
+    <details class="quality-source-detail"><summary><strong>${auxiliaryLabels[name]}</strong><span>Belum tercatat</span></summary>
+      <dl class="quality-source-stats"><dt>Status laporan</dt><dd>Belum tercatat pada run ini</dd></dl>
+    </details>`).join('')}`;
   const detail = !summary ? `
     <dl>
       <dt>Data diproses</dt><dd>${metric(run.extracted_records)}</dd>
@@ -260,14 +284,13 @@ function renderRunExplanation(run) {
       <dt>Master Produk diproses</dt><dd>${metric(productMaster.new_or_changed)}</dd>
       <dt>Master Produk dimuat ke Raw Layer</dt><dd>${metric(productMaster.inserted_to_raw)}</dd>
     </dl>
-    ${!hasWork ? '<p>Tidak ada data baru dan perubahan pada runing ini sehingga tahap Data Quality Check, Transformasi, Staging, dan Warehouse tidak dijalankan.</p>' : `
+    ${!hasWork ? '<p>Tidak ada transaksi penjualan baru atau berubah. Pemrosesan master dan return dilaporkan terpisah.</p>' : `
       <h4>Data Quality Check &amp; Staging</h4>
       ${findings ? `<ul class="run-findings">${findings}</ul>` : '<p>Tidak ada temuan data quality check yang memblokir data.</p>'}
       <dl>
         <dt>Data lolos ke Staging</dt><dd>${metric(quality?.passed_to_staging)}</dd>
         <dt>Data diload ke Staging</dt><dd>${metric(quality?.written_to_staging)}</dd>
       </dl>
-      ${sourceQuality ? `<h4>Rincian per sumber</h4><div class="quality-source-list">${sourceQuality}</div>` : ''}
       <h4>Warehouse</h4>
       <dl>
         <dt>Fact siap dimuat</dt><dd>${metric(warehouse.eligible_facts)}</dd>
@@ -278,6 +301,8 @@ function renderRunExplanation(run) {
     <summary>Detail Proses</summary>
     <p>${escapeHtml(message)}</p>
     ${detail}
+    <h4>Rincian per sumber</h4>
+    <div class="quality-source-list">${sourceQuality}${auxiliaryDetail}</div>
     ${run.error_message ? `<p class="run-error">Alasan gagal: ${escapeHtml(run.error_message)}</p>` : ''}
   </details>`;
 }

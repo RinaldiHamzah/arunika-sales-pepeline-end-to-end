@@ -137,7 +137,7 @@ def _declare_website_snapshot(source_dir, *, mode, completeness, timestamp="2026
     not _enabled(),
     reason="run against the isolated ecommerce_sales_test database via the test compose profile",
 )
-def test_full_pipeline_and_incremental_acceptance():
+def test_full_pipeline_and_incremental_acceptance(monkeypatch):
     # OneDrive pada Windows dapat mengunci ``tmp_path`` pytest maupun folder repositori.
     # Gunakan folder khusus pada direktori sementara sistem operasi.
     runtime_root = Path(os.getenv("ARUNIKA_TEST_RUNTIME", str(Path(tempfile.gettempdir()) / "arunika_ecommerce_tests")))
@@ -337,6 +337,13 @@ def test_full_pipeline_and_incremental_acceptance():
         ).one() == (5, 5)
     unchanged_run = run(source_dir)
     with engine.connect() as connection:
+        summary = connection.execute(text("SELECT report_summary FROM audit.pipeline_runs WHERE run_id=:id"),
+                                     {"id": unchanged_run}).scalar_one()
+        auxiliary = {item["source_name"]: item for item in summary["auxiliary_sources"]}
+        assert set(auxiliary) == {"PROMO_MASTER", "ORDER_PROMOTIONS", "RETURN_EVENTS"}
+        assert auxiliary["RETURN_EVENTS"]["raw_inserted"] == 0
+        assert auxiliary["RETURN_EVENTS"]["warehouse_written"] == 0
+        assert auxiliary["PROMO_MASTER"]["file_changed"] is False
         unchanged_lines = connection.execute(
             text("""SELECT source_line_number, loaded_at FROM warehouse.fact_sales
                     WHERE source_name='WEBSITE' AND source_order_id=:order_id ORDER BY source_line_number"""),
@@ -550,3 +557,43 @@ def test_full_pipeline_and_incremental_acceptance():
     assert float(payload["metrics"]["processed_refund_amount"]) == float(expected_kpi["processed_refund_amount"])
     assert float(payload["metrics"]["return_rate"]) == float(expected_kpi["return_rate"])
     assert {"month", "channel", "category", "city", "product", "status"} <= set(payload["charts"])
+
+    # Alur HTTP upload -> ETL -> Warehouse: pengulangan promo tidak menggandakan diskon.
+    from dataclasses import replace
+    from io import BytesIO, StringIO
+
+    from dashboard import routes
+    from dashboard.services import ingestion
+
+    monkeypatch.setattr(routes, "settings", replace(routes.settings, dashboard_admin_token="integration-token"))
+    monkeypatch.setattr(ingestion, "SOURCE_DIR", source_dir)
+    headers = {"X-Admin-Token": "integration-token"}
+    for source_key in ("promo_master", "order_promotions", "returns"):
+        path = source_dir / ingestion.SOURCE_FILES[source_key]
+        result = client.post("/api/ingestion/upload", headers=headers, data={
+            "source": source_key, "file": (BytesIO(path.read_bytes()), path.name),
+        })
+        assert result.status_code == 201, result.get_json()
+    run(source_dir)
+    repeated = client.get("/api/dashboard?start=2026-01-01&end=2026-12-31").get_json()
+    assert repeated["metrics"] == payload["metrics"]
+
+    with (source_dir / "order_promotions.csv").open(newline="", encoding="utf-8") as file:
+        redemption = next(csv.DictReader(file))
+    redemption["discount_amount"] = "1.00"
+    output = StringIO()
+    writer = csv.DictWriter(output, fieldnames=ingestion.SOURCE_COLUMNS["order_promotions"])
+    writer.writeheader()
+    writer.writerow(redemption)
+    result = client.post("/api/ingestion/upload", headers=headers, data={
+        "source": "order_promotions", "mode": "correct",
+        "file": (BytesIO(output.getvalue().encode()), "correction.csv"),
+    })
+    assert result.status_code == 201, result.get_json()
+    run(source_dir)
+    with engine.connect() as connection:
+        total = connection.execute(text("""
+            SELECT SUM(discount_amount) FROM warehouse.fact_sales
+            WHERE source_name=:source_name AND source_order_id=:order_id AND is_source_active
+        """), redemption).scalar_one()
+    assert total == Decimal("1.00")

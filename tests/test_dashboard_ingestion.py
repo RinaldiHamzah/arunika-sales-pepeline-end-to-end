@@ -119,7 +119,7 @@ def test_upload_storage_errors_return_json(monkeypatch, failure, status):
     monkeypatch.setattr(dashboard_routes, "settings", replace(dashboard_routes.settings, dashboard_admin_token="test-token"))
     monkeypatch.setattr(dashboard_routes, "pipeline_lock", lambda engine: nullcontext())
 
-    def fail_upload(*args):
+    def fail_upload(*args, **kwargs):
         raise failure
 
     monkeypatch.setattr(dashboard_routes, "append_csv_batch", fail_upload)
@@ -131,6 +131,46 @@ def test_upload_storage_errors_return_json(monkeypatch, failure, status):
     assert response.status_code == status
     assert response.is_json
     assert response.get_json()["error"]
+
+
+@pytest.mark.parametrize("source", list(dashboard_ingestion.SOURCE_FILES))
+def test_explicit_correction_replaces_key_and_preserves_other_rows(tmp_path, monkeypatch, source):
+    columns = list(dashboard_ingestion.SOURCE_COLUMNS[source])
+    rows = [dict.fromkeys(columns, "1"), dict.fromkeys(columns, "2")]
+    target = tmp_path / dashboard_ingestion.SOURCE_FILES[source]
+    def payload(records):
+        output = StringIO()
+        writer = csv.DictWriter(output, fieldnames=columns)
+        writer.writeheader()
+        writer.writerows(records)
+        return output.getvalue().encode()
+    target.write_bytes(payload(rows))
+    monkeypatch.setattr(dashboard_ingestion, "SOURCE_DIR", tmp_path)
+    changed = dict(rows[0])
+    # Kolom terakhir bukan business key untuk seluruh kontrak sumber.
+    changed[columns[-1]] = "updated"
+    assert dashboard_ingestion.append_csv_batch(source, payload([changed]), mode="correct") == 1
+    with target.open(newline="", encoding="utf-8") as file:
+        actual = list(csv.DictReader(file))
+    assert actual == [rows[1], changed]
+    original = target.read_bytes()
+    with pytest.raises(ValueError, match="belum ada"):
+        dashboard_ingestion.append_csv_batch(source, payload([dict.fromkeys(columns, "3")]), mode="correct")
+    assert target.read_bytes() == original
+
+
+def test_correction_permission_failure_preserves_original(tmp_path, monkeypatch):
+    columns = dashboard_ingestion.SOURCE_COLUMNS["order_promotions"]
+    target = tmp_path / "order_promotions.csv"
+    original = (",".join(columns) + "\nSHOPEE,SHP-1,NEW,100\n").encode()
+    target.write_bytes(original)
+    monkeypatch.setattr(dashboard_ingestion, "SOURCE_DIR", tmp_path)
+    def denied(*args):
+        raise PermissionError("blocked")
+    monkeypatch.setattr(dashboard_ingestion.os, "replace", denied)
+    with pytest.raises(PermissionError):
+        dashboard_ingestion.append_csv_batch("order_promotions", original.replace(b",100", b",200"), mode="correct")
+    assert target.read_bytes() == original
 
 
 @pytest.mark.parametrize("source", list(dashboard_ingestion.SOURCE_FILES))

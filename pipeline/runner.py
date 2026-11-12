@@ -29,7 +29,13 @@ from pipeline.load.return_loader import load_return_events, load_return_raw
 from pipeline.load.staging_loader import load_staging
 from pipeline.logger import get_logger
 from pipeline.promotions import apply_order_promotions, extract_promotion_sources, snapshot_source
-from pipeline.reporting import outcome_message, quality_staging_summary, run_report_summary, summarize_sources
+from pipeline.reporting import (
+    auxiliary_source_summary,
+    outcome_message,
+    quality_staging_summary,
+    run_report_summary,
+    summarize_sources,
+)
 from pipeline.returns import extract_return_events
 from pipeline.source_manifest import load_source_manifest
 from pipeline.transform.standardize import SOURCE_NAMES, clean_results_to_staging, filter_incremental_results
@@ -229,6 +235,9 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
                 source_reconciliation=reconciliation,
             )
             # CSV yang disusun ulang tetapi isinya sama tetap mendapat checksum terbaru.
+            report_metrics["report_summary"]["auxiliary_sources"] = auxiliary_source_summary(
+                promo_sources, promo_deltas, promo_metrics, return_source, return_delta,
+            )
             # Tidak ada baris yang dimuat ke raw karena seluruh payload sudah tercatat.
             save_source_snapshots(connection, run_id, snapshot_sources, snapshots)
             load_stage_runs(connection, run_id, stages)
@@ -293,13 +302,24 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
             for source in promo_sources
         )
         promotion_checksum = ":".join(source.checksum_sha256 for source in promo_sources)
+        promo_deltas = [
+            source for source in promo_sources
+            if snapshots.get(source.source_name, {}).get("file_checksum_sha256") != source.checksum_sha256
+        ]
+        # Bukti sumber promo harus tersimpan walaupun validasi bisnis kemudian gagal.
+        with engine.begin() as connection:
+            promotion_raw_count = stage(
+                "promotion_raw_load", lambda: load_promotion_raw(connection, run_id, promo_deltas)
+            )
+            stages[-1]["records_processed"] = promotion_raw_count
         has_full_snapshot = any(declaration.is_reconcilable for declaration in declarations.values())
         scanned_sources = stage(
             "source_scan",
             lambda: extract_all(source_dir, snapshots, force_refresh=promo_changed or has_full_snapshot),
         )
+        promo_metrics = {}
         effective_scanned_sources, promotion_master = stage(
-            "promotion_match", lambda: apply_order_promotions(scanned_sources, promo_sources)
+            "promotion_match", lambda: apply_order_promotions(scanned_sources, promo_sources, metrics=promo_metrics)
         )
         channel_names = set(SOURCE_NAMES.values())
         reconciliation_sources = [source for source in effective_scanned_sources if source.source_name in channel_names]
@@ -380,10 +400,6 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
         with engine.begin() as connection:
             loaded_count = stage("raw_load", lambda: sum(load_raw(connection, run_id, source) for source in raw_deltas))
             stages[-1]["records_processed"] = loaded_count
-            promotion_raw_count = stage(
-                "promotion_raw_load", lambda: load_promotion_raw(connection, run_id, promo_deltas)
-            )
-            stages[-1]["records_processed"] = promotion_raw_count
             return_raw_count = 0
             if not return_delta.frame.empty:
                 return_raw_count = stage("return_raw_load", lambda: load_return_raw(connection, run_id, return_delta))
@@ -465,7 +481,7 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
             )
             report_metrics["source_reconciliation"] = reconciliation
             stages[-1]["records_processed"] = sum(item["deactivated_records"] for item in reconciliation)
-            return_summary = {"loaded": 0, "rejected": 0}
+            return_summary = {"loaded": 0, "rejected": 0, "valid": 0, "duplicates": 0}
             if not return_delta.frame.empty:
                 return_summary = stage(
                     "return_validation_load", lambda: load_return_events(connection, run_id, return_delta)
@@ -519,6 +535,15 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
                 "loaded_events": return_summary["loaded"],
                 "rejected_events": return_summary["rejected"],
             }
+            report_metrics["report_summary"]["auxiliary_sources"] = auxiliary_source_summary(
+                promo_sources, promo_deltas, promo_metrics, return_source, return_delta,
+                return_result=return_summary, promotions_written=dimension_counts["promotions"],
+            )
+            if extracted_count == 0 and (promo_changed or not return_delta.frame.empty):
+                report_metrics["outcome_message"] = (
+                    "Pemrosesan sumber tambahan selesai. Tidak ada transaksi penjualan baru atau berubah; "
+                    "lihat rincian Master Promo, Order Promotion, dan Return."
+                )
             report_metrics["report_summary"]["source_reconciliation"] = reconciliation
             save_source_snapshots(connection, run_id, snapshot_sources, snapshots)
             load_quality_audit(connection, run_id, quality_results)

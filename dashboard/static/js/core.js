@@ -29,8 +29,8 @@ export const pageMetadata = {
     subtitle: 'Data transaksi yang telah tervalidasi proses data quality.',
   },
   returns: {
-    title: 'Retur & Refund',
-    subtitle: 'Pantau proses retur, status refund, dan riwayat event berdasarkan tanggal retur.',
+    title: 'Return & Refund',
+    subtitle: 'Pantau proses return, status refund, dan riwayat event berdasarkan tanggal return.',
   },
   settings: {
     title: 'Pengaturan',

@@ -3,14 +3,14 @@
           <div class="section-heading overview-heading">
             <div>
               <p class="eyebrow">Pemantauan operasional</p>
-              <h2>Analisis Retur dan Refund</h2>
-              <p class="helper-text">Filter tanggal menggunakan tanggal retur. Filter channel, status order, kategori, brand, dan produk juga berlaku.</p>
+              <h2>Analisis Return dan Refund</h2>
+              <p class="helper-text">Filter tanggal menggunakan tanggal return. Filter channel, status order, kategori, brand, dan produk juga berlaku.</p>
             </div>
           </div>
           <div class="return-overview-grid">
             <section class="panel return-status-panel">
               <div class="panel-title">
-                <div><p class="eyebrow">Alur keputusan</p><h3>Status Retur</h3></div>
+                <div><p class="eyebrow">Alur keputusan</p><h3>Status Return</h3></div>
                 <span id="return-total">— event</span>
               </div>
               <div class="return-status-kpis">
@@ -21,37 +21,37 @@
               </div>
             </section>
             <article class="panel return-refund-card">
-              <p class="eyebrow">Pembayaran kembali · tanggal retur</p>
+              <p class="eyebrow">Pembayaran kembali · tanggal return</p>
               <h3>Refund Diproses</h3>
               <strong id="return-refund-total">—</strong>
-              <p>Hanya refund berstatus PROCESSED dengan tanggal retur dalam periode terpilih.</p>
+              <p>Hanya refund berstatus PROCESSED dengan tanggal return dalam periode terpilih.</p>
             </article>
           </div>
           <div class="chart-grid return-analysis-grid">
             <article class="panel">
-              <div class="panel-title"><div><p class="eyebrow">Keputusan retur</p><h3>Ringkasan Status Retur</h3></div><span>Event dan unit</span></div>
-              <div class="table-container"><table class="return-summary-table return-status-table"><thead><tr><th>Status retur</th><th>Event</th><th>Unit</th><th>Event refund diproses</th><th>Nilai refund diproses</th></tr></thead><tbody id="return-status-rows"></tbody></table></div>
+              <div class="panel-title"><div><p class="eyebrow">Keputusan return</p><h3>Ringkasan Status Return</h3></div><span>Event dan unit</span></div>
+              <div class="table-container"><table class="return-summary-table return-status-table"><thead><tr><th>Status return</th><th>Event</th><th>Unit</th><th>Event refund diproses</th><th>Nilai refund diproses</th></tr></thead><tbody id="return-status-rows"></tbody></table></div>
             </article>
             <article class="panel">
-              <div class="panel-title"><div><p class="eyebrow">Pembayaran kembali</p><h3>Ringkasan Status Refund</h3></div><span>Status refund terpisah dari status retur</span></div>
+              <div class="panel-title"><div><p class="eyebrow">Pembayaran kembali</p><h3>Ringkasan Status Refund</h3></div><span>Status refund terpisah dari status return</span></div>
               <div class="table-container"><table class="return-summary-table return-refund-table"><thead><tr><th>Status refund</th><th>Event</th><th>Nilai refund diproses</th></tr></thead><tbody id="refund-status-rows"></tbody></table></div>
             </article>
             <article class="panel">
-              <div class="panel-title"><div><p class="eyebrow">Per kanal</p><h3>Retur per Channel</h3></div><span>Event, unit, refund</span></div>
+              <div class="panel-title"><div><p class="eyebrow">Per kanal</p><h3>Return per Channel</h3></div><span>Event, unit, refund</span></div>
               <div class="table-container"><table class="return-summary-table return-channel-table"><thead><tr><th>Channel</th><th>Event</th><th>Unit</th><th>Pending</th><th>Ditolak</th><th>Refund diproses</th></tr></thead><tbody id="return-channel-rows"></tbody></table></div>
             </article>
             <article class="panel">
-              <div class="panel-title"><div><p class="eyebrow">Penyebab</p><h3>Alasan Retur Terbanyak</h3></div><span>Maksimal 10 alasan</span></div>
+              <div class="panel-title"><div><p class="eyebrow">Penyebab</p><h3>Alasan Return Terbanyak</h3></div><span>Maksimal 10 alasan</span></div>
               <div class="table-container"><table class="return-summary-table return-reason-table"><thead><tr><th>Alasan</th><th>Event</th><th>Unit</th><th>Refund diproses</th></tr></thead><tbody id="return-reason-rows"></tbody></table></div>
             </article>
             <article class="panel return-events-panel">
               <details class="return-events-disclosure">
                 <summary>
-                  <span class="return-events-title"><span class="eyebrow">Riwayat</span><strong> Lihat rincian event retur</strong></span>
+                  <span class="return-events-title"><span class="eyebrow">Riwayat</span><strong> Rincian Event Return</strong></span>
                   <span id="return-event-count">—</span>
                 </summary>
-                <div class="table-container return-event-table-container"><table class="return-event-table"><thead><tr><th>Tanggal</th><th>ID Retur</th><th>Channel</th><th>Order</th><th>Produk</th><th>Status retur</th><th>Alasan</th><th>Unit</th><th>Status refund</th><th>Nilai refund</th></tr></thead><tbody id="return-event-rows"></tbody></table></div>
-                <nav class="pagination return-pagination" aria-label="Navigasi rincian event retur">
+                <div class="table-container return-event-table-container"><table class="return-event-table"><thead><tr><th>Tanggal</th><th>ID Return</th><th>Channel</th><th>Order</th><th>Produk</th><th>Status return</th><th>Alasan</th><th>Unit</th><th>Status refund</th><th>Nilai refund</th></tr></thead><tbody id="return-event-rows"></tbody></table></div>
+                <nav class="pagination return-pagination" aria-label="Navigasi rincian event return">
                   <button id="return-prev-page" class="button button-secondary" type="button">Sebelumnya</button>
                   <span id="return-page-info" aria-live="polite">Halaman 1 / 1</span>
                   <button id="return-next-page" class="button button-secondary" type="button">Berikutnya</button>

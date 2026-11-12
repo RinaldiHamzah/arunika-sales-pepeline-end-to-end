@@ -89,7 +89,7 @@ function renderReturnTable(id, rows, renderRow, colspan) {
   if (!body) return;
   body.innerHTML = rows?.length
     ? rows.map(renderRow).join('')
-    : `<tr><td colspan="${colspan}" class="empty">Tidak ada data retur pada filter ini.</td></tr>`;
+    : `<tr><td colspan="${colspan}" class="empty">Tidak ada data return pada filter ini.</td></tr>`;
 }
 
 function renderReturnEvents(rows) {
@@ -137,7 +137,7 @@ function renderReturnAnalytics(data = {}) {
   setText('return-event-count', `${number(returnRows.length)} event`);
 
   renderReturnTable('return-status-rows', data.by_status, row => `
-    <tr><td data-label="Status retur">${statusBadge(row.label)}</td><td data-label="Event">${number(row.events)}</td><td data-label="Unit">${number(row.units)}</td>
+    <tr><td data-label="Status return">${statusBadge(row.label)}</td><td data-label="Event">${number(row.events)}</td><td data-label="Unit">${number(row.units)}</td>
     <td data-label="Event refund diproses">${number(row.refunded_events)}</td><td data-label="Nilai refund diproses">${money(row.processed_refund_amount)}</td></tr>
   `, 5);
   renderReturnTable('refund-status-rows', data.by_refund_status, row => `

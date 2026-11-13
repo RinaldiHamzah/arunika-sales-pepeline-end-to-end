@@ -96,6 +96,12 @@ class _PrettyConsoleFormatter(_ApplicationTimeFormatter):
         summary = self._mapping(getattr(record, "report_summary", {}))
         raw = self._mapping(summary.get("raw"))
         product_master = self._mapping(raw.get("product_master"))
+        auxiliary_sources = {
+            source.get("source_name"): source
+            for source in self._items(summary.get("auxiliary_sources"))
+            if isinstance(source, dict)
+        }
+        database_counts = self._mapping(summary.get("database_table_counts"))
         quality_staging = summary.get("quality_staging")
         warehouse = self._mapping(summary.get("warehouse"))
         status = getattr(record, "status", "UNKNOWN")
@@ -114,7 +120,7 @@ class _PrettyConsoleFormatter(_ApplicationTimeFormatter):
             f"- Baru atau berubah      : {getattr(record, 'extracted_records', 0)}",
             f"- Valid                  : {getattr(record, 'validated_records', 0)}",
             f"- Ditolak                : {getattr(record, 'rejected_records', 0)}",
-            f"- Duplikat               : {getattr(record, 'duplicate_records', 0)}",
+            f"- Duplikat identik dilewati: {getattr(record, 'duplicate_records', 0)}",
             f"- Fact ditulis           : {getattr(record, 'loaded_records', 0)}",
             "",
             "RINCIAN PER SUMBER",
@@ -128,7 +134,7 @@ class _PrettyConsoleFormatter(_ApplicationTimeFormatter):
             if not isinstance(source, dict):
                 continue
             lines.append(
-                "- {name}: kandidat {extracted} | valid {valid} | ditolak {rejected} | duplikat {duplicate}".format(
+                "- {name}: kandidat {extracted} | valid {valid} | ditolak {rejected} | duplikat dilewati {duplicate}".format(
                     name=source.get("source_name", "—"),
                     extracted=source.get("extracted_records", 0),
                     valid=source.get("validated_records", 0),
@@ -149,11 +155,45 @@ class _PrettyConsoleFormatter(_ApplicationTimeFormatter):
             lines.append(
                 f"- Master Produk baru/berubah: {product_master.get('new_or_changed', 0)} | dimuat ke Raw: {product_master.get('inserted_to_raw', 0)} | total Raw: {product_master.get('total_in_raw', 0)}"
             )
+        lines.extend(["", "SUMBER TAMBAHAN"])
+        promo = auxiliary_sources.get("PROMO_MASTER")
+        if promo:
+            lines.append(
+                "- Master Promo: sumber {source} | valid {valid} | ditolak {rejected} | "
+                "duplikat identik {duplicates} | Raw baru {raw} | dimensi dimuat {warehouse}".format(
+                    source=promo.get("source_records", "—"),
+                    valid=promo.get("validated", "—"),
+                    rejected=promo.get("rejected", "—"),
+                    duplicates=promo.get("duplicates", "—"),
+                    raw=promo.get("raw_inserted", "—"),
+                    warehouse=promo.get("warehouse_written", "—"),
+                )
+            )
+        else:
+            lines.append("- Master Promo: belum ada metrik pada run ini.")
+        returns = auxiliary_sources.get("RETURN_EVENTS")
+        if returns:
+            lines.append(
+                "- Return: sumber {source} | berubah diproses {processed} | valid {valid} | "
+                "ditolak {rejected} | duplikat identik {duplicates} | Raw baru {raw} | "
+                "Staging dimuat {staging} | Fact Return dimuat {warehouse}".format(
+                    source=returns.get("source_records", "—"),
+                    processed=returns.get("processed", "—"),
+                    valid=returns.get("validated", "—"),
+                    rejected=returns.get("rejected", "—"),
+                    duplicates=returns.get("duplicates", "—"),
+                    raw=returns.get("raw_inserted", "—"),
+                    staging=returns.get("staging_written", "—"),
+                    warehouse=returns.get("warehouse_written", "—"),
+                )
+            )
+        else:
+            lines.append("- Return: belum ada metrik pada run ini.")
         if isinstance(quality_staging, dict):
             lines.extend(["", "QUALITY CHECK & STAGING"])
             for key, label in (
                 ("missing_value", "Nilai kosong"),
-                ("duplicate_business_key", "Duplikat business key"),
+                ("duplicate_business_key", "Baris terdampak duplikat business key"),
                 ("invalid_quantity", "Kuantitas tidak valid"),
                 ("invalid_price", "Harga atau amount tidak valid"),
                 ("invalid_status", "Status tidak valid"),
@@ -176,7 +216,7 @@ class _PrettyConsoleFormatter(_ApplicationTimeFormatter):
                 if not isinstance(source, dict):
                     continue
                 lines.append(
-                    "  {name}: diproses {processed} | valid {valid} | ditolak {rejected} | duplikat {duplicate}".format(
+                    "  {name}: diproses {processed} | valid {valid} | ditolak {rejected} | duplikat dilewati {duplicate}".format(
                         name=source.get("source_name", "—"),
                         processed=source.get("processed", 0),
                         valid=source.get("valid", 0),
@@ -194,10 +234,28 @@ class _PrettyConsoleFormatter(_ApplicationTimeFormatter):
                 f"- Fact baru             : {warehouse.get('inserted_facts', 0)}",
                 f"- Fact diperbarui       : {warehouse.get('updated_facts', 0)}",
                 f"- Total fact ditulis    : {warehouse.get('facts_written', 0)}",
-                "",
-                f"CATATAN: {getattr(record, 'outcome_message', '—')}",
             ]
         )
+        if database_counts:
+            lines.extend(["", "JUMLAH BARIS DALAM DATABASE (SETELAH RUN)"])
+            for table in (
+                "raw.shopee_orders",
+                "raw.tokopedia_transactions",
+                "raw.website_transactions",
+                "raw.offline_store_sales",
+                "raw.product_master",
+                "raw.promo_master",
+                "raw.return_events",
+                "staging.stg_sales",
+                "staging.stg_returns",
+                "warehouse.fact_sales",
+                "warehouse.fact_returns",
+                "warehouse.dim_product",
+                "warehouse.dim_promotion",
+            ):
+                lines.append(f"- {table:<34}: {database_counts.get(table, 'Belum direkam')}")
+            lines.append("  Hitungan kumulatif seluruh tabel; fact mencakup baris aktif dan tidak aktif.")
+        lines.extend(["", f"CATATAN: {getattr(record, 'outcome_message', '—')}"])
         if getattr(record, "error_message", None):
             lines.append(f"ERROR: {record.error_message}")
         return "\n".join(lines)

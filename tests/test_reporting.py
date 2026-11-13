@@ -8,13 +8,69 @@ import pandas as pd
 
 from pipeline.alerts import format_pipeline_report
 from pipeline.extract.base import ExtractedSource, extract_delimited, filter_unseen_rows, raw_payload_hash
+from pipeline.logger import _PrettyConsoleFormatter
 from pipeline.reporting import (
+    DATABASE_COUNT_TABLES,
     auxiliary_source_summary,
+    database_table_counts,
     outcome_message,
     quality_staging_summary,
     run_report_summary,
     summarize_sources,
 )
+
+
+def test_database_table_counts_uses_actual_table_counts():
+    class Result:
+        def scalar_one(self):
+            return 7
+
+    class Connection:
+        def __init__(self):
+            self.statements = []
+
+        def execute(self, statement):
+            self.statements.append(str(statement))
+            return Result()
+
+    connection = Connection()
+    counts = database_table_counts(connection)
+
+    assert tuple(counts) == DATABASE_COUNT_TABLES
+    assert all(count == 7 for count in counts.values())
+    assert len(connection.statements) == len(DATABASE_COUNT_TABLES)
+
+
+def test_pipeline_log_includes_auxiliary_and_cumulative_database_counts():
+    report_summary = {
+        "raw": {},
+        "warehouse": {},
+        "auxiliary_sources": [
+            {"source_name": "PROMO_MASTER", "source_records": 12, "validated": 12, "raw_inserted": 12, "warehouse_written": 12},
+            {"source_name": "RETURN_EVENTS", "source_records": 100, "processed": 100, "validated": 100,
+             "raw_inserted": 100, "staging_written": 100, "warehouse_written": 100},
+        ],
+        "database_table_counts": {"raw.promo_master": 12, "raw.return_events": 100,
+                                  "staging.stg_returns": 100, "warehouse.fact_returns": 100},
+    }
+    record = SimpleNamespace(
+        report_summary=report_summary,
+        source_metrics=[],
+        status="SUCCESS",
+        outcome_message="Pipeline selesai.",
+    )
+
+    output = _PrettyConsoleFormatter()._format_pipeline_completion(record)
+
+    assert "SUMBER TAMBAHAN" in output
+    assert "Master Promo: sumber 12" in output
+    assert "Return: sumber 100" in output
+    assert "JUMLAH BARIS DALAM DATABASE (SETELAH RUN)" in output
+    assert "raw.promo_master" in output and "12" in output
+    assert "raw.return_events" in output and "100" in output
+    assert "warehouse.fact_returns" in output
+    assert "Staging dimuat 100" in output
+    assert "staging.stg_returns" in output
 
 
 def test_auxiliary_summary_preserves_scope_and_noop_metrics():
@@ -35,10 +91,11 @@ def test_auxiliary_summary_records_return_work_without_sales():
     returns = source([{}, {}, {}, {}], "RETURN_EVENTS")
     delta = source([{}, {}, {}], "RETURN_EVENTS")
     result = auxiliary_source_summary([], [], {}, returns, delta,
-        return_result={"loaded": 1, "valid": 1, "rejected": 1, "duplicates": 1})[0]
+        return_result={"staged": 1, "loaded": 1, "valid": 1, "rejected": 1, "duplicates": 1})[0]
     assert result["raw_inserted"] == 3
     assert result["unchanged"] == 1
     assert result["warehouse_written"] == 1
+    assert result["staging_written"] == 1
     assert result["duplicates"] == 1
     assert result["rejected"] == 1
 

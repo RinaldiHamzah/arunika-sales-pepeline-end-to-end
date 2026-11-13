@@ -1,5 +1,7 @@
 """Satu kosakata pelaporan untuk runner, dashboard, dan email harian."""
 
+from sqlalchemy import text
+
 QUALITY_SECTIONS = (
     ("missing_value", "Missing value"),
     ("duplicate_business_key", "Duplikat business key"),
@@ -18,6 +20,30 @@ RESULT_SOURCE_NAMES = {
     "offline": "OFFLINE_STORE",
     "product": "PRODUCT_MASTER",
 }
+
+DATABASE_COUNT_TABLES = (
+    "raw.shopee_orders",
+    "raw.tokopedia_transactions",
+    "raw.website_transactions",
+    "raw.offline_store_sales",
+    "raw.product_master",
+    "raw.promo_master",
+    "raw.return_events",
+    "staging.stg_sales",
+    "staging.stg_returns",
+    "warehouse.fact_sales",
+    "warehouse.fact_returns",
+    "warehouse.dim_product",
+    "warehouse.dim_promotion",
+)
+
+
+def database_table_counts(connection) -> dict[str, int]:
+    """Hitung baris tersimpan per tabel utama setelah semua load pada run selesai."""
+    return {
+        table: int(connection.execute(text(f"SELECT COUNT(*) FROM {table}")).scalar_one())
+        for table in DATABASE_COUNT_TABLES
+    }
 
 
 def _count(report, key):
@@ -144,7 +170,7 @@ def auxiliary_source_summary(promo_sources, promo_deltas, promo_metrics, return_
             "validated": metrics["valid"], "duplicates": metrics["duplicates"], "rejected": 0,
             "warehouse_written": promotions_written if source.source_name == "PROMO_MASTER" else None,
         })
-    returns = return_result or {"loaded": 0, "rejected": 0, "valid": 0, "duplicates": 0}
+    returns = return_result or {"staged": 0, "loaded": 0, "rejected": 0, "valid": 0, "duplicates": 0}
     total = return_source.source_records if return_source.source_records is not None else len(return_source.frame)
     result.append({
         "source_name": "RETURN_EVENTS", "source_records": total,
@@ -152,7 +178,8 @@ def auxiliary_source_summary(promo_sources, promo_deltas, promo_metrics, return_
         "unchanged": max(0, total - len(return_delta.frame)),
         "raw_inserted": len(return_delta.frame),
         "validated": returns.get("valid"), "duplicates": returns.get("duplicates"),
-        "rejected": returns["rejected"], "warehouse_written": returns["loaded"],
+        "rejected": returns["rejected"], "staging_written": returns.get("staged", 0),
+        "warehouse_written": returns["loaded"],
     })
     return result
 

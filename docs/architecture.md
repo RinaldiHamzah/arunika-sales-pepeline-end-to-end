@@ -19,10 +19,12 @@ flowchart LR
     I --> J[Warehouse Layer]
     J --> K[SQL Analytics Views]
     K --> L[Dashboard]
-    A --> R[Raw Return Events]
-    R --> S[Validasi Retur dan Refund]
-    S --> T[warehouse.fact_returns]
-    T --> U[Audit Retur/Refund]
+    A --> R[raw.return_events]
+    R --> S[Validasi dan Transform Return]
+    S -->|Valid| T[staging.stg_returns]
+    S -->|Tidak valid| G
+    T --> U[warehouse.fact_returns]
+    U --> V[Audit Retur/Refund]
     M[Airflow / UI / CLI] --> B
 ```
 
@@ -44,8 +46,8 @@ Dashboard menggunakan `warehouse.v_sales_detail` untuk menyajikan data sesuai fi
 | Raw load | payload source asli | `raw.*` | `ingestion_run_id`, file, baris, JSON payload |
 | Validation | raw-equivalent delta | valid, duplicate, rejected | rule, severity, alasan, payload rejected |
 | Transform | record valid | schema canonical | tanggal typed, SKU mapped, customer natural key |
-| Staging | canonical row | `staging.stg_sales` | `source_raw_record_id`, hash record |
-| Warehouse | staging | dimensions dan `fact_sales` | surrogate key serta business key source |
+| Staging | canonical row | `staging.stg_sales`, `staging.stg_returns` | `source_raw_record_id`, hash record, dan hasil validasi |
+| Warehouse | staging | dimensions, `fact_sales`, dan `fact_returns` | surrogate key serta business key source |
 | Analytics | fact/dimension | SQL views dan dashboard | query view PostgreSQL |
 
 ### Lookup fact incremental
@@ -63,6 +65,7 @@ Biaya lookup ini mengikuti jumlah kandidat valid pada run saat ini, bukan jumlah
 5. Nama atau SKU produk dicocokkan dengan Product Master untuk memperoleh `mapped_sku`, merek, dan kategori.
 6. Email pelanggan atau kombinasi nama dan kota digunakan untuk membentuk natural key pelanggan pada dimensi.
 7. Baris yang lolos validasi dimuat ke `staging.stg_sales`. Pipeline kemudian menentukan surrogate key dimensi dan memuat atau memperbarui fact berdasarkan business key dan hash.
+8. Return/refund dinormalisasi dan divalidasi terhadap baris penjualan asal; event valid dimuat ke `staging.stg_returns`, lalu upsert ke `warehouse.fact_returns`. Event invalid tetap berada di Raw dan dicatat pada tabel audit penolakan.
 
 `promo_master.csv` adalah katalog kode dan periode promo. Kode promo dan diskon aktual dicatat langsung pada setiap baris item di CSV kanal, lalu kode divalidasi terhadap master. Bila platform hanya memberi diskon tingkat order, sumber data harus mengalokasikannya secara proporsional ke item sebelum upload; total alokasi harus sama persis dengan diskon order. Pipeline tidak menebak nominal aktual dari aturan di master.
 

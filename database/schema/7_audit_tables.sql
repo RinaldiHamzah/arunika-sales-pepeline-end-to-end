@@ -103,6 +103,19 @@ CREATE INDEX IF NOT EXISTS idx_audit_rejected_run ON audit.rejected_records (run
 CREATE INDEX IF NOT EXISTS idx_audit_source_ingestions_run ON audit.source_ingestions (run_id);
 CREATE INDEX IF NOT EXISTS idx_audit_stage_runs_run ON audit.pipeline_stage_runs (run_id, started_at);
 
+-- Hubungkan staging return ke audit run setelah tabel audit dibuat.
+DO $$ BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'fk_stg_returns_run'
+          AND conrelid = 'staging.stg_returns'::regclass
+    ) THEN
+        ALTER TABLE staging.stg_returns
+            ADD CONSTRAINT fk_stg_returns_run
+            FOREIGN KEY (ingestion_run_id) REFERENCES audit.pipeline_runs(run_id);
+    END IF;
+END $$;
+
 -- ID run raw dan staging merujuk ke tabel audit setelah tabel tersebut tersedia.
 CREATE TABLE IF NOT EXISTS audit.source_snapshots (
     pipeline_name VARCHAR(100) NOT NULL,

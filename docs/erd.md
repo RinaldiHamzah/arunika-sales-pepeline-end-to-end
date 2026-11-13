@@ -17,7 +17,8 @@ Diagram gambar di atas merangkum skema Raw, Staging, Audit, dan Warehouse. Relas
 ```mermaid
 erDiagram
     PIPELINE_RUNS ||--o{ RAW_RETURN_EVENTS : ingestion_run_id
-    RAW_RETURN_EVENTS ||--o{ FACT_RETURNS : source_raw_record_id
+    RAW_RETURN_EVENTS ||--o{ STG_RETURNS : source_raw_record_id
+    STG_RETURNS ||--o{ FACT_RETURNS : validated_event
     FACT_SALES ||--o{ FACT_RETURNS : source_order_id_and_line
 
     RAW_RETURN_EVENTS {
@@ -28,6 +29,20 @@ erDiagram
         text order_id
         text order_line_number
         jsonb source_payload
+    }
+    STG_RETURNS {
+        bigint staging_return_id PK
+        uuid ingestion_run_id FK
+        bigint source_raw_record_id FK
+        varchar source_name UK
+        text return_id UK
+        int return_line_number UK
+        date return_date
+        int quantity_returned
+        numeric refund_amount
+        varchar return_status
+        varchar refund_status
+        char source_record_hash
     }
     FACT_RETURNS {
         bigint return_key PK
@@ -78,6 +93,7 @@ View berikut adalah objek baca saja. View tidak ditampilkan sebagai tabel pada E
 | `raw.order_promotions` | Tabel legacy untuk payload penggunaan promo order dari versi sumber lama; pipeline baru tidak memuat data ke tabel ini. |
 | `raw.return_events` | Satu baris mentah CSV retur dalam satu ingestion run. |
 | `staging.stg_sales` | Satu line item transaksi canonical yang valid. |
+| `staging.stg_returns` | Satu event return yang lolos validasi dan siap dimuat ke fact. Business key: `(source_name, return_id, return_line_number)`. |
 | `warehouse.fact_sales` | Satu baris item dalam satu transaksi source. Business key: `(source_name, source_order_id, source_line_number)`. |
 | `warehouse.fact_returns` | Satu item dalam satu event retur. Business key: `(source_name, return_id, return_line_number)`; FK mengarah ke item `fact_sales` asal. |
 | `warehouse.dim_date` | Satu tanggal kalender. |

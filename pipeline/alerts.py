@@ -208,6 +208,7 @@ def format_pipeline_report(report):
             [
                 "RETUR & REFUND",
                 f"Event baru ke Raw: {returns.get('raw_records_inserted', 0)}",
+                f"Event return dimuat ke Staging: {returns.get('staged_events', 0)}",
                 f"Event valid dimuat ke Warehouse: {returns.get('loaded_events', 0)}",
                 f"Event ditolak: {returns.get('rejected_events', 0)}",
                 "",
@@ -232,6 +233,7 @@ def format_pipeline_report(report):
                 f"Duplikat identik: {auxiliary_metric('RETURN_EVENTS', 'duplicates')}",
                 f"Event ditolak: {auxiliary_metric('RETURN_EVENTS', 'rejected')}",
                 f"Dimuat ke Raw: {auxiliary_metric('RETURN_EVENTS', 'raw_inserted')}",
+                f"Dimuat ke Staging: {auxiliary_metric('RETURN_EVENTS', 'staging_written')}",
                 f"Dimuat ke Fact Return: {auxiliary_metric('RETURN_EVENTS', 'warehouse_written')}",
                 "",
             ]

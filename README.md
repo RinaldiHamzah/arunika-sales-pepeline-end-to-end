@@ -300,7 +300,7 @@ Schema PostgreSQL dibagi menjadi beberapa area:
 | Schema | Tabel penting | Grain, key, dan fungsi |
 | --- | --- | --- |
 | `raw` | `shopee_orders`, `tokopedia_transactions`, `website_transactions`, `offline_store_sales`, `product_master`, `promo_master`, `order_promotions` (legacy) | Satu baris sumber per ingestion. `raw_record_id` adalah PK; `ingestion_run_id` menghubungkan record ke run audit. Nilai sumber dan payload asli disimpan sebelum validasi. Tabel `order_promotions` dipertahankan untuk data historis, bukan untuk ingest baru. |
-| `staging` | `stg_sales` | Satu line transaksi canonical yang lolos validasi. `staging_sales_id` adalah PK; kombinasi source, order ID, dan nomor baris menjadi business key. Menyimpan `source_raw_record_id` untuk lineage. |
+| `staging` | `stg_sales`, `stg_returns` | Baris canonical valid sebelum warehouse. Sales bergraing satu line item; return satu event item, dengan business key masing-masing. Keduanya menyimpan `source_raw_record_id` untuk lineage. |
 | `warehouse` | `fact_sales`, `dim_date`, `dim_product`, `dim_customer`, `dim_channel`, `dim_payment`, `dim_promotion` | Star schema untuk analitik. Grain fact adalah satu baris item transaksi source. `sales_key` adalah PK; `date_key`, `product_key`, `customer_key`, `channel_key`, dan `payment_key` adalah FK. Business key fact adalah `(source_name, source_order_id, source_line_number)`. |
 | `audit` | `pipeline_runs`, `pipeline_stage_runs`, `source_ingestions`, `source_snapshots`, `data_quality_results`, `rejected_records`, `pipeline_watermarks` | Satu baris per run, tahap, source, rule, record rejected, atau snapshot sesuai fungsi tabel. Menyimpan hasil operasional, durasi, kualitas, dan jejak incremental. |
 

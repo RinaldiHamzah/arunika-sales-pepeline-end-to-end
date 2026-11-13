@@ -25,12 +25,13 @@ from pipeline.load.dimension_loader import load_dimensions
 from pipeline.load.fact_loader import load_facts, reconcile_source_snapshot
 from pipeline.load.promotion_loader import load_promotion_dimension, load_promotion_raw
 from pipeline.load.raw_loader import load_raw, load_source_snapshots, save_source_snapshots
-from pipeline.load.return_loader import load_return_events, load_return_raw
+from pipeline.load.return_loader import load_return_facts, load_return_raw, load_return_staging
 from pipeline.load.staging_loader import load_staging
 from pipeline.logger import get_logger
 from pipeline.promotions import apply_channel_promotions, extract_promotion_sources
 from pipeline.reporting import (
     auxiliary_source_summary,
+    database_table_counts,
     outcome_message,
     quality_staging_summary,
     run_report_summary,
@@ -238,6 +239,7 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
             report_metrics["report_summary"]["auxiliary_sources"] = auxiliary_source_summary(
                 promo_sources, promo_deltas, promo_metrics, return_source, return_delta,
             )
+            report_metrics["report_summary"]["database_table_counts"] = database_table_counts(connection)
             # Tidak ada baris yang dimuat ke raw karena seluruh payload sudah tercatat.
             save_source_snapshots(connection, run_id, snapshot_sources, snapshots)
             load_stage_runs(connection, run_id, stages)
@@ -462,12 +464,16 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
             )
             report_metrics["source_reconciliation"] = reconciliation
             stages[-1]["records_processed"] = sum(item["deactivated_records"] for item in reconciliation)
-            return_summary = {"loaded": 0, "rejected": 0, "valid": 0, "duplicates": 0}
+            return_summary = {"staged": 0, "loaded": 0, "rejected": 0, "valid": 0, "duplicates": 0}
             if not return_delta.frame.empty:
                 return_summary = stage(
-                    "return_validation_load", lambda: load_return_events(connection, run_id, return_delta)
+                    "return_staging_load", lambda: load_return_staging(connection, run_id, return_delta)
                 )
-                stages[-1]["records_processed"] = return_summary["loaded"] + return_summary["rejected"]
+                stages[-1]["records_processed"] = return_summary["staged"] + return_summary["rejected"]
+                return_summary["loaded"] = stage(
+                    "return_fact_load", lambda: load_return_facts(connection, run_id)
+                )
+                stages[-1]["records_processed"] = return_summary["loaded"]
             incremental_count = len(staging_rows)
             fact_skipped_count = max(valid_count - incremental_count, 0)
             report_metrics["outcome_message"] = outcome_message(
@@ -513,6 +519,7 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
             )
             report_metrics["report_summary"]["returns"] = {
                 "raw_records_inserted": return_raw_count,
+                "staged_events": return_summary["staged"],
                 "loaded_events": return_summary["loaded"],
                 "rejected_events": return_summary["rejected"],
             }
@@ -526,6 +533,7 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
                     "lihat rincian Master Promo dan Return."
                 )
             report_metrics["report_summary"]["source_reconciliation"] = reconciliation
+            report_metrics["report_summary"]["database_table_counts"] = database_table_counts(connection)
             save_source_snapshots(connection, run_id, snapshot_sources, snapshots)
             load_quality_audit(connection, run_id, quality_results)
             update_watermarks(connection, run_id, quality_results)

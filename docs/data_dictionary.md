@@ -52,6 +52,20 @@ Kolom khusus sumber tetap disimpan sebagai `TEXT`. Dengan begitu, nilai yang tid
 | `source_record_hash` | CHAR(64) |  | Hash untuk deteksi koreksi. |
 | `is_valid`, `validation_notes` | BOOLEAN, JSONB |  | Bukti hasil validasi. |
 
+`staging.stg_returns` memiliki grain **satu baris item dalam satu event return/refund yang lolos validasi**. Event invalid tetap dapat ditelusuri melalui Raw dan audit, tetapi tidak diteruskan ke Warehouse.
+
+| Field | Tipe | Key | Fungsi |
+| --- | --- | --- | --- |
+| `staging_return_id` | BIGINT | PK | Identitas teknis staging. |
+| `ingestion_run_id` | UUID | FK → pipeline run | Run yang menormalisasi event. |
+| `source_name`, `return_id`, `return_line_number` | VARCHAR/TEXT/INTEGER | UK gabungan | Business key event return pada channel. |
+| `source_raw_record_id`, `source_row_number` | BIGINT/INTEGER | FK/raw lineage | Referensi payload Raw dan baris CSV asal. |
+| `source_order_id`, `source_line_number` | TEXT/INTEGER | Referensi item fact sales | Order item yang menjadi asal pengajuan return. |
+| `return_date`, `return_reason`, `return_status` | DATE/TEXT/VARCHAR |  | Atribut return yang sudah dinormalisasi. |
+| `quantity_returned`, `refund_amount`, `refund_status` | INTEGER/NUMERIC/VARCHAR |  | Jumlah unit dan status/nilai refund tervalidasi. |
+| `source_record_hash` | CHAR(64) |  | Deteksi koreksi dan idempotensi. |
+| `is_valid`, `validation_notes` | BOOLEAN, JSONB |  | Hasil validasi; hanya event valid yang disimpan pada tabel ini. |
+
 ## Warehouse dimensions
 
 | Tabel / field | Tipe | Key | Fungsi |

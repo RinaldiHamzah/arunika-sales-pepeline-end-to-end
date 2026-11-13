@@ -95,7 +95,7 @@ File `data/source/return_refund.csv` diproses sebagai event terpisah dari transa
 - Nilai refund hanya dicatat jika `refund_status=PROCESSED`, harus nonnegatif dan maksimal dua desimal. Refund kumulatif tidak boleh melebihi `net_amount` item penjualan.
 - Order dan item asal harus ditemukan di `warehouse.fact_sales`; retur tidak dapat merujuk ke penjualan `CANCELLED`.
 - Quantity kumulatif dari event yang tidak ditolak tidak boleh melebihi quantity terjual.
-- Event valid di-upsert ke `warehouse.fact_returns` dengan business key `(source_name, return_id, return_line_number)`. Payload baru/berubah disimpan lebih dulu di `raw.return_events`.
+- Payload baru/berubah lebih dulu disimpan apa adanya di `raw.return_events`. Event valid yang sudah dinormalisasi dan lolos pemeriksaan referensi/kuantitas/refund di-upsert ke `staging.stg_returns`, kemudian dimuat ke `warehouse.fact_returns` dengan business key `(source_name, return_id, return_line_number)`.
 - Baris invalid, referensi penjualan yang tidak ditemukan, duplikat business key dalam file, atau pelanggaran batas kuantitas/refund dicatat pada `audit.rejected_records` serta `audit.data_quality_results`.
 
 Baris `RET-DEMO-*` pada `return_refund.csv` adalah **data simulasi untuk pengujian/demo**, bukan bukti retur bisnis aktual. Data tersebut dipasangkan ke baris transaksi contoh yang tersedia agar alur end-to-end dapat diuji. Untuk simulasi `PROCESSED`, refund dihitung proporsional dari net item setelah diskon berdasarkan quantity yang diretur. Ganti dengan nilai aktual dari sumber retur sebelum menggunakan metriknya sebagai laporan bisnis.

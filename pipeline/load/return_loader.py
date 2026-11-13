@@ -75,8 +75,8 @@ def _reject(connection, run_id, row_number, raw, reason) -> None:
     )
 
 
-def load_return_events(connection: Connection, run_id: UUID, source: ExtractedSource) -> dict[str, int]:
-    """Validasi event, cocokkan ke Fact penjualan, lalu upsert yang memenuhi kontrak."""
+def load_return_staging(connection: Connection, run_id: UUID, source: ExtractedSource) -> dict[str, int]:
+    """Validasi dan simpan event return kanonis ke staging sebelum warehouse."""
     if source.frame.empty:
         return {"loaded": 0, "rejected": 0}
 
@@ -225,20 +225,23 @@ def load_return_events(connection: Connection, run_id: UUID, source: ExtractedSo
             },
         )
 
-    loaded_count = 0
+    staged_count = 0
     if accepted:
         statement = text("""
-                INSERT INTO warehouse.fact_returns (
-                    source_name, return_id, return_line_number,
-                    source_order_id, source_line_number, return_date, return_reason,
-                    return_status, quantity_returned, refund_amount, refund_status,
-                    source_raw_record_id, source_record_hash, ingestion_run_id
+                INSERT INTO staging.stg_returns (
+                    ingestion_run_id, source_name, source_raw_record_id, source_row_number,
+                    return_id, return_line_number, source_order_id, source_line_number,
+                    return_date, return_reason, return_status, quantity_returned,
+                    refund_amount, refund_status, source_record_hash
                 ) VALUES (
-                    :source_name, :return_id, :return_line_number,
-                    :source_order_id, :source_line_number, :return_date, :return_reason,
-                    :return_status, :quantity_returned, :refund_amount, :refund_status,
-                    :source_raw_record_id, :source_record_hash, :ingestion_run_id
+                    :ingestion_run_id, :source_name, :source_raw_record_id, :source_row_number,
+                    :return_id, :return_line_number, :source_order_id, :source_line_number,
+                    :return_date, :return_reason, :return_status, :quantity_returned,
+                    :refund_amount, :refund_status, :source_record_hash
                 ) ON CONFLICT (source_name, return_id, return_line_number) DO UPDATE SET
+                    ingestion_run_id = EXCLUDED.ingestion_run_id,
+                    source_raw_record_id = EXCLUDED.source_raw_record_id,
+                    source_row_number = EXCLUDED.source_row_number,
                     source_order_id = EXCLUDED.source_order_id,
                     source_line_number = EXCLUDED.source_line_number,
                     return_date = EXCLUDED.return_date,
@@ -247,11 +250,9 @@ def load_return_events(connection: Connection, run_id: UUID, source: ExtractedSo
                     quantity_returned = EXCLUDED.quantity_returned,
                     refund_amount = EXCLUDED.refund_amount,
                     refund_status = EXCLUDED.refund_status,
-                    source_raw_record_id = EXCLUDED.source_raw_record_id,
                     source_record_hash = EXCLUDED.source_record_hash,
-                    ingestion_run_id = EXCLUDED.ingestion_run_id,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE warehouse.fact_returns.source_record_hash IS DISTINCT FROM EXCLUDED.source_record_hash
+                    transformed_at = CURRENT_TIMESTAMP
+                WHERE staging.stg_returns.source_record_hash IS DISTINCT FROM EXCLUDED.source_record_hash
             """)
         for row in accepted:
             result = connection.execute(
@@ -262,8 +263,39 @@ def load_return_events(connection: Connection, run_id: UUID, source: ExtractedSo
                     "ingestion_run_id": str(run_id),
                 },
             )
-            loaded_count += max(result.rowcount, 0)
-    return {"loaded": loaded_count, "rejected": len(rejected), "valid": len(accepted), "duplicates": duplicates}
+            staged_count += max(result.rowcount, 0)
+    return {"staged": staged_count, "rejected": len(rejected), "valid": len(accepted), "duplicates": duplicates}
+
+
+def load_return_facts(connection: Connection, run_id: UUID) -> int:
+    """Muat baris kanonis dari staging ke fact; upsert tetap idempoten."""
+    result = connection.execute(text("""
+        INSERT INTO warehouse.fact_returns (
+            source_name, return_id, return_line_number, source_order_id, source_line_number,
+            return_date, return_reason, return_status, quantity_returned, refund_amount,
+            refund_status, source_raw_record_id, source_record_hash, ingestion_run_id
+        )
+        SELECT source_name, return_id, return_line_number, source_order_id, source_line_number,
+               return_date, return_reason, return_status, quantity_returned, refund_amount,
+               refund_status, source_raw_record_id, source_record_hash, ingestion_run_id
+        FROM staging.stg_returns
+        WHERE ingestion_run_id = :run_id AND is_valid
+        ON CONFLICT (source_name, return_id, return_line_number) DO UPDATE SET
+            source_order_id = EXCLUDED.source_order_id,
+            source_line_number = EXCLUDED.source_line_number,
+            return_date = EXCLUDED.return_date,
+            return_reason = EXCLUDED.return_reason,
+            return_status = EXCLUDED.return_status,
+            quantity_returned = EXCLUDED.quantity_returned,
+            refund_amount = EXCLUDED.refund_amount,
+            refund_status = EXCLUDED.refund_status,
+            source_raw_record_id = EXCLUDED.source_raw_record_id,
+            source_record_hash = EXCLUDED.source_record_hash,
+            ingestion_run_id = EXCLUDED.ingestion_run_id,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE warehouse.fact_returns.source_record_hash IS DISTINCT FROM EXCLUDED.source_record_hash
+    """), {"run_id": str(run_id)})
+    return max(result.rowcount, 0)
 
 
 def _record_hash(row: dict) -> str:

@@ -41,6 +41,7 @@ def _counts(connection):
             )
         ),
         "staging": connection.execute(text("SELECT COUNT(*) FROM staging.stg_sales")).scalar_one(),
+        "return_staging": connection.execute(text("SELECT COUNT(*) FROM staging.stg_returns")).scalar_one(),
         "products": connection.execute(text("SELECT COUNT(*) FROM warehouse.dim_product")).scalar_one(),
         "facts": connection.execute(text("SELECT COUNT(*) FROM warehouse.fact_sales")).scalar_one(),
     }
@@ -181,10 +182,11 @@ def test_full_pipeline_and_incremental_acceptance(monkeypatch):
               (('raw', 'shopee_orders'), ('staging', 'stg_sales'),
                ('warehouse', 'fact_sales'), ('warehouse', 'dim_product'),
                ('audit', 'pipeline_runs'), ('raw', 'return_events'),
-               ('warehouse', 'fact_returns'), ('audit', 'source_reconciliations'))
+               ('warehouse', 'fact_returns'), ('audit', 'source_reconciliations'),
+               ('staging', 'stg_returns'))
         """)
         ).scalar_one()
-        if required != 8:
+        if required != 9:
             pytest.fail("Database schema is not initialized; load database/schema/*.sql first")
 
     run(source_dir)
@@ -223,6 +225,8 @@ def test_full_pipeline_and_incremental_acceptance(monkeypatch):
             )
         }
     assert stage_names.index("raw_load") < stage_names.index("validate")
+    assert stage_names.index("return_raw_load") < stage_names.index("return_staging_load")
+    assert stage_names.index("return_staging_load") < stage_names.index("return_fact_load")
     assert {
         "v_sales_kpi",
         "v_sales_monthly_kpi",
@@ -274,8 +278,12 @@ def test_full_pipeline_and_incremental_acceptance(monkeypatch):
     assert first["raw"] >= before["raw"]
     assert first["staging"] >= before["staging"]
     assert first["facts"] >= before["facts"]
+    with engine.connect() as connection:
+        assert connection.execute(text("SELECT COUNT(*) FROM staging.stg_returns")).scalar_one() == 100
+        assert connection.execute(text("SELECT COUNT(*) FROM warehouse.fact_returns")).scalar_one() == 100
     assert second["raw"] == first["raw"], "unchanged source rows must not be ingested again"
     assert second["staging"] == first["staging"]
+    assert second["return_staging"] == first["return_staging"]
     assert second["products"] == first["products"]
     assert second["facts"] == first["facts"]
     assert second_successes == first_successes + 1

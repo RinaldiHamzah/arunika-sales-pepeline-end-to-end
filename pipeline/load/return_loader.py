@@ -78,7 +78,7 @@ def _reject(connection, run_id, row_number, raw, reason) -> None:
 def load_return_staging(connection: Connection, run_id: UUID, source: ExtractedSource) -> dict[str, int]:
     """Validasi dan simpan event return kanonis ke staging sebelum warehouse."""
     if source.frame.empty:
-        return {"loaded": 0, "rejected": 0}
+        return {"staged": 0, "rejected": 0, "valid": 0, "duplicates": 0, "rejection_reasons": {}}
 
     raw_ids = {
         row["source_row_number"]: row["raw_record_id"]
@@ -264,11 +264,41 @@ def load_return_staging(connection: Connection, run_id: UUID, source: ExtractedS
                 },
             )
             staged_count += max(result.rowcount, 0)
-    return {"staged": staged_count, "rejected": len(rejected), "valid": len(accepted), "duplicates": duplicates}
+    return {
+        "staged": staged_count,
+        "rejected": len(rejected),
+        "valid": len(accepted),
+        "duplicates": duplicates,
+        "rejection_reasons": dict(counts) if rejected else {},
+    }
 
 
-def load_return_facts(connection: Connection, run_id: UUID) -> int:
-    """Muat baris kanonis dari staging ke fact; upsert tetap idempoten."""
+def load_return_facts(connection: Connection, run_id: UUID) -> dict[str, int]:
+    """Muat baris kanonis dari staging ke fact dan pisahkan insert/update."""
+    candidates = connection.execute(text("""
+        SELECT source_name, return_id, return_line_number
+        FROM staging.stg_returns
+        WHERE ingestion_run_id = :run_id AND is_valid
+    """), {"run_id": str(run_id)}).mappings().all()
+    if not candidates:
+        return {"inserted": 0, "updated": 0, "total": 0}
+    names = [row["source_name"] for row in candidates]
+    ids = [row["return_id"] for row in candidates]
+    lines = [row["return_line_number"] for row in candidates]
+    existing = connection.execute(text("""
+        SELECT fact.source_name, fact.return_id, fact.return_line_number
+        FROM warehouse.fact_returns AS fact
+        JOIN unnest(CAST(:source_names AS VARCHAR[]), CAST(:return_ids AS TEXT[]),
+                    CAST(:line_numbers AS INTEGER[]))
+             AS candidate(source_name, return_id, return_line_number)
+          ON candidate.source_name = fact.source_name
+         AND candidate.return_id = fact.return_id
+         AND candidate.return_line_number = fact.return_line_number
+    """), {"source_names": names, "return_ids": ids, "line_numbers": lines}).mappings().all()
+    existing_keys = {
+        (row["source_name"], row["return_id"], row["return_line_number"])
+        for row in existing
+    }
     result = connection.execute(text("""
         INSERT INTO warehouse.fact_returns (
             source_name, return_id, return_line_number, source_order_id, source_line_number,
@@ -295,7 +325,13 @@ def load_return_facts(connection: Connection, run_id: UUID) -> int:
             updated_at = CURRENT_TIMESTAMP
         WHERE warehouse.fact_returns.source_record_hash IS DISTINCT FROM EXCLUDED.source_record_hash
     """), {"run_id": str(run_id)})
-    return max(result.rowcount, 0)
+    total = max(result.rowcount, 0)
+    inserted = sum(
+        (row["source_name"], row["return_id"], row["return_line_number"]) not in existing_keys
+        for row in candidates
+    )
+    inserted = min(inserted, total)
+    return {"inserted": inserted, "updated": max(0, total - inserted), "total": total}
 
 
 def _record_hash(row: dict) -> str:

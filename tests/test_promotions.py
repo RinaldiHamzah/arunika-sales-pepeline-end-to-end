@@ -55,12 +55,15 @@ def test_each_channel_row_carries_its_own_allocated_discount(tmp_path):
         "discount_amount": "0", "promo_code": "",
     }])
 
-    enriched, master = apply_channel_promotions([shopee, tokopedia], promos)
+    metrics = {}
+    enriched, master = apply_channel_promotions([shopee, tokopedia], promos, metrics=metrics)
 
     assert master["NEW15"]["discount_type"] == "percentage"
     assert enriched[0].frame["discount_amount"].tolist() == ["3.00", "7.00"]
     assert enriched[0].frame["promo_code"].tolist() == ["new15", "NEW15"]
     assert enriched[1].frame["discount_amount"].tolist() == ["0"]
+    assert metrics["PROMO_MASTER"]["promo_codes_checked"] == 2
+    assert metrics["PROMO_MASTER"]["promo_codes_matched"] == 2
 
 
 def test_channel_promo_code_must_map_to_master_and_be_in_date_range(tmp_path):

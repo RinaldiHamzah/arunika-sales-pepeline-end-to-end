@@ -161,16 +161,28 @@ def auxiliary_source_summary(promo_sources, promo_deltas, promo_metrics, return_
     result = []
     for source in promo_sources:
         metrics = promo_metrics[source.source_name]
+        source_changed = source.source_name in changed
         result.append({
             "source_name": source.source_name,
             "source_records": source.source_records if source.source_records is not None else len(source.frame),
             "validation_scope": "full_scan",
-            "file_changed": source.source_name in changed,
-            "raw_inserted": len(source.frame) if source.source_name in changed else 0,
-            "validated": metrics["valid"], "duplicates": metrics["duplicates"], "rejected": 0,
+            "catalog_checked": len(source.frame),
+            "catalog_validated": metrics["valid"],
+            "catalog_duplicates": metrics["duplicates"],
+            "processed": len(source.frame) if source_changed else 0,
+            "file_changed": source_changed,
+            "raw_inserted": len(source.frame) if source_changed else 0,
+            "validated": metrics["valid"] if source_changed else 0,
+            "duplicates": metrics["duplicates"] if source_changed else 0,
+            "rejected": 0,
+            "promo_codes_checked": metrics.get("promo_codes_checked", 0),
+            "promo_codes_matched": metrics.get("promo_codes_matched", 0),
             "warehouse_written": promotions_written if source.source_name == "PROMO_MASTER" else None,
         })
-    returns = return_result or {"staged": 0, "loaded": 0, "rejected": 0, "valid": 0, "duplicates": 0}
+    returns = return_result or {
+        "staged": 0, "loaded": 0, "rejected": 0, "valid": 0, "duplicates": 0,
+        "rejection_reasons": {},
+    }
     total = return_source.source_records if return_source.source_records is not None else len(return_source.frame)
     result.append({
         "source_name": "RETURN_EVENTS", "source_records": total,
@@ -179,6 +191,7 @@ def auxiliary_source_summary(promo_sources, promo_deltas, promo_metrics, return_
         "raw_inserted": len(return_delta.frame),
         "validated": returns.get("valid"), "duplicates": returns.get("duplicates"),
         "rejected": returns["rejected"], "staging_written": returns.get("staged", 0),
+        "rejection_reasons": returns.get("rejection_reasons", {}),
         "warehouse_written": returns["loaded"],
     })
     return result

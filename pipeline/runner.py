@@ -464,7 +464,10 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
             )
             report_metrics["source_reconciliation"] = reconciliation
             stages[-1]["records_processed"] = sum(item["deactivated_records"] for item in reconciliation)
-            return_summary = {"staged": 0, "loaded": 0, "rejected": 0, "valid": 0, "duplicates": 0}
+            return_summary = {
+                "staged": 0, "loaded": 0, "rejected": 0, "valid": 0,
+                "duplicates": 0, "rejection_reasons": {},
+            }
             if not return_delta.frame.empty:
                 return_summary = stage(
                     "return_staging_load", lambda: load_return_staging(connection, run_id, return_delta)
@@ -473,7 +476,12 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
                 return_summary["loaded"] = stage(
                     "return_fact_load", lambda: load_return_facts(connection, run_id)
                 )
-                stages[-1]["records_processed"] = return_summary["loaded"]
+                return_fact_summary = return_summary["loaded"]
+                return_summary.update(return_fact_summary)
+                return_summary["loaded"] = return_fact_summary["total"]
+                stages[-1]["records_processed"] = return_fact_summary["total"]
+            else:
+                return_fact_summary = {"inserted": 0, "updated": 0, "total": 0}
             incremental_count = len(staging_rows)
             fact_skipped_count = max(valid_count - incremental_count, 0)
             report_metrics["outcome_message"] = outcome_message(
@@ -522,6 +530,16 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
                 "staged_events": return_summary["staged"],
                 "loaded_events": return_summary["loaded"],
                 "rejected_events": return_summary["rejected"],
+            }
+            report_metrics["report_summary"]["return_warehouse"] = {
+                "eligible_facts": return_summary["valid"],
+                "inserted_facts": return_fact_summary["inserted"],
+                "updated_facts": return_fact_summary["updated"],
+                "facts_written": return_fact_summary["total"],
+            }
+            report_metrics["report_summary"]["dimensions"] = {
+                "products_processed": dimension_counts["products"],
+                "promotions_processed": dimension_counts["promotions"],
             }
             report_metrics["report_summary"]["auxiliary_sources"] = auxiliary_source_summary(
                 promo_sources, promo_deltas, promo_metrics, return_source, return_delta,

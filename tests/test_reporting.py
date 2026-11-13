@@ -46,31 +46,60 @@ def test_pipeline_log_includes_auxiliary_and_cumulative_database_counts():
         "raw": {},
         "warehouse": {},
         "auxiliary_sources": [
-            {"source_name": "PROMO_MASTER", "source_records": 12, "validated": 12, "raw_inserted": 12, "warehouse_written": 12},
+            {"source_name": "PROMO_MASTER", "source_records": 12, "processed": 12,
+             "validated": 12, "raw_inserted": 12, "warehouse_written": 12},
             {"source_name": "RETURN_EVENTS", "source_records": 100, "processed": 100, "validated": 100,
              "raw_inserted": 100, "staging_written": 100, "warehouse_written": 100},
         ],
         "database_table_counts": {"raw.promo_master": 12, "raw.return_events": 100,
                                   "staging.stg_returns": 100, "warehouse.fact_returns": 100},
+        "return_warehouse": {"eligible_facts": 100, "inserted_facts": 100,
+                             "updated_facts": 0, "facts_written": 100},
     }
+    source_metrics = [
+        {"source_name": "SHOPEE", "source_records": 120, "extracted_records": 120,
+         "validated_records": 112, "rejected_records": 7, "duplicate_records": 1},
+        {"source_name": "TOKOPEDIA", "source_records": 120, "extracted_records": 120,
+         "validated_records": 112, "rejected_records": 7, "duplicate_records": 1},
+        {"source_name": "WEBSITE", "source_records": 120, "extracted_records": 120,
+         "validated_records": 112, "rejected_records": 7, "duplicate_records": 1},
+        {"source_name": "OFFLINE_STORE", "source_records": 120, "extracted_records": 120,
+         "validated_records": 112, "rejected_records": 7, "duplicate_records": 1},
+        {"source_name": "PRODUCT_MASTER", "source_records": 20, "extracted_records": 20,
+         "validated_records": 20, "rejected_records": 0, "duplicate_records": 0},
+    ]
     record = SimpleNamespace(
         report_summary=report_summary,
-        source_metrics=[],
+        source_metrics=source_metrics,
         status="SUCCESS",
         outcome_message="Pipeline selesai.",
     )
 
     output = _PrettyConsoleFormatter()._format_pipeline_completion(record)
 
-    assert "SUMBER TAMBAHAN" in output
-    assert "Master Promo: sumber 12" in output
+    assert "Master Promo: katalog 12 | valid katalog 12 | baru/berubah 12" in output
     assert "Return: sumber 100" in output
-    assert "JUMLAH BARIS DALAM DATABASE (SETELAH RUN)" in output
+    assert "Total baris sumber       : 612" in output
+    assert "Total valid              : 580" in output
+    assert "Total ditolak            : 28" in output
+    assert "Total duplikat dilewati  : 4" in output
+    assert "Fact Return baru       : 100" in output
+    assert "JUMLAH BARIS DALAM DATABASE" in output
     assert "raw.promo_master" in output and "12" in output
     assert "raw.return_events" in output and "100" in output
     assert "warehouse.fact_returns" in output
-    assert "Staging dimuat 100" in output
+    assert "Staging +100" in output
     assert "staging.stg_returns" in output
+    assert "QUALITY CHECK — RETURN" in output
+    assert "Return dimuat ke Staging: 100" in output
+    assert "Rincian alasan penolakan: tidak ada baris ditolak" not in output
+    return_quality_pos = output.index("QUALITY CHECK — RETURN")
+    source_detail_pos = output.index("RINCIAN VALIDASI PER SUMBER")
+    assert source_detail_pos > return_quality_pos
+    assert "PROMO_MASTER: katalog dicek 12 | baru/berubah 12 | valid 12 | ditolak 0 | duplikat dilewati 0" in output
+    assert "RETURN_EVENTS: diproses 100 | tidak berubah 0 | valid 100 | ditolak 0 | duplikat dilewati 0" in output
+    for source_name in ("PRODUCT_MASTER", "SHOPEE", "TOKOPEDIA", "WEBSITE", "OFFLINE_STORE"):
+        assert f"{source_name}: diproses" in output
 
 
 def test_auxiliary_summary_preserves_scope_and_noop_metrics():
@@ -80,8 +109,12 @@ def test_auxiliary_summary_preserves_scope_and_noop_metrics():
     metrics = {"PROMO_MASTER": {"valid": 1, "duplicates": 1}}
     result = auxiliary_source_summary([master], [], metrics, returns, delta)
     assert result[0]["raw_inserted"] == 0
-    assert result[0]["validated"] == 1
-    assert result[0]["duplicates"] == 1
+    assert result[0]["processed"] == 0
+    assert result[0]["validated"] == 0
+    assert result[0]["catalog_checked"] == 2
+    assert result[0]["catalog_validated"] == 1
+    assert result[0]["catalog_duplicates"] == 1
+    assert result[0]["duplicates"] == 0
     assert result[1]["unchanged"] == 4
     assert result[1]["validated"] == 0
     assert result[1]["warehouse_written"] == 0
@@ -91,13 +124,38 @@ def test_auxiliary_summary_records_return_work_without_sales():
     returns = source([{}, {}, {}, {}], "RETURN_EVENTS")
     delta = source([{}, {}, {}], "RETURN_EVENTS")
     result = auxiliary_source_summary([], [], {}, returns, delta,
-        return_result={"staged": 1, "loaded": 1, "valid": 1, "rejected": 1, "duplicates": 1})[0]
+        return_result={"staged": 1, "loaded": 1, "valid": 1, "rejected": 1, "duplicates": 1,
+                       "rejection_reasons": {"bad order": 1}})[0]
     assert result["raw_inserted"] == 3
     assert result["unchanged"] == 1
     assert result["warehouse_written"] == 1
     assert result["staging_written"] == 1
     assert result["duplicates"] == 1
     assert result["rejected"] == 1
+    assert result["rejection_reasons"] == {"bad order": 1}
+
+
+def test_return_quality_log_shows_rejection_reasons():
+    record = SimpleNamespace(
+        report_summary={
+            "auxiliary_sources": [{
+                "source_name": "RETURN_EVENTS", "source_records": 3, "processed": 3,
+                "unchanged": 0, "validated": 2, "rejected": 1, "duplicates": 0,
+                "staging_written": 2, "warehouse_written": 2,
+                "rejection_reasons": {"Baris penjualan asal tidak ditemukan": 1},
+            }],
+            "return_warehouse": {"eligible_facts": 2, "inserted_facts": 2, "facts_written": 2},
+        },
+        source_metrics=[], status="SUCCESS", outcome_message="done",
+    )
+
+    output = _PrettyConsoleFormatter()._format_pipeline_completion(record)
+
+    assert "QUALITY CHECK — RETURN" in output
+    assert "- Ditolak: 1" in output
+    assert "- Referensi transaksi tidak valid: 1" in output
+    assert "Rincian: Baris penjualan asal tidak ditemukan: 1" in output
+    assert "Baris penjualan asal tidak ditemukan: 1" in output
 
 
 def source(rows, name="SHOPEE"):

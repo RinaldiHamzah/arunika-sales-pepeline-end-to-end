@@ -84,9 +84,11 @@ def apply_channel_promotions(
         raise ValueError("Pipeline hanya menerima promo_master.csv; promo aktual harus ada di CSV kanal.")
     master_source = promo_sources[0]
     master = _read_master(master_source)
+    promo_codes_checked = 0
     if metrics is not None:
         metrics["PROMO_MASTER"] = {
-            "valid": len(master), "duplicates": len(master_source.frame) - len(master)
+            "valid": len(master), "duplicates": len(master_source.frame) - len(master),
+            "promo_codes_checked": 0,
         }
     output = []
     for source in transaction_sources:
@@ -111,6 +113,7 @@ def apply_channel_promotions(
             if not code and discount > 0:
                 raise ValueError(f"Diskon baris kanal memerlukan promo_code pada {key[0]}/{key[1]}")
             if code:
+                promo_codes_checked += 1
                 if code not in master:
                     raise ValueError(f"Promo {code} pada CSV kanal tidak ditemukan di promo_master.csv")
                 parsed_date, date_error = parse_date(row[spec["order_date"]], source_key)
@@ -135,4 +138,7 @@ def apply_channel_promotions(
                 source.source_records,
             )
         )
+    if metrics is not None:
+        metrics["PROMO_MASTER"]["promo_codes_checked"] = promo_codes_checked
+        metrics["PROMO_MASTER"]["promo_codes_matched"] = promo_codes_checked
     return output, master

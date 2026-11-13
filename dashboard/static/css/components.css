@@ -365,6 +365,16 @@ summary {
 .quality-source-detail summary span {
   color: var(--muted);
   font-size: 11px;
+  text-align: right;
+}
+.quality-source-detail[open] summary {
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+.quality-source-ledger {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 11px;
 }
 .quality-source-stats {
   display: grid;
@@ -614,7 +624,7 @@ summary {
 }
 .operation-kpis {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
   margin-block: 24px;
 }

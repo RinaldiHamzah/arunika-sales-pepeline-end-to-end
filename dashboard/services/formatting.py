@@ -31,6 +31,8 @@ def operation_runs_for_display(rows: Iterable[Mapping]) -> list[dict]:
                 key: source.get(key)
                 for key in (
                     "source_name",
+                    "source_records",
+                    "skipped_unchanged_records",
                     "extracted_records",
                     "validated_records",
                     "rejected_records",

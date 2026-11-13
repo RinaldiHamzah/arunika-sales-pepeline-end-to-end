@@ -46,7 +46,15 @@ const fixture = {
       return_reason: 'Produk rusak', quantity_returned: 1,
       refund_status: 'PENDING', refund_amount: null })),
   },
-  observability: {},
+  observability: {
+    latest_run: {
+      run_id: 'test-pipeline-001', status: 'SUCCESS', started_at: '2026-11-14T00:35:00+07:00',
+      loaded_records: 448, fact_inserted_records: 448,
+      report_summary: { return_warehouse: { facts_written: 100 } },
+    },
+    pipeline_success_rate: 100, pipeline_duration: 3.1, rejected_record_rate: 5.8,
+    source_freshness: [], stages: [], known_city_coverage_rate: 100,
+  },
   rows: Array.from({ length: 61 }, (_, i) => ({
     order_id: 'ORDER-' + i, order_date: '2026-09-20', channel_name: 'Shopee',
     product_name: 'Wardah UV Shield Aqua Fresh Essence SPF 50 PA++++ 30ml',
@@ -246,19 +254,30 @@ try {
   await until("!document.getElementById('refresh-button').disabled");
   assert.equal(await evaluate("document.getElementById('page-info').textContent"), 'Halaman 1 / 3');
   await evaluate("location.hash='settings'; document.getElementById('admin-token').value='fixture-only'; document.getElementById('operations-button').click()");
-  await until("document.querySelectorAll('#operation-run-rows td').length===11");
-  assert.equal(await evaluate("document.querySelector('#operation-run-rows td:last-child').textContent"), '18');
+  await until("document.querySelectorAll('#operation-run-rows td').length===9");
+  assert.equal(await evaluate("document.querySelector('#operation-run-rows td:last-child').textContent"), '1');
+  assert.equal(await evaluate("document.getElementById('operation-latest-sales-facts').textContent"), '18');
+  assert.equal(await evaluate("document.getElementById('operation-latest-return-facts').textContent"), '1');
   await evaluate("document.querySelector('.run-explanation').open=true");
   assert.equal(await evaluate("document.querySelector('.run-explanation').textContent.includes('18 fact ditulis')"), true);
+  assert.equal(await evaluate("document.querySelector('.run-explanation').textContent.includes('Ringkasan Record')"), true);
+  assert.equal(await evaluate("document.querySelector('.run-explanation').textContent.includes('Raw Layer')"), true);
+  assert.equal(await evaluate("document.querySelector('.run-explanation').textContent.includes('Quality Check — Return')"), true);
+  assert.equal(await evaluate("document.querySelector('.run-explanation').textContent.includes('Warehouse Layer')"), true);
+  assert.equal(await evaluate("document.querySelector('.run-explanation').textContent.includes('JUMLAH BARIS DALAM DATABASE')"), false);
+  assert.equal(await evaluate("document.querySelector('.run-explanation').textContent.includes('warehouse.fact_sales')"), false);
   for (const width of [320, 375, 640, 1440]) {
     await send('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: false });
     await wait(100);
     assert.equal(await evaluate('document.documentElement.scrollWidth <= innerWidth'), true, 'Run explanation overflow at ' + width);
   }
   await evaluate("document.getElementById('run-pipeline').click()");
-  assert.equal(await evaluate("document.querySelector('.run-explanation').textContent.includes('Rincian per sumber')"), true);
+  assert.equal(await evaluate("document.querySelector('.run-explanation').textContent.includes('Rincian per Sumber')"), true);
   assert.equal(await evaluate("document.querySelector('.run-explanation').textContent.includes('Sumber Tambahan')"), false);
   assert.equal(await evaluate("document.querySelectorAll('.run-explanation .quality-source-list').length"), 1);
+  assert.equal(await evaluate("document.querySelectorAll('.run-explanation .quality-source-detail').length"), 7);
+  await evaluate("document.querySelector('.quality-source-detail summary').click()");
+  assert.equal(await evaluate("document.querySelector('.quality-source-detail').open"), true);
   assert.equal(await evaluate("document.querySelector('.run-explanation').textContent.includes('Warehouse tidak dijalankan')"), false);
   await until("document.getElementById('pipeline-progress').textContent.includes('staging_load')");
   assert.ok(requests.includes('/api/pipeline/run'));
@@ -271,6 +290,7 @@ try {
   fail = false;
   await evaluate("document.getElementById('refresh-button').click()");
   await until("document.getElementById('metric-orders').textContent==='241'");
+  assert.equal(await evaluate("document.getElementById('pipeline-volume').textContent"), '448 fact sales · 100 fact return dimuat');
   blockChart = true;
   await send('Page.navigate', { url: origin + '/?case=offline-chart' });
   await until("document.getElementById('metric-orders')?.textContent==='241'");

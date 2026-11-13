@@ -348,6 +348,30 @@ def test_noop_reports_deactivations_from_a_complete_snapshot():
     assert "menonaktifkan 12 baris" in outcome_message(report)
 
 
+def test_outcome_message_summarizes_all_sources_and_both_warehouse_facts():
+    report = {
+        "status": "SUCCESS",
+        "extracted_records": 480,
+        "loaded_records": 448,
+        "source_metrics": [
+            {"source_name": "PRODUCT_MASTER", "extracted_records": 20},
+        ],
+        "report_summary": {
+            "auxiliary_sources": [
+                {"source_name": "PROMO_MASTER", "processed": 12},
+                {"source_name": "RETURN_EVENTS", "processed": 100, "warehouse_written": 100},
+            ],
+            "return_warehouse": {"facts_written": 100},
+        },
+    }
+
+    assert outcome_message(report) == (
+        "Pipeline berhasil memproses 612 baris dari seluruh sumber, 480 transaksi kanal, "
+        "20 Master Produk, 12 Master Promo, dan 100 Return. Sebanyak 448 fact sales dan "
+        "100 fact return dimuat ke warehouse."
+    )
+
+
 def test_report_includes_return_event_counts_when_present():
     body = format_pipeline_report(
         {

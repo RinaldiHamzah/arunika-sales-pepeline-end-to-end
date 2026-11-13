@@ -573,6 +573,15 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
                 promo_sources, promo_deltas, promo_metrics, return_source, return_delta,
                 return_result=return_summary, promotions_written=dimension_counts["promotions"],
             )
+            if extracted_count:
+                report_metrics["outcome_message"] = outcome_message(
+                    {
+                        **report_metrics,
+                        "status": "SUCCESS",
+                        "extracted_records": extracted_count,
+                        "loaded_records": fact_count,
+                    }
+                )
             if extracted_count == 0 and (promo_changed or not return_delta.frame.empty):
                 report_metrics["outcome_message"] = (
                     "Pemrosesan sumber tambahan selesai. Tidak ada transaksi penjualan baru atau berubah; "

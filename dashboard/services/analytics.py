@@ -314,7 +314,7 @@ def query_dashboard_data(engine, start, end, channels, statuses, categories, bra
                 text("""
             SELECT run_id, status, started_at, ended_at, duration_seconds,
                    extracted_records, rejected_records, duplicate_records,
-                   incremental_records, fact_inserted_records
+                   incremental_records, fact_inserted_records, loaded_records, report_summary
             FROM audit.pipeline_runs ORDER BY started_at DESC LIMIT 1
         """)
             )

@@ -162,8 +162,10 @@ function renderObservability(observability) {
   $('pipeline-run').textContent = run
     ? `Run ${String(run.run_id).slice(0, 8)} · ${formatJakartaDateTime(run.started_at)} WIB`
     : 'Belum ada pipeline run';
+  const returnFacts = run?.report_summary?.return_warehouse?.facts_written
+    ?? run?.report_summary?.auxiliary_sources?.find(source => source.source_name === 'RETURN_EVENTS')?.warehouse_written;
   $('pipeline-volume').textContent = run
-    ? `${number(run.loaded_records ?? run.fact_inserted_records)} fakta berhasil dimuat`
+    ? `${number(run.loaded_records ?? run.fact_inserted_records)} fact sales · ${returnFacts == null ? 'fact return —' : `${number(returnFacts)} fact return`} dimuat`
     : 'Belum ada data dimuat';
   $('pipeline-success-rate').textContent = percent(observability.pipeline_success_rate);
   $('pipeline-duration').textContent = observability.pipeline_duration == null
@@ -207,8 +209,26 @@ function renderRunExplanation(run) {
   const productMaster = raw.product_master || {};
   const quality = summary?.quality_staging;
   const warehouse = summary?.warehouse || {};
-  const newOrChanged = raw.new_or_changed ?? run.extracted_records ?? 0;
-  const hasWork = Number(newOrChanged) > 0;
+  const returns = (summary?.auxiliary_sources || []).find(source => source.source_name === 'RETURN_EVENTS') || {};
+  const promo = (summary?.auxiliary_sources || []).find(source => source.source_name === 'PROMO_MASTER') || {};
+  const returnWarehouse = summary?.return_warehouse || {};
+  const dimensions = summary?.dimensions || {};
+  const sourceMetrics = Array.isArray(run.source_metrics) ? run.source_metrics : [];
+  const sourceByName = Object.fromEntries(sourceMetrics.map(source => [source.source_name, source]));
+  const channels = ['SHOPEE', 'TOKOPEDIA', 'WEBSITE', 'OFFLINE_STORE'];
+  const valueOf = (source, key) => Number(source?.[key] || 0);
+  const channelCandidates = channels.reduce((sum, name) => sum + valueOf(sourceByName[name], 'extracted_records'), 0);
+  const productCandidate = valueOf(sourceByName.PRODUCT_MASTER, 'extracted_records');
+  const promoCandidate = valueOf(promo, 'processed');
+  const returnCandidate = valueOf(returns, 'processed');
+  const totalCandidates = channelCandidates + productCandidate + promoCandidate + returnCandidate;
+  const salesValid = channels.reduce((sum, name) => sum + valueOf(sourceByName[name], 'validated_records'), 0);
+  const productValid = valueOf(sourceByName.PRODUCT_MASTER, 'validated_records');
+  const totalValid = salesValid + productValid + valueOf(promo, 'validated') + valueOf(returns, 'validated');
+  const totalRejected = [...channels, 'PRODUCT_MASTER'].reduce((sum, name) => sum + valueOf(sourceByName[name], 'rejected_records'), 0)
+    + valueOf(promo, 'rejected') + valueOf(returns, 'rejected');
+  const totalDuplicates = [...channels, 'PRODUCT_MASTER'].reduce((sum, name) => sum + valueOf(sourceByName[name], 'duplicate_records'), 0)
+    + valueOf(promo, 'duplicates') + valueOf(returns, 'duplicates');
   const issueLabels = {
     missing_value: 'Nilai kosong',
     duplicate_business_key: 'Duplikat unique key',
@@ -229,107 +249,165 @@ function renderRunExplanation(run) {
     return [`<li><strong>${label}</strong>: ${number(finding.total)}${fields ? `<br><small>${fields}</small>` : ''}</li>`];
   }).join('');
   const findings = quality ? findingsFor(quality) : '';
-  const auxiliary = summary?.auxiliary_sources;
-  const auxiliaryLabels = { PROMO_MASTER: 'Master Promo', RETURN_EVENTS: 'Return' };
-  const auxiliaryMetric = value => value == null ? 'Belum tercatat' : number(value);
-  const renderAuxiliarySource = source => {
-    const processed = source.validation_scope === 'delta' ? source.processed : source.source_records;
-    const warehouseValue = auxiliaryMetric(source.warehouse_written);
-    return `<details class="quality-source-detail">
-      <summary><strong>${escapeHtml(auxiliaryLabels[source.source_name] || source.source_name)}</strong><span>${auxiliaryMetric(processed)} diproses · ${auxiliaryMetric(source.validated)} valid</span></summary>
-      <dl class="quality-source-stats">
-        <dt>Data diproses</dt><dd>${auxiliaryMetric(processed)}</dd>
-        <dt>Data valid</dt><dd>${auxiliaryMetric(source.validated)}</dd>
-        <dt>Data ditolak</dt><dd>${auxiliaryMetric(source.rejected)}</dd>
-        <dt>Duplikat identik</dt><dd>${auxiliaryMetric(source.duplicates)}</dd>
-        <dt>Data dimuat ke Raw Layer</dt><dd>${auxiliaryMetric(source.raw_inserted)}</dd>
-        <dt>${source.source_name === 'PROMO_MASTER' ? 'Aturan dimuat ke Dimensi Promo' : 'Event dimuat ke Fact Return'}</dt><dd>${warehouseValue}</dd>
-        ${source.validation_scope === 'delta' ? `<dt>Data sumber tidak berubah</dt><dd>${auxiliaryMetric(source.unchanged)}</dd>` : `<dt>Validasi</dt><dd>Seluruh file sumber</dd>`}
-      </dl>
-    </details>`;
+  const listSection = (title, items) => `<h4>${escapeHtml(title)}</h4><ul class="run-findings">${items.map(item => `<li>${item}</li>`).join('')}</ul>`;
+  const summarySection = listSection('Ringkasan Record', [
+    `Kandidat Transaksi kanal: ${number(channelCandidates)}`,
+    `Kandidat Master Produk: ${number(productCandidate)}`,
+    `Kandidat Promo baru: ${number(promoCandidate)}`,
+    `Kandidat Return baru: ${number(returnCandidate)}`,
+    `Total baris semua sumber: ${number(totalCandidates)}`,
+    `Total valid: ${number(totalValid)}`,
+    `Total ditolak: ${number(totalRejected)}`,
+    `Total duplikat: ${number(totalDuplicates)}`,
+    `Fact Sales ditulis: ${number(warehouse.facts_written ?? run.loaded_records)}`,
+    `Fact Return ditulis: ${number(returnWarehouse.facts_written ?? returns.warehouse_written)}`,
+  ]);
+  const sourceDetails = [];
+  const sourceQualityByName = Object.fromEntries((quality?.by_source || []).map(source => [source.source_name, source]));
+  const sourceIssueList = source => {
+    const items = findingsFor(source?.issues);
+    return items ? `<ul class="run-findings">${items}</ul>` : '';
   };
-  const auxiliaryPlaceholder = name => `
-    <details class="quality-source-detail"><summary><strong>${auxiliaryLabels[name]}</strong><span>Belum tercatat</span></summary>
-      <dl class="quality-source-stats"><dt>Status laporan</dt><dd>Belum tercatat pada run ini</dd></dl>
-    </details>`;
-  const promoSource = Array.isArray(auxiliary) ? auxiliary.find(source => source.source_name === 'PROMO_MASTER') : null;
-  const promoDetail = promoSource ? renderAuxiliarySource(promoSource) : auxiliaryPlaceholder('PROMO_MASTER');
-  const sourceQualityFor = target => (target?.by_source || []).map(source => {
-    const sourceFindings = findingsFor(source.issues);
-    const detail = `<details class="quality-source-detail">
-      <summary><strong>${escapeHtml(sourceLabels[source.source_name] || source.source_name)}</strong><span>${number(source.processed)} diproses · ${number(source.valid)} valid</span></summary>
-      <dl class="quality-source-stats">
-        <dt>Data diproses</dt><dd>${number(source.processed)}</dd>
-        <dt>Data valid</dt><dd>${number(source.valid)}</dd>
-        <dt>Data ditolak</dt><dd>${number(source.rejected)}</dd>
-        <dt>Duplikat validasi</dt><dd>${number(source.duplicate)}</dd>
-      </dl>
-      ${sourceFindings ? `<ul class="run-findings">${sourceFindings}</ul>` : '<p>Tidak ada masalah kualitas data pada sumber ini.</p>'}
-    </details>`;
-    return detail + (source.source_name === 'PRODUCT_MASTER' ? promoDetail : '');
-  }).join('');
-  const sourceQuality = sourceQualityFor(quality);
-  const returnSource = Array.isArray(auxiliary) ? auxiliary.find(source => source.source_name === 'RETURN_EVENTS') : null;
-  const auxiliaryDetail = returnSource ? renderAuxiliarySource(returnSource) : auxiliaryPlaceholder('RETURN_EVENTS');
-  const detail = !summary ? `
+  const renderSourceDetail = (title, summaryText, ledgerLine, metrics, sourceFindings = '') => {
+    const metricRows = metrics.map(([label, value]) => `<dt>${escapeHtml(label)}</dt><dd>${value}</dd>`).join('');
+    sourceDetails.push(`<details class="quality-source-detail">
+      <summary><strong>${escapeHtml(title)}</strong><span>${escapeHtml(summaryText)}</span></summary>
+      <p class="quality-source-ledger">${ledgerLine}</p>
+      <dl class="quality-source-stats">${metricRows}</dl>
+      ${sourceFindings || '<p class="quality-source-empty">Tidak ada temuan validasi pada sumber ini.</p>'}
+    </details>`);
+  };
+  const product = sourceByName.PRODUCT_MASTER || {};
+  const productExtra = [
+    valueOf(productMaster, 'inserted_to_raw') ? `Raw ditambah ${number(productMaster.inserted_to_raw)}` : '',
+    valueOf(dimensions, 'products_processed') ? `Dimensi Produk diproses ${number(dimensions.products_processed)}` : '',
+  ].filter(Boolean);
+  const productLine = `Master Produk: sumber ${number(product.source_records)} | kandidat ${number(product.extracted_records)} | valid ${number(product.validated_records)} | ditolak ${number(product.rejected_records)} | duplikat dilewati ${number(product.duplicate_records)}${productExtra.length ? ` | ${productExtra.join(' | ')}` : ''}`;
+  renderSourceDetail('Master Produk', `${number(product.extracted_records)} kandidat · ${number(product.validated_records)} valid`, productLine,
+    [['Baris sumber', number(product.source_records)], ['Kandidat diproses', number(product.extracted_records)], ['Valid', number(product.validated_records)], ['Ditolak', number(product.rejected_records)], ['Duplikat dilewati', number(product.duplicate_records)], ['Raw ditambahkan', number(productMaster.inserted_to_raw)], ['Dimensi Produk diproses', number(dimensions.products_processed)]], sourceIssueList(sourceQualityByName.PRODUCT_MASTER));
+  const promoExtra = [
+    valueOf(promo, 'raw_inserted') ? `Raw ditambah ${number(promo.raw_inserted)}` : '',
+    valueOf(promo, 'warehouse_written') ? `Dimensi Promo diproses ${number(promo.warehouse_written)}` : '',
+    valueOf(promo, 'promo_codes_checked') ? `Kode promo cocok ${number(promo.promo_codes_matched)}/${number(promo.promo_codes_checked)}` : '',
+  ].filter(Boolean);
+  const promoLine = `Master Promo: katalog ${number(promo.source_records)} | valid katalog ${number(promo.catalog_validated ?? promo.validated)} | baru/berubah ${number(promo.processed)} | ditolak ${number(promo.rejected)} | duplikat ${number(promo.duplicates)}${promoExtra.length ? ` | ${promoExtra.join(' | ')}` : ''}`;
+  renderSourceDetail('Master Promo', `${number(promo.processed)} baru/berubah · ${number(promo.catalog_validated ?? promo.validated)} valid`, promoLine,
+    [['Baris katalog', number(promo.source_records)], ['Katalog diperiksa', number(promo.catalog_checked ?? promo.source_records)], ['Katalog valid', number(promo.catalog_validated ?? promo.validated)], ['Baru/berubah', number(promo.processed)], ['Ditolak', number(promo.rejected)], ['Duplikat identik', number(promo.duplicates)], ['Raw ditambahkan', number(promo.raw_inserted)], ['Dimensi Promo dimuat', number(promo.warehouse_written)], ['Kode promo cocok', `${number(promo.promo_codes_matched)}/${number(promo.promo_codes_checked)}`]]);
+  channels.forEach(name => {
+    const source = sourceByName[name] || {};
+    const line = `${sourceLabels[name]}: sumber ${number(source.source_records)} | kandidat ${number(source.extracted_records)} | valid ${number(source.validated_records)} | ditolak ${number(source.rejected_records)} | duplikat dilewati ${number(source.duplicate_records)}`;
+    renderSourceDetail(sourceLabels[name], `${number(source.extracted_records)} kandidat · ${number(source.validated_records)} valid`, line,
+      [['Baris sumber', number(source.source_records)], ['Kandidat diproses', number(source.extracted_records)], ['Valid', number(source.validated_records)], ['Ditolak', number(source.rejected_records)], ['Duplikat dilewati', number(source.duplicate_records)]], sourceIssueList(sourceQualityByName[name]));
+  });
+  const returnExtra = [
+    valueOf(returns, 'raw_inserted') ? `Raw ditambah ${number(returns.raw_inserted)}` : '',
+    valueOf(returns, 'staging_written') ? `Staging dimuat ${number(returns.staging_written)}` : '',
+    valueOf(returns, 'warehouse_written') ? `Fact ditulis ${number(returns.warehouse_written)}` : '',
+  ].filter(Boolean);
+  const returnLine = `Return: sumber ${number(returns.source_records)} | berubah ${number(returns.processed)} | valid ${number(returns.validated)} | ditolak ${number(returns.rejected)} | duplikat ${number(returns.duplicates)}${returnExtra.length ? ` | ${returnExtra.join(' | ')}` : ''}`;
+  const returnReasons = Object.entries(returns.rejection_reasons || {}).map(([reason, count]) => `<li>${escapeHtml(reason)}: ${number(count)}</li>`).join('');
+  renderSourceDetail('Return', `${number(returns.processed)} berubah · ${number(returns.validated)} valid`, returnLine,
+    [['Baris sumber', number(returns.source_records)], ['Berubah/diperiksa', number(returns.processed)], ['Tidak berubah', number(returns.unchanged)], ['Valid', number(returns.validated)], ['Ditolak', number(returns.rejected)], ['Duplikat', number(returns.duplicates)], ['Raw ditambahkan', number(returns.raw_inserted)], ['Dimuat ke Staging', number(returns.staging_written)], ['Fact Return ditulis', number(returns.warehouse_written)]], returnReasons ? `<ul class="run-findings">${returnReasons}</ul>` : '');
+
+  const rawSection = listSection('Raw Layer', [
+    `Transaksi kanal baru/berubah: ${number(raw.new_or_changed)} | Raw ditambah ${number(raw.inserted_to_raw)} | total Raw: ${metric(raw.total_transactions_in_raw)}`,
+    `Master Produk baru/berubah: ${number(productMaster.new_or_changed)} | Raw ditambah ${number(productMaster.inserted_to_raw)} | total Raw: ${metric(productMaster.total_in_raw)}`,
+    `Master Promo baru/berubah: ${number(promo.processed)} | Raw ditambah ${number(promo.raw_inserted)} | total Raw: ${metric((summary?.database_table_counts || {})['raw.promo_master'])}`,
+    `Return baru/berubah: ${number(returns.processed)} | Raw ditambah ${number(returns.raw_inserted)} | total Raw: ${metric((summary?.database_table_counts || {})['raw.return_events'])}`,
+  ]);
+  const qualitySection = quality
+    ? `<h4>Quality Check — Sales</h4>${findings
+      ? `<ul class="run-findings">${findings}</ul>`
+      : '<p>Tidak ada temuan data quality check.</p>'}`
+    : listSection('Quality Check — Sales', ['Tidak dijalankan karena tidak ada data baru atau perubahan.']);
+  const returnReasonLabels = {
+    required: 'Nilai wajib kosong/tidak valid', duplicate: 'Business key duplikat', date: 'Tanggal tidak valid',
+    status: 'Status return/refund tidak valid', quantity: 'Jumlah return tidak valid/melebihi penjualan',
+    refund: 'Nilai refund tidak valid/melebihi penjualan', reference: 'Referensi transaksi tidak valid',
+  };
+  const returnRejectionSummary = Object.entries(returns.rejection_reasons || {}).reduce((result, [reason, count]) => {
+    const value = Number(count || 0);
+    const text = String(reason).toLowerCase();
+    const category = text.includes('duplikat') || text.includes('business key') ? 'duplicate'
+      : (text.includes('date') || text.includes('tanggal') || text.includes('yyyy-mm-dd')) ? 'date'
+        : text.includes('status') ? 'status'
+          : (text.includes('quantity') || text.includes('jumlah retur')) ? 'quantity'
+            : (text.includes('refund') || text.includes('net amount')) ? 'refund'
+              : (text.includes('tidak ditemukan') || text.includes('cancelled') || text.includes('merujuk')) ? 'reference' : 'required';
+    result[category] = (result[category] || 0) + value;
+    return result;
+  }, {});
+  const returnQualityItems = !returnCandidate
+    ? ['Tidak dijalankan karena tidak ada data baru atau perubahan.']
+    : [
+      `Baris sumber: ${number(returns.source_records)} | berubah: ${number(returns.processed)} | tidak berubah: ${number(returns.unchanged)}`,
+      `Diperiksa: ${number(returns.processed)}`,
+      `Valid: ${number(returns.validated)}`,
+      `Ditolak: ${number(returns.rejected)}`,
+      `Duplikat: ${number(returns.duplicates)}`,
+      ...Object.entries(returnRejectionSummary).map(([key, count]) => `${returnReasonLabels[key]}: ${number(count)}`),
+      ...Object.keys(returns.rejection_reasons || {}).map(reason => `Alasan: ${escapeHtml(reason)} (${number(returns.rejection_reasons[reason])})`),
+    ];
+  const stageSection = listSection('Staging Layer', [
+    `Sales lolos ke Staging: ${number(quality?.passed_to_staging)}`,
+    `Sales dimuat ke Staging: ${number(quality?.written_to_staging)}`,
+    `Return lolos ke Staging: ${number(returns.validated)}`,
+    `Return dimuat ke Staging: ${number(returns.staging_written)}`,
+  ]);
+  const warehouseSection = listSection('Warehouse Layer', [
+    `Fact Sales siap dimuat: ${number(warehouse.eligible_facts)}`,
+    `Fact Sales baru: ${number(warehouse.inserted_facts)}`,
+    `Fact Sales diperbarui: ${number(warehouse.updated_facts)}`,
+    `Total Fact Sales ditulis: ${number(warehouse.facts_written ?? run.loaded_records)}`,
+    `Fact Return siap dimuat: ${number(returnWarehouse.eligible_facts ?? returns.validated)}`,
+    `Fact Return baru: ${number(returnWarehouse.inserted_facts)}`,
+    `Fact Return diperbarui: ${number(returnWarehouse.updated_facts)}`,
+    `Total Fact Return ditulis: ${number(returnWarehouse.facts_written ?? returns.warehouse_written)}`,
+  ]);
+  const summaryDetail = summary ? `
+    ${summarySection}
+    <h4>Rincian per Sumber</h4><div class="quality-source-list">${sourceDetails.join('')}</div>
+    ${rawSection}
+    ${qualitySection}
+    ${listSection('Quality Check — Return', returnQualityItems)}
+    ${stageSection}
+    ${warehouseSection}` : `
     <dl>
       <dt>Data diproses</dt><dd>${metric(run.extracted_records)}</dd>
       <dt>Data valid</dt><dd>${metric(run.validated_records)}</dd>
       <dt>Data ditolak</dt><dd>${metric(run.rejected_records)}</dd>
       <dt>Duplikat validasi</dt><dd>${metric(run.duplicate_records)}</dd>
       <dt>Fact ditulis</dt><dd>${metric(run.loaded_records)}</dd>
-    </dl>` : `
-    <h4>Raw Layer</h4>
-    <dl>
-      <dt>Total transaksi Raw Layer</dt><dd>${metric(raw.total_transactions_in_raw)}</dd>
-      <dt>Transaksi baru atau berubah</dt><dd>${metric(newOrChanged)}</dd>
-      <dt>Transaksi dimuat ke Raw Layer</dt><dd>${metric(raw.inserted_to_raw)}</dd>
-      <dt>Total Master Produk Raw Layer</dt><dd>${metric(productMaster.total_in_raw)}</dd>
-      <dt>Master Produk diproses</dt><dd>${metric(productMaster.new_or_changed)}</dd>
-      <dt>Master Produk dimuat ke Raw Layer</dt><dd>${metric(productMaster.inserted_to_raw)}</dd>
-    </dl>
-    ${!hasWork ? '<p>Tidak ada transaksi penjualan baru atau berubah. Pemrosesan master dan return dilaporkan terpisah.</p>' : `
-      <h4>Data Quality Check &amp; Staging</h4>
-      ${findings ? `<ul class="run-findings">${findings}</ul>` : '<p>Tidak ada temuan data quality check yang memblokir data.</p>'}
-      <dl>
-        <dt>Data lolos ke Staging</dt><dd>${metric(quality?.passed_to_staging)}</dd>
-        <dt>Data diload ke Staging</dt><dd>${metric(quality?.written_to_staging)}</dd>
-      </dl>
-      <h4>Warehouse</h4>
-      <dl>
-        <dt>Fact siap dimuat</dt><dd>${metric(warehouse.eligible_facts)}</dd>
-        <dt>Fact baru</dt><dd>${metric(warehouse.inserted_facts)}</dd>
-        <dt>Total fact ditulis</dt><dd>${metric(warehouse.facts_written)}</dd>
-      </dl>`}`;
+    </dl>`;
   return `<details class="run-explanation">
     <summary>Detail Proses</summary>
     <p>${escapeHtml(message)}</p>
-    ${detail}
-    <h4>Rincian per sumber</h4>
-    <div class="quality-source-list">${sourceQuality}${auxiliaryDetail}</div>
+    ${summaryDetail}
     ${run.error_message ? `<p class="run-error">Alasan gagal: ${escapeHtml(run.error_message)}</p>` : ''}
   </details>`;
 }
 
 export function renderOperationRows(runs = []) {
   if (!runs.length) {
-    return '<tr><td class="empty" colspan="11">Belum ada pipeline run.</td></tr>';
+    return '<tr><td class="empty" colspan="9">Belum ada pipeline run.</td></tr>';
   }
-  return runs.map(run => `
-    <tr>
-      <td class="operation-run-cell" title="${escapeHtml(run.run_id)}">${escapeHtml(String(run.run_id).slice(0, 8))}${renderRunExplanation(run)}</td>
-      <td>${statusBadge(run.status)}</td>
-      <td>${formatJakartaDateTime(run.started_at)}</td>
-      <td>${formatJakartaDateTime(run.ended_at)}</td>
-      <td>${run.duration_seconds == null ? '—' : Number(run.duration_seconds).toFixed(1) + 's'}</td>
-      <td>${number(run.extracted_records)}</td>
-      <td>${number(run.validated_records)}</td>
-      <td>${number(run.rejected_records)}</td>
-      <td>${number(run.duplicate_records)}</td>
-      <td>${number(run.incremental_records)}</td>
-      <td>${number(run.loaded_records)}</td>
-    </tr>
-  `).join('');
+  return runs.map(run => {
+    const returnFacts = run.report_summary?.return_warehouse?.facts_written
+      ?? run.report_summary?.auxiliary_sources?.find(source => source.source_name === 'RETURN_EVENTS')?.warehouse_written;
+    return `
+      <tr>
+        <td class="operation-run-cell" title="${escapeHtml(run.run_id)}">${escapeHtml(String(run.run_id).slice(0, 8))}${renderRunExplanation(run)}</td>
+        <td>${statusBadge(run.status)}</td>
+        <td>${formatJakartaDateTime(run.started_at)}</td>
+        <td>${run.duration_seconds == null ? '—' : Number(run.duration_seconds).toFixed(1) + 's'}</td>
+        <td>${number(run.extracted_records)}</td>
+        <td>${number(run.validated_records)}</td>
+        <td>${number(run.rejected_records)}</td>
+        <td>${number(run.loaded_records)}</td>
+        <td>${returnFacts == null ? '—' : number(returnFacts)}</td>
+      </tr>
+    `;
+  }).join('');
 }
 
 /** Data tabel yang sama ditampilkan sebagai kartu berlabel di ponsel tanpa kontrol atau markup duplikat. */

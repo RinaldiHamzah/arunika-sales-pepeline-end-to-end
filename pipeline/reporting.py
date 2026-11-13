@@ -255,6 +255,28 @@ def outcome_message(report):
                 f"{deactivated} baris yang hilang dari snapshot lengkap."
             )
         return "Pipeline selesai tanpa data baru atau perubahan untuk diproses."
+    source_metrics = report.get("source_metrics") or []
+    summary = report.get("report_summary") or {}
+    auxiliary = {
+        item.get("source_name"): item
+        for item in (summary.get("auxiliary_sources") or [])
+    }
+    product_master_records = _source_metric(report, "PRODUCT_MASTER", "extracted_records")
+    promo_records = int((auxiliary.get("PROMO_MASTER") or {}).get("processed", 0) or 0)
+    return_records = int((auxiliary.get("RETURN_EVENTS") or {}).get("processed", 0) or 0)
+    if source_metrics and auxiliary:
+        total_records = extracted_records + product_master_records + promo_records + return_records
+        return_fact_count = (summary.get("return_warehouse") or {}).get(
+            "facts_written", (auxiliary.get("RETURN_EVENTS") or {}).get("warehouse_written", 0)
+        ) or 0
+        if report.get("loaded_records", 0) or return_fact_count:
+            return (
+                f"Pipeline berhasil memproses {total_records} baris dari seluruh sumber, "
+                f"{extracted_records} transaksi kanal, {product_master_records} Master Produk, "
+                f"{promo_records} Master Promo, dan {return_records} Return. "
+                f"Sebanyak {report.get('loaded_records', 0)} fact sales dan "
+                f"{return_fact_count} fact return dimuat ke warehouse."
+            )
     product_master_records = _source_metric(report, "PRODUCT_MASTER", "extracted_records")
     product_context = (
         f" Master Produk: {product_master_records} record diproses untuk mapping produk."

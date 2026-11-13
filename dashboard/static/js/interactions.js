@@ -300,7 +300,10 @@ async function loadOperations() {
     $('operations-empty').classList.add('hidden');
     $('operations-content').classList.remove('hidden');
     $('operation-latest-status').textContent = latest?.status || 'NO RUN';
-    $('operation-latest-facts').textContent = number(latest?.loaded_records);
+    const returnFacts = latest?.report_summary?.return_warehouse?.facts_written
+      ?? latest?.report_summary?.auxiliary_sources?.find(source => source.source_name === 'RETURN_EVENTS')?.warehouse_written;
+    $('operation-latest-sales-facts').textContent = latest ? number(latest.loaded_records) : '—';
+    $('operation-latest-return-facts').textContent = returnFacts == null ? '—' : number(returnFacts);
     $('failed-runs').textContent = number(data.failed_runs_last_7_days);
     $('operation-run-rows').innerHTML = renderOperationRows(data.recent_runs);
     labelTableCells();

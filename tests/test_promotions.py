@@ -92,6 +92,15 @@ def test_extract_only_requires_promo_master(tmp_path):
     assert promos[0].source_name == "PROMO_MASTER"
 
 
+def test_retired_order_promotion_table_is_absent_from_bootstrap_schema():
+    root = Path(__file__).resolve().parents[1]
+    raw_schema = (root / "database/schema/3_raw_tables.sql").read_text(encoding="utf-8").lower()
+    audit_schema = (root / "database/schema/7_audit_tables.sql").read_text(encoding="utf-8").lower()
+
+    assert "raw.order_promotions" not in raw_schema
+    assert "raw.order_promotions" not in audit_schema
+
+
 def test_email_report_does_not_treat_channel_promo_as_separate_source(tmp_path):
     from pipeline.alerts import format_pipeline_report
 

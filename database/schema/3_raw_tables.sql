@@ -66,16 +66,6 @@ CREATE TABLE IF NOT EXISTS raw.promo_master (
     CONSTRAINT uq_raw_promo_master_file_row UNIQUE (ingestion_run_id, source_file_name, source_row_number)
 );
 
-CREATE TABLE IF NOT EXISTS raw.order_promotions (
-    raw_record_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    ingestion_run_id UUID NOT NULL,
-    source_file_name TEXT NOT NULL, source_row_number INTEGER NOT NULL CHECK (source_row_number > 0),
-    ingested_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    source_name TEXT, order_id TEXT, promo_code TEXT, discount_amount TEXT,
-    source_payload JSONB NOT NULL,
-    CONSTRAINT uq_raw_order_promotions_file_row UNIQUE (ingestion_run_id, source_file_name, source_row_number)
-);
-
 CREATE TABLE IF NOT EXISTS raw.return_events (
     raw_record_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     ingestion_run_id UUID NOT NULL,

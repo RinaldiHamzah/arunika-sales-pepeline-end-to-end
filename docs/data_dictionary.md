@@ -25,7 +25,6 @@ Kolom khusus sumber tetap disimpan sebagai `TEXT`. Dengan begitu, nilai yang tid
 | `raw.offline_store_sales` | `pos_receipt_no`, `receipt_line_no`, `sold_at`, `item_description`, `units`, `item_price`, `store_name`, `store_city`, `payment_type`, `status`, `discount_amount`, `promo_code` | Payload POS toko offline. |
 | `raw.product_master` | `sku`, `product_name`, `brand`, `category`, `price` | Referensi master produk. |
 | `raw.promo_master` | `promo_code`, `promo_name`, `discount_type`, `discount_value`, `start_date`, `end_date`, `status` | Riwayat payload katalog promo. |
-| `raw.order_promotions` | `source_name`, `order_id`, `promo_code`, `discount_amount` | Tabel legacy untuk audit payload dari format lama; pipeline baru menggunakan diskon per baris dari empat CSV kanal. |
 | `raw.return_events` | `source_name`, `return_id`, `return_line_number`, `order_id`, `order_line_number`, `return_date`, `return_reason`, `return_status`, `quantity_returned`, `refund_amount`, `refund_status` | Payload retur dari `return_refund.csv`, disimpan apa adanya untuk lineage. |
 
 ## Staging

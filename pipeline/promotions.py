@@ -88,6 +88,8 @@ def apply_channel_promotions(
     if metrics is not None:
         metrics["PROMO_MASTER"] = {
             "valid": len(master), "duplicates": len(master_source.frame) - len(master),
+            "catalog_checked": len(master_source.frame),
+            "catalog_validated": len(master),
             "promo_codes_checked": 0,
         }
     output = []

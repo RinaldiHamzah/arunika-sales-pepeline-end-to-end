@@ -318,11 +318,14 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
             "source_scan",
             lambda: extract_all(source_dir, snapshots, force_refresh=promo_changed or has_full_snapshot),
         )
-        promo_metrics = {}
-        scanned_sources, promotion_master = stage(
-            "promotion_validation",
-            lambda: apply_channel_promotions(scanned_sources, promo_sources, metrics=promo_metrics),
-        )
+        promo_metrics = {
+            source.source_name: {
+                "valid": 0, "duplicates": 0, "catalog_checked": 0,
+                "catalog_validated": 0, "promo_codes_checked": 0,
+                "promo_codes_matched": 0,
+            }
+            for source in promo_sources
+        }
         channel_names = set(SOURCE_NAMES.values())
         reconciliation_sources = [source for source in scanned_sources if source.source_name in channel_names]
         raw_hashes = {
@@ -375,6 +378,28 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
         # atau kueri gudang data hanya untuk memastikan tidak ada pekerjaan.
         if not any(len(source.frame) for source in sources) and not promo_changed and return_delta.frame.empty:
             return finish_incremental_noop()
+
+        # Run tanpa delta keluar di atas sebelum validasi promo. Bila ada
+        # perubahan katalog atau transaksi kanal, validasi promo tetap berjalan.
+        channel_delta_present = any(
+            source.source_name in channel_names and len(source.frame) > 0
+            for source in sources
+        )
+        if promo_changed or channel_delta_present:
+            scanned_sources, promotion_master = stage(
+                "promotion_validation",
+                lambda: apply_channel_promotions(scanned_sources, promo_sources, metrics=promo_metrics),
+            )
+            raw_deltas = stage(
+                "raw_incremental_extract_after_promo",
+                lambda: [filter_unseen_rows(source, raw_hashes[source.source_name]) for source in scanned_sources],
+            )
+            sources = stage(
+                "incremental_extract_after_promo",
+                lambda: [filter_unseen_rows(source, raw_hashes[source.source_name]) for source in scanned_sources],
+            )
+        else:
+            promotion_master = {}
 
         # Raw adalah lapisan pendaratan yang tidak diubah. Simpan setiap payload
         # sumber yang baru atau berubah sebelum aturan kualitas atau transformasi
@@ -443,7 +468,10 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
                 "dimension_load",
                 lambda: {
                     **load_dimensions(connection, product_delta, staging_rows),
-                    "promotions": load_promotion_dimension(connection, promotion_master),
+                    "promotions": (
+                        load_promotion_dimension(connection, promotion_master)
+                        if promotion_master is not None else 0
+                    ),
                 },
             )
             stages[-1]["records_processed"] = sum(dimension_counts.values())

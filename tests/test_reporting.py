@@ -46,8 +46,9 @@ def test_pipeline_log_includes_auxiliary_and_cumulative_database_counts():
         "raw": {},
         "warehouse": {},
         "auxiliary_sources": [
-            {"source_name": "PROMO_MASTER", "source_records": 12, "processed": 12,
-             "validated": 12, "raw_inserted": 12, "warehouse_written": 12},
+                {"source_name": "PROMO_MASTER", "source_records": 12, "processed": 12,
+                 "validated": 12, "raw_inserted": 12, "warehouse_written": 12,
+                 "promo_codes_checked": 187, "promo_codes_matched": 187},
             {"source_name": "RETURN_EVENTS", "source_records": 100, "processed": 100, "validated": 100,
              "raw_inserted": 100, "staging_written": 100, "warehouse_written": 100},
         ],
@@ -79,27 +80,26 @@ def test_pipeline_log_includes_auxiliary_and_cumulative_database_counts():
 
     assert "Master Promo: katalog 12 | valid katalog 12 | baru/berubah 12" in output
     assert "Return: sumber 100" in output
-    assert "Total baris sumber       : 612" in output
+    assert "Total baris semua sumber : 612" in output
     assert "Total valid              : 580" in output
     assert "Total ditolak            : 28" in output
-    assert "Total duplikat dilewati  : 4" in output
-    assert "Fact Return baru       : 100" in output
+    assert "Total duplikat           : 4" in output
+    assert "Fact Return ditulis      : 100" in output
     assert "JUMLAH BARIS DALAM DATABASE" in output
     assert "raw.promo_master" in output and "12" in output
     assert "raw.return_events" in output and "100" in output
     assert "warehouse.fact_returns" in output
-    assert "Staging +100" in output
+    assert "Staging dimuat 100" in output
     assert "staging.stg_returns" in output
     assert "QUALITY CHECK — RETURN" in output
     assert "Return dimuat ke Staging: 100" in output
     assert "Rincian alasan penolakan: tidak ada baris ditolak" not in output
-    return_quality_pos = output.index("QUALITY CHECK — RETURN")
-    source_detail_pos = output.index("RINCIAN VALIDASI PER SUMBER")
-    assert source_detail_pos > return_quality_pos
-    assert "PROMO_MASTER: katalog dicek 12 | baru/berubah 12 | valid 12 | ditolak 0 | duplikat dilewati 0" in output
-    assert "RETURN_EVENTS: diproses 100 | tidak berubah 0 | valid 100 | ditolak 0 | duplikat dilewati 0" in output
-    for source_name in ("PRODUCT_MASTER", "SHOPEE", "TOKOPEDIA", "WEBSITE", "OFFLINE_STORE"):
-        assert f"{source_name}: diproses" in output
+    assert "RINCIAN VALIDASI PER SUMBER" not in output
+    assert "Master Promo: katalog 12 | valid katalog 12 | baru/berubah 12" in output
+    assert "Kode promo cocok 187/187" in output
+    assert "Return: sumber 100 | berubah 100 | valid 100 | ditolak 0 | duplikat 0" in output
+    for source_name in ("SHOPEE", "TOKOPEDIA", "WEBSITE", "OFFLINE_STORE"):
+        assert f"{source_name}: sumber 120 | kandidat 120" in output
 
 
 def test_auxiliary_summary_preserves_scope_and_noop_metrics():
@@ -156,6 +156,39 @@ def test_return_quality_log_shows_rejection_reasons():
     assert "- Referensi transaksi tidak valid: 1" in output
     assert "Rincian: Baris penjualan asal tidak ditemukan: 1" in output
     assert "Baris penjualan asal tidak ditemukan: 1" in output
+
+
+def test_return_quality_log_matches_sales_on_incremental_noop():
+    record = SimpleNamespace(
+        report_summary={"auxiliary_sources": [
+            {"source_name": "PROMO_MASTER", "source_records": 12, "processed": 0,
+             "catalog_checked": 0, "catalog_validated": 0, "validated": 0,
+             "rejected": 0, "duplicates": 0, "raw_inserted": 0, "warehouse_written": 0},
+            {"source_name": "RETURN_EVENTS", "source_records": 100, "processed": 0,
+             "unchanged": 100, "validated": 0, "rejected": 0, "duplicates": 0,
+             "raw_inserted": 0, "staging_written": 0, "warehouse_written": 0,
+             "rejection_reasons": {}},
+        ], "raw": {"product_master": {"new_or_changed": 0, "inserted_to_raw": 0, "total_in_raw": 20}},
+            "dimensions": {"products_processed": 0}},
+        source_metrics=[{"source_name": "PRODUCT_MASTER", "source_records": 20,
+                         "extracted_records": 0, "validated_records": 0,
+                         "rejected_records": 0, "duplicate_records": 0}],
+        status="SUCCESS", outcome_message="done",
+    )
+
+    output = _PrettyConsoleFormatter()._format_pipeline_completion(record)
+
+    section = output.split("QUALITY CHECK — RETURN", 1)[1].split("STAGING LAYER", 1)[0]
+    assert "Tidak dijalankan karena tidak ada data baru atau perubahan." in section
+    assert "Diperiksa:" not in section
+    assert "Master Produk baru/berubah: 0 | Raw ditambah 0 | total Raw: 20" in output
+    assert "Master Promo: katalog 12 | valid katalog 0 | baru/berubah 0 | ditolak 0 | duplikat 0" in output
+    assert "Return: sumber 100 | berubah 0 | valid 0 | ditolak 0 | duplikat 0" in output
+    source_details = output.split("RINCIAN PER SUMBER", 1)[1].split("RAW LAYER", 1)[0]
+    assert "Raw ditambah 0" not in source_details
+    assert "Dimensi Produk diproses 0" not in source_details
+    assert "Staging dimuat 0" not in source_details
+    assert "Fact ditulis 0" not in source_details
 
 
 def source(rows, name="SHOPEE"):

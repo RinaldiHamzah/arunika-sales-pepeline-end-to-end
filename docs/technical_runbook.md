@@ -41,6 +41,16 @@ Tabel utama adalah `audit.pipeline_runs`.
 | `fact_skipped_records` | Kandidat valid yang sama dengan fact warehouse. |
 | `loaded_records` | Fact yang ditulis, termasuk insert atau koreksi. |
 
+Jika koreksi transaksi atau event return/refund yang sudah ada ditolak, fact warehouse terakhir yang valid tetap dipertahankan dan key-nya dicatat sebagai belum sinkron di `audit.stale_fact_corrections`. Panel Riwayat Pipeline pada halaman Pengaturan menampilkan sumber, key order/return, baris, run penolakan, dan alasan. Untuk `RETURN_EVENTS`, `source_order_id` pada audit menyimpan gabungan `KANAL:return_id`, sedangkan `source_line_number` menyimpan `return_line_number`. Setelah sumber diperbaiki dan baris valid kembali diproses, statusnya ditandai selesai (tidak dihapus) dengan run penyelesai.
+
+```sql
+SELECT source_name, source_order_id, source_line_number, rejected_run_id,
+       rejection_reason, rejected_at
+FROM audit.stale_fact_corrections
+WHERE resolved_at IS NULL
+ORDER BY rejected_at DESC;
+```
+
 Jika status run `SUCCESS` dan `extracted_records = 0`, tidak ada data baru atau perubahan pada sumber. Ini hasil normal; data lama tidak diproses ulang.
 
 Pada kondisi tersebut, tahap validasi dan load staging/warehouse dilewati. Rekonsiliasi tetap dilakukan hanya untuk source yang dideklarasikan sebagai snapshot penuh yang lengkap; batch dicatat sebagai `SKIPPED`.

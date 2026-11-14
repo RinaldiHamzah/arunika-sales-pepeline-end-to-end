@@ -131,11 +131,11 @@ def format_pipeline_report(report):
             end = datetime.fromisoformat(str(report.get("ended_at")).replace("Z", "+00:00"))
             seconds = (end - start).total_seconds()
             if seconds >= 0:
-                return f"{seconds:.3f} detik"
+                return f"{seconds:.3f} s"
         except (TypeError, ValueError):
             pass
         value = report.get("duration_seconds")
-        return "Belum direkam" if value is None else f"{value} detik"
+        return "Belum direkam" if value is None else f"{value} s"
 
     def count(value):
         try:

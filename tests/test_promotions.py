@@ -111,5 +111,5 @@ def test_email_report_does_not_treat_channel_promo_as_separate_source(tmp_path):
             "auxiliary_sources": [{"source_name": "PROMO_MASTER", "source_records": 1, "validated": 1}],
         },
     })
-    assert "MASTER PROMO" in body
+    assert "- Master Promo:" in body
     assert "ORDER PROMOTION" not in body

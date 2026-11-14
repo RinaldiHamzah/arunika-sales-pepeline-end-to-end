@@ -76,7 +76,10 @@ const server = createServer(async (req, res) => {
       res.statusCode = fail ? 503 : 200;
       res.end(JSON.stringify(fail ? { error: 'Fixture: database unavailable' } : fixture));
     } else if (url.pathname === '/api/admin/operations') {
-      res.end(JSON.stringify({ failed_runs_last_7_days: 1, recent_runs: [{
+      res.end(JSON.stringify({ failed_runs_last_7_days: 1, stale_fact_correction_count: 1,
+        stale_fact_corrections: [{ source_name: 'Return / SHOPEE', source_order_id: 'RET-UI-001',
+          source_line_number: 2, record_type: 'RETURN', rejected_run_id: 'run-return-001',
+          rejection_reason: 'return_date harus berformat YYYY-MM-DD' }], recent_runs: [{
         run_id: 'test-run-001', status: 'SUCCESS', started_at: '2026-09-20T10:00:00+07:00',
         ended_at: '2026-09-20T10:00:02+07:00', duration_seconds: 2,
         extracted_records: 20, validated_records: 18, rejected_records: 2,
@@ -170,8 +173,16 @@ try {
   let id = 0;
   const pending = new Map();
   const errors = [];
-  socket.addEventListener('message', event => {
-    const message = JSON.parse(event.data);
+  socket.addEventListener('message', async event => {
+    let payload = event.data;
+    if (typeof payload !== 'string') {
+      payload = payload instanceof ArrayBuffer
+        ? Buffer.from(payload).toString('utf8')
+        : typeof payload?.text === 'function'
+          ? await payload.text()
+          : Buffer.from(payload).toString('utf8');
+    }
+    const message = JSON.parse(payload);
     if (message.method === 'Runtime.exceptionThrown') errors.push(message.params.exceptionDetails);
     if (message.id) {
       const callback = pending.get(message.id);
@@ -255,6 +266,9 @@ try {
   assert.equal(await evaluate("document.getElementById('page-info').textContent"), 'Halaman 1 / 3');
   await evaluate("location.hash='settings'; document.getElementById('admin-token').value='fixture-only'; document.getElementById('operations-button').click()");
   await until("document.querySelectorAll('#operation-run-rows td').length===9");
+  assert.equal(await evaluate("!document.getElementById('stale-corrections-panel').classList.contains('hidden')"), true);
+  assert.equal(await evaluate("document.getElementById('stale-corrections-rows').textContent.includes('RET-UI-001')"), true);
+  assert.equal(await evaluate("document.getElementById('stale-corrections-rows').textContent.includes('Return / SHOPEE')"), true);
   assert.equal(await evaluate("document.querySelector('#operation-run-rows td:last-child').textContent"), '1');
   assert.equal(await evaluate("document.getElementById('operation-latest-sales-facts').textContent"), '18');
   assert.equal(await evaluate("document.getElementById('operation-latest-return-facts').textContent"), '1');

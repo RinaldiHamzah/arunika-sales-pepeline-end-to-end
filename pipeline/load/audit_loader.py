@@ -113,6 +113,38 @@ def load_quality_audit(connection: Connection, run_id: UUID, results) -> None:
         """),
             rejected_rows,
         )
+        # Only a rejected correction to an existing fact makes the warehouse
+        # stale. A brand-new invalid key remains a rejection, not a stale fact.
+        stale_rows = [
+            row for row in rejected_rows
+            if row["source_name"] in SOURCE_NAMES.values()
+            and row["source_order_id"] is not None
+            and row["source_line_number"] is not None
+        ]
+        for row in stale_rows:
+            connection.execute(
+                text("""
+                    INSERT INTO audit.stale_fact_corrections
+                        (source_name, source_order_id, source_line_number,
+                         rejected_run_id, source_row_number, rejection_reason, resolved_at, resolved_run_id)
+                    SELECT fact.source_name, fact.source_order_id, fact.source_line_number,
+                           CAST(:run_id AS UUID), :source_row_number, :rejection_reason,
+                           NULL::TIMESTAMPTZ, NULL::UUID
+                    FROM warehouse.fact_sales AS fact
+                    WHERE fact.source_name = :source_name
+                      AND fact.source_order_id = :source_order_id
+                      AND fact.source_line_number = :source_line_number
+                    ON CONFLICT (source_name, source_order_id, source_line_number) DO UPDATE SET
+                        rejected_run_id = EXCLUDED.rejected_run_id,
+                        source_row_number = EXCLUDED.source_row_number,
+                        rejection_reason = EXCLUDED.rejection_reason,
+                        rejected_at = CURRENT_TIMESTAMP,
+                        resolved_at = NULL,
+                        resolved_run_id = NULL,
+                        updated_at = CURRENT_TIMESTAMP
+                """),
+                row,
+            )
 
 
 def update_watermarks(connection: Connection, run_id: UUID, results) -> None:

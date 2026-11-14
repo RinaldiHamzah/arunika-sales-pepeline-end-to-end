@@ -75,6 +75,58 @@ def _reject(connection, run_id, row_number, raw, reason) -> None:
     )
 
 
+def _mark_stale_return_correction(connection, run_id, row_number, raw, reason) -> None:
+    """Flag an invalid correction when its return event already exists in the fact table.
+
+    The shared stale-correction audit table stores ``CHANNEL:return_id`` in
+    ``source_order_id`` for RETURN_EVENTS; ``source_line_number`` stores the
+    return line number. This preserves the return business key, including its
+    channel, and separates it from sales order-line keys.
+    """
+    source_name = str(raw.get("source_name") or "").strip().upper()
+    source_name = {"OFFLINE": "OFFLINE_STORE"}.get(source_name, source_name)
+    return_id = str(raw.get("return_id") or "").strip()
+    raw_line = str(raw.get("return_line_number") or "").strip()
+    if source_name not in {"SHOPEE", "TOKOPEDIA", "WEBSITE", "OFFLINE_STORE"}:
+        source_name = None
+    if not return_id:
+        return
+    line_number = int(raw_line) if raw_line.isdecimal() else None
+    if line_number is not None and (line_number <= 0 or line_number > 2147483647):
+        line_number = None
+
+    connection.execute(
+        text("""
+            INSERT INTO audit.stale_fact_corrections
+                (source_name, source_order_id, source_line_number, rejected_run_id,
+                 source_row_number, rejection_reason, resolved_at, resolved_run_id)
+            SELECT 'RETURN_EVENTS', fact.source_name || ':' || fact.return_id, fact.return_line_number,
+                   CAST(:run_id AS UUID), :source_row_number, :rejection_reason,
+                   NULL::TIMESTAMPTZ, NULL::UUID
+            FROM warehouse.fact_returns AS fact
+            WHERE (CAST(:source_name AS VARCHAR) IS NULL OR fact.source_name = :source_name)
+              AND fact.return_id = :return_id
+              AND (CAST(:line_number AS INTEGER) IS NULL OR fact.return_line_number = :line_number)
+            ON CONFLICT (source_name, source_order_id, source_line_number) DO UPDATE SET
+                rejected_run_id = EXCLUDED.rejected_run_id,
+                source_row_number = EXCLUDED.source_row_number,
+                rejection_reason = EXCLUDED.rejection_reason,
+                rejected_at = CURRENT_TIMESTAMP,
+                resolved_at = NULL,
+                resolved_run_id = NULL,
+                updated_at = CURRENT_TIMESTAMP
+        """),
+        {
+            "run_id": str(run_id),
+            "source_row_number": row_number,
+            "rejection_reason": reason,
+            "source_name": source_name,
+            "return_id": return_id,
+            "line_number": line_number,
+        },
+    )
+
+
 def load_return_staging(connection: Connection, run_id: UUID, source: ExtractedSource) -> dict[str, int]:
     """Validasi dan simpan event return kanonis ke staging sebelum warehouse."""
     if source.frame.empty:
@@ -209,6 +261,7 @@ def load_return_staging(connection: Connection, run_id: UUID, source: ExtractedS
 
     for row_number, raw, reason in rejected:
         _reject(connection, run_id, row_number, raw, reason)
+        _mark_stale_return_correction(connection, run_id, row_number, raw, reason)
     if rejected:
         counts = Counter(reason for _, _, reason in rejected)
         connection.execute(
@@ -264,6 +317,32 @@ def load_return_staging(connection: Connection, run_id: UUID, source: ExtractedS
                 },
             )
             staged_count += max(result.rowcount, 0)
+        # A valid re-submission resolves a previous warning even when its
+        # canonical hash matches the last valid staging/fact row and therefore
+        # produces no staging upsert rowcount.
+        connection.execute(
+            text("""
+                UPDATE audit.stale_fact_corrections AS stale
+                SET resolved_at = CURRENT_TIMESTAMP,
+                    resolved_run_id = :run_id,
+                    updated_at = CURRENT_TIMESTAMP
+                FROM unnest(
+                    CAST(:source_names AS VARCHAR[]),
+                    CAST(:return_ids AS TEXT[]),
+                    CAST(:line_numbers AS INTEGER[])
+                ) AS valid(source_name, return_id, return_line_number)
+                WHERE stale.source_name = 'RETURN_EVENTS'
+                  AND stale.source_order_id = valid.source_name || ':' || valid.return_id
+                  AND stale.source_line_number = valid.return_line_number
+                  AND stale.resolved_at IS NULL
+            """),
+            {
+                "run_id": str(run_id),
+                "source_names": [row["source_name"] for row in accepted],
+                "return_ids": [row["return_id"] for row in accepted],
+                "line_numbers": [row["return_line_number"] for row in accepted],
+            },
+        )
     return {
         "staged": staged_count,
         "rejected": len(rejected),

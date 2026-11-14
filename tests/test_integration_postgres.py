@@ -183,10 +183,11 @@ def test_full_pipeline_and_incremental_acceptance(monkeypatch):
                ('warehouse', 'fact_sales'), ('warehouse', 'dim_product'),
                ('audit', 'pipeline_runs'), ('raw', 'return_events'),
                ('warehouse', 'fact_returns'), ('audit', 'source_reconciliations'),
+               ('audit', 'stale_fact_corrections'),
                ('staging', 'stg_returns'))
         """)
         ).scalar_one()
-        if required != 9:
+        if required != 10:
             pytest.fail("Database schema is not initialized; load database/schema/*.sql first")
 
     run(source_dir)
@@ -380,6 +381,71 @@ def test_full_pipeline_and_incremental_acceptance(monkeypatch):
             text("SELECT fact_inserted_records, loaded_records FROM audit.pipeline_runs WHERE run_id=:run_id"),
             {"run_id": corrected_run},
         ).one() == (0, 1)
+
+    # An invalid correction is auditable and flagged stale, while the last
+    # valid fact remains unchanged until a valid source value is supplied.
+    _website_order_lines(source_dir, order_id, 5, changed_line=3)
+    website_path = source_dir / "website.csv"
+    with website_path.open(newline="", encoding="utf-8") as stream:
+        rows = list(csv.DictReader(stream))
+        fields = list(rows[0])
+    for row in rows:
+        if row["invoice_no"] == order_id and row["line_item_no"] == "3":
+            row["quantity"] = "0"
+    with website_path.open("w", newline="", encoding="utf-8") as stream:
+        writer = csv.DictWriter(stream, fieldnames=fields)
+        writer.writeheader()
+        writer.writerows(rows)
+    invalid_correction_run = run(source_dir)
+    with engine.connect() as connection:
+        stale = connection.execute(
+            text("""
+                SELECT source_order_id, source_line_number, rejected_run_id,
+                       rejection_reason, resolved_at
+                FROM audit.stale_fact_corrections
+                WHERE source_name='WEBSITE' AND source_order_id=:order_id AND source_line_number=3
+            """),
+            {"order_id": order_id},
+        ).one()
+        preserved_quantity = connection.execute(
+            text("""SELECT quantity FROM warehouse.fact_sales
+                    WHERE source_name='WEBSITE' AND source_order_id=:order_id AND source_line_number=3"""),
+            {"order_id": order_id},
+        ).scalar_one()
+    assert stale.source_order_id == order_id
+    assert stale.source_line_number == 3
+    assert stale.rejected_run_id == invalid_correction_run
+    assert stale.resolved_at is None
+    assert "quantity" in stale.rejection_reason.lower()
+    assert preserved_quantity == 4
+
+    # Ensure the admin operations API that feeds Settings exposes the warning.
+    from dataclasses import replace
+    from dashboard import routes
+    from dashboard.app import app
+
+    monkeypatch.setattr(routes, "settings", replace(routes.settings, dashboard_admin_token="integration-token"))
+    operations = app.test_client().get(
+        "/api/admin/operations", headers={"X-Admin-Token": "integration-token"}
+    )
+    assert operations.status_code == 200
+    operations_payload = operations.get_json()
+    assert operations_payload["stale_fact_correction_count"] >= 1
+    assert any(
+        item["source_order_id"] == order_id and item["source_line_number"] == 3
+        for item in operations_payload["stale_fact_corrections"]
+    )
+
+    _website_order_lines(source_dir, order_id, 5, changed_line=3)
+    resolution_run = run(source_dir)
+    with engine.connect() as connection:
+        resolved = connection.execute(
+            text("""SELECT resolved_at, resolved_run_id FROM audit.stale_fact_corrections
+                    WHERE source_name='WEBSITE' AND source_order_id=:order_id AND source_line_number=3"""),
+            {"order_id": order_id},
+        ).one()
+    assert resolved.resolved_at is not None
+    assert resolved.resolved_run_id == resolution_run
 
     _website_order_lines(source_dir, order_id, 6, changed_line=3)
     added_run = run(source_dir)
@@ -597,3 +663,150 @@ def test_full_pipeline_and_incremental_acceptance(monkeypatch):
             WHERE source_name='SHOPEE' AND source_order_id=:order_id AND source_line_number=:line
         """), {"order_id": corrected_sale["order_id"], "line": int(corrected_sale["order_line_id"])}).scalar_one()
     assert total == Decimal("1.00")
+
+    # Small manually-calculated KPI fixture: two units, item-level discount,
+    # two return events (approved + processed), a pending refund, and a cancelled order.
+    day_text = "2026-12-31"  # OCTOBER8 promo is valid through this date.
+    baseline = client.get(f"/api/dashboard?start={day_text}&end={day_text}").get_json()["metrics"]
+    kpi_order_id = f"WEB-KPI-{uuid4().hex[:10]}"
+    cancelled_order_id = f"WEB-KPI-CANCEL-{uuid4().hex[:10]}"
+    with (source_dir / "website.csv").open(newline="", encoding="utf-8") as file:
+        website_rows = list(csv.DictReader(file))
+        website_fields = list(website_rows[0])
+    template = next(row for row in website_rows if row["status"] == "completed")
+    kpi_sale = dict(template)
+    kpi_sale.update({
+        "invoice_no": kpi_order_id, "line_item_no": "1", "created_at": f"{day_text}T12:00:00",
+        "quantity": "2", "discount_amount": "10.00", "promo_code": "OCTOBER8", "status": "completed",
+    })
+    kpi_sale["total_amount"] = str(
+        (Decimal(kpi_sale["unit_price"]) * 2 - Decimal("10.00")).quantize(Decimal("0.01"))
+    )
+    cancelled_sale = dict(kpi_sale)
+    cancelled_sale.update({
+        "invoice_no": cancelled_order_id, "quantity": "1", "discount_amount": "0.00",
+        "promo_code": "", "status": "cancelled",
+    })
+    cancelled_sale["total_amount"] = cancelled_sale["unit_price"]
+    website_rows.extend((kpi_sale, cancelled_sale))
+    with (source_dir / "website.csv").open("w", newline="", encoding="utf-8") as file:
+        writer = csv.DictWriter(file, fieldnames=website_fields)
+        writer.writeheader()
+        writer.writerows(website_rows)
+
+    return_path = source_dir / "return_refund.csv"
+    with return_path.open(newline="", encoding="utf-8") as file:
+        return_rows = list(csv.DictReader(file))
+        return_fields = list(return_rows[0])
+    for return_id, status, quantity, refund, refund_status in (
+        (f"RET-KPI-PROCESSED-{uuid4().hex[:8]}", "PROCESSED", "1", "25.00", "PROCESSED"),
+        (f"RET-KPI-APPROVED-{uuid4().hex[:8]}", "APPROVED", "1", "", "PENDING"),
+    ):
+        return_rows.append({
+            "source_name": "WEBSITE", "return_id": return_id, "return_line_number": "1",
+            "order_id": kpi_order_id, "order_line_number": "1", "return_date": day_text,
+            "return_reason": "Uji KPI acceptance", "return_status": status,
+            "quantity_returned": quantity, "refund_amount": refund, "refund_status": refund_status,
+        })
+    with return_path.open("w", newline="", encoding="utf-8") as file:
+        writer = csv.DictWriter(file, fieldnames=return_fields)
+        writer.writeheader()
+        writer.writerows(return_rows)
+
+    run(source_dir)
+    kpi_response = client.get(f"/api/dashboard?start={day_text}&end={day_text}")
+    assert kpi_response.status_code == 200
+    actual = kpi_response.get_json()["metrics"]
+    gross = Decimal(kpi_sale["unit_price"]) * 2
+    expected = {
+        "gross_sales": gross,
+        "discount_total": Decimal("10.00"),
+        "sales_after_discount": gross - Decimal("10.00"),
+        "processed_refund_amount": Decimal("25.00"),
+        "net_sales": gross - Decimal("35.00"),
+        "orders": 1,
+        "gross_order_value_all_statuses": gross + Decimal(kpi_sale["unit_price"]),
+        "units": 2,
+        "returned_units": 2,
+    }
+    for field, value in expected.items():
+        assert float(actual[field]) - float(baseline[field]) == float(value), (
+            field, actual[field], baseline[field], value
+        )
+    expected_return_rate = round(
+        100 * (float(baseline["returned_units"]) + 2) / (float(baseline["units"]) + 2), 2
+    )
+    assert actual["return_rate"] == expected_return_rate
+
+    # An invalid correction to an existing return event preserves the last
+    # valid warehouse row, exposes a stale warning, and resolves when the
+    # original valid event is supplied again (even with an identical hash).
+    return_path = source_dir / "return_refund.csv"
+    with return_path.open(newline="", encoding="utf-8") as file:
+        return_rows = list(csv.DictReader(file))
+        return_fields = list(return_rows[0])
+    corrected_return = next(row for row in return_rows if row["source_name"] == "SHOPEE")
+    event_id = corrected_return["return_id"]
+    event_line = int(corrected_return["return_line_number"])
+    original_return_date = corrected_return["return_date"]
+    with engine.connect() as connection:
+        original_fact_date = connection.execute(text("""
+            SELECT return_date FROM warehouse.fact_returns
+            WHERE source_name='SHOPEE' AND return_id=:return_id AND return_line_number=:line
+        """), {"return_id": event_id, "line": event_line}).scalar_one()
+    corrected_return["return_date"] = "not-a-date"
+    with return_path.open("w", newline="", encoding="utf-8") as file:
+        writer = csv.DictWriter(file, fieldnames=return_fields)
+        writer.writeheader()
+        writer.writerows(return_rows)
+    invalid_return_run = run(source_dir)
+    with engine.connect() as connection:
+        stale_return = connection.execute(text("""
+            SELECT source_order_id, source_line_number, rejected_run_id, rejection_reason, resolved_at
+            FROM audit.stale_fact_corrections
+            WHERE source_name='RETURN_EVENTS'
+              AND source_order_id=:business_key AND source_line_number=:line
+        """), {"business_key": f"SHOPEE:{event_id}", "line": event_line}).one()
+        preserved_return_date = connection.execute(text("""
+            SELECT return_date FROM warehouse.fact_returns
+            WHERE source_name='SHOPEE' AND return_id=:return_id AND return_line_number=:line
+        """), {"return_id": event_id, "line": event_line}).scalar_one()
+    assert stale_return.rejected_run_id == invalid_return_run
+    assert stale_return.resolved_at is None
+    assert "return_date" in stale_return.rejection_reason
+    assert preserved_return_date == original_fact_date
+
+    operations_payload = client.get("/api/admin/operations", headers=headers).get_json()
+    assert operations_payload["stale_fact_correction_count"] >= 1
+    visible_return = next(
+        item for item in operations_payload["stale_fact_corrections"]
+        if item["record_type"] == "RETURN" and item["source_order_id"] == event_id
+    )
+    assert visible_return["source_name"] == "Return / SHOPEE"
+
+    corrected_return["return_date"] = original_return_date
+    with return_path.open("w", newline="", encoding="utf-8") as file:
+        writer = csv.DictWriter(file, fieldnames=return_fields)
+        writer.writeheader()
+        writer.writerows(return_rows)
+    from pipeline.returns import extract_return_events, filter_unseen_return_rows
+
+    with engine.connect() as connection:
+        source_snapshot = connection.execute(text("""
+            SELECT payload_hashes FROM audit.source_snapshots
+            WHERE pipeline_name='ecommerce_sales_pipeline' AND source_name='RETURN_EVENTS'
+        """)).scalar_one()
+    retry_source = extract_return_events(source_dir)
+    retry_delta = filter_unseen_return_rows(
+        retry_source, set(source_snapshot), {("SHOPEE", event_id, event_line)}
+    )
+    assert event_id in set(retry_delta.frame["return_id"].astype(str))
+    resolved_return_run = run(source_dir)
+    with engine.connect() as connection:
+        resolved_return = connection.execute(text("""
+            SELECT resolved_at, resolved_run_id FROM audit.stale_fact_corrections
+            WHERE source_name='RETURN_EVENTS'
+              AND source_order_id=:business_key AND source_line_number=:line
+        """), {"business_key": f"SHOPEE:{event_id}", "line": event_line}).one()
+    assert resolved_return.resolved_at is not None
+    assert resolved_return.resolved_run_id == resolved_return_run

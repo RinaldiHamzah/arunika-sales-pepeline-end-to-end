@@ -238,4 +238,21 @@ def load_facts(connection: Connection, run_id: UUID) -> int:
 	"""),
         {"run_id": str(run_id)},
     )
+    # A valid correction is the only event that resolves a stale-correction
+    # warning; rejected source values never overwrite the last valid fact.
+    connection.execute(
+        text("""
+            UPDATE audit.stale_fact_corrections AS stale
+            SET resolved_at = CURRENT_TIMESTAMP, resolved_run_id = :run_id,
+                updated_at = CURRENT_TIMESTAMP
+            FROM staging.stg_sales AS staged
+            WHERE staged.ingestion_run_id = :run_id
+              AND staged.is_valid
+              AND stale.source_name = staged.source_name
+              AND stale.source_order_id = staged.source_order_id
+              AND stale.source_line_number = staged.source_line_number
+              AND stale.resolved_at IS NULL
+        """),
+        {"run_id": str(run_id)},
+    )
     return result.rowcount

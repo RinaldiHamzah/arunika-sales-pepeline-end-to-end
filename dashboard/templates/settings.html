@@ -143,6 +143,17 @@
                 <strong id="failed-runs">—</strong>
               </div>
             </div>
+            <section id="stale-corrections-panel" class="panel hidden" aria-live="polite">
+              <div class="panel-title">
+                <div><p class="eyebrow">Perlu tindak lanjut</p><h3>Koreksi sumber belum diterapkan</h3></div>
+                <span id="stale-corrections-count">0</span>
+              </div>
+              <p>Fact valid terakhir tetap dipakai. Perbaiki baris sumber yang ditolak lalu jalankan pipeline kembali.</p>
+              <div class="table-container">
+                <table><thead><tr><th>Sumber</th><th>Order / Return ID</th><th>Baris item / event</th><th>Run penolakan</th><th>Alasan</th></tr></thead>
+                  <tbody id="stale-corrections-rows"></tbody></table>
+              </div>
+            </section>
             <div class="table-container">
               <table>
                 <thead>

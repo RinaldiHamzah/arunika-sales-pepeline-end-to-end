@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import hashlib
+from dataclasses import replace
 from datetime import date
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 import pandas as pd
 
-from pipeline.extract.base import ExtractedSource, extract_delimited
+from pipeline.extract.base import ExtractedSource, extract_delimited, raw_payload_hash
 from pipeline.validation.rules import clean_text
 
 RETURN_COLUMNS = (
@@ -60,6 +61,31 @@ def extract_return_events(source_dir: Path, snapshot=None) -> ExtractedSource:
     if tuple(source.frame.columns) != RETURN_COLUMNS:
         raise ValueError(f"{path.name}: header harus persis {','.join(RETURN_COLUMNS)}")
     return source
+
+
+def filter_unseen_return_rows(source: ExtractedSource, known_hashes: set[str], stale_keys=()) -> ExtractedSource:
+    """Return changed rows plus unchanged rows whose prior correction is unresolved.
+
+    A rejected payload is still part of the source snapshot. Without this retry
+    path, restoring a previously valid payload would be filtered as unchanged
+    and its stale-correction warning could never resolve.
+    """
+    if source.frame.empty:
+        return source
+    stale_keys = set(stale_keys)
+    selected = []
+    for row_number, row in zip(source.row_numbers, source.frame.to_dict(orient="records")):
+        channel = CHANNEL_NAMES.get((clean_text(row.get("source_name")) or "").upper())
+        return_id = clean_text(row.get("return_id"))
+        raw_line = clean_text(row.get("return_line_number"))
+        key = (channel, return_id, int(raw_line)) if channel and return_id and raw_line and raw_line.isdecimal() else None
+        if raw_payload_hash(row) not in known_hashes or (key is not None and key in stale_keys):
+            selected.append((row_number, row))
+    return replace(
+        source,
+        frame=pd.DataFrame([row for _, row in selected], columns=source.frame.columns),
+        source_row_numbers=tuple(number for number, _ in selected),
+    )
 
 
 def _positive_integer(value, field: str) -> int:

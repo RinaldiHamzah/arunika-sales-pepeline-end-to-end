@@ -144,6 +144,7 @@ source_name,return_id,return_line_number,order_id,order_line_number,return_date,
 | `audit.source_reconciliations` | Satu source pada satu run | `reconciliation_id` PK; `(run_id, source_name)` unik | Mode ingestion, scope/waktu/kelengkapan snapshot, business key yang ditemukan, serta jumlah fact yang dinonaktifkan. |
 | `audit.data_quality_results` | Satu rule/source/run | `quality_result_id` PK; `run_id` FK | Jumlah kegagalan per rule dan severity. |
 | `audit.rejected_records` | Satu baris transaksi yang ditolak dalam satu run | `rejected_record_id` PK; `run_id` FK | Payload asli, `source_order_id`, `source_line_number` jika valid, dan alasan penolakan. |
+| `audit.stale_fact_corrections` | Satu koreksi invalid untuk key fact yang sudah ada | `(source_name, source_order_id, source_line_number)` PK | Run/baris/alasan koreksi terakhir yang ditolak. `resolved_at` dan `resolved_run_id` menandai koreksi valid berikutnya; fact valid lama tetap dipertahankan sampai itu terjadi. |
 | `audit.pipeline_watermarks` | Watermark per pipeline/source | `(pipeline_name, source_name)` PK | Run sukses dan waktu proses terakhir. |
 
 Kolom `audit.pipeline_runs.report_summary` bertipe `JSONB`. Nilainya dapat `NULL` pada run lama. Pada run baru, kolom ini menyimpan ringkasan untuk run tersebut: bagian `raw`, `quality_staging`, dan `warehouse`. Dashboard dan email membaca ringkasan yang sama agar angka laporan konsisten.

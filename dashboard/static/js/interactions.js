@@ -1,4 +1,4 @@
-import { $, state, pageMetadata, JAKARTA_TIME_ZONE, addOptions, buildQuery, adminHeaders, number, showError, clearError, formatJakartaDateTime } from './core.js';
+import { $, state, pageMetadata, JAKARTA_TIME_ZONE, addOptions, buildQuery, adminHeaders, number, showError, clearError, formatJakartaDateTime, escapeHtml } from './core.js';
 import { requestJson } from './api.js';
 import { filteredTransactionRows, renderDashboard, renderTransactions, renderOperationRows, labelTableCells } from './renderers.js';
 import { renderCharts } from './charts.js';
@@ -305,6 +305,13 @@ async function loadOperations() {
     $('operation-latest-sales-facts').textContent = latest ? number(latest.loaded_records) : '—';
     $('operation-latest-return-facts').textContent = returnFacts == null ? '—' : number(returnFacts);
     $('failed-runs').textContent = number(data.failed_runs_last_7_days);
+    const stale = data.stale_fact_corrections || [];
+    $('stale-corrections-panel').classList.toggle('hidden', stale.length === 0);
+    $('stale-corrections-count').textContent = number(data.stale_fact_correction_count ?? stale.length);
+    $('stale-corrections-rows').innerHTML = stale.map(item => `
+      <tr><td>${escapeHtml(item.source_name)}</td><td>${escapeHtml(item.source_order_id)}</td>
+      <td>${number(item.source_line_number)}</td><td title="${escapeHtml(item.rejected_run_id)}">${escapeHtml(String(item.rejected_run_id).slice(0, 8))}</td>
+      <td>${escapeHtml(item.rejection_reason)}</td></tr>`).join('');
     $('operation-run-rows').innerHTML = renderOperationRows(data.recent_runs);
     labelTableCells();
   } catch (error) {

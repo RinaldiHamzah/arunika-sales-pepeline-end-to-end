@@ -37,7 +37,7 @@ from pipeline.reporting import (
     run_report_summary,
     summarize_sources,
 )
-from pipeline.returns import extract_return_events
+from pipeline.returns import extract_return_events, filter_unseen_return_rows
 from pipeline.source_manifest import load_source_manifest
 from pipeline.transform.standardize import SOURCE_NAMES, clean_results_to_staging, filter_incremental_results
 from pipeline.validation.data_quality import run_quality
@@ -89,7 +89,8 @@ def existing_fact_hashes(engine, quality_results) -> dict[tuple[str, str, int], 
         rows = connection.execute(
             text("""
                 SELECT fact.source_name, fact.source_order_id, fact.source_line_number,
-                       CASE WHEN fact.is_source_active THEN fact.source_record_hash ELSE NULL END
+                       CASE WHEN fact.is_source_active AND stale.source_order_id IS NULL
+                            THEN fact.source_record_hash ELSE NULL END
                            AS source_record_hash
                 FROM warehouse.fact_sales AS fact
                 JOIN unnest(
@@ -97,9 +98,14 @@ def existing_fact_hashes(engine, quality_results) -> dict[tuple[str, str, int], 
                     CAST(:order_ids AS TEXT[]),
                     CAST(:line_numbers AS INTEGER[])
                 ) AS candidate(source_name, source_order_id, source_line_number)
-                  ON candidate.source_name = fact.source_name
+                 ON candidate.source_name = fact.source_name
                  AND candidate.source_order_id = fact.source_order_id
                  AND candidate.source_line_number = fact.source_line_number
+                LEFT JOIN audit.stale_fact_corrections AS stale
+                  ON stale.source_name = fact.source_name
+                 AND stale.source_order_id = fact.source_order_id
+                 AND stale.source_line_number = fact.source_line_number
+                 AND stale.resolved_at IS NULL
             """),
             {
                 "source_names": source_names,
@@ -191,24 +197,26 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
             mark_current_stage(name)
             result = operation()
         except Exception as error:
+            stage_ended_at = max(datetime.now(APP_TIMEZONE), stage_started)
             stages.append(
                 {
                     "stage_name": name,
                     "status": "FAILED",
                     "started_at": stage_started,
-                    "ended_at": datetime.now(APP_TIMEZONE),
+                    "ended_at": stage_ended_at,
                     "duration_seconds": round(perf_counter() - tick, 3),
                     "records_processed": 0,
                     "error_message": str(error),
                 }
             )
             raise
+        stage_ended_at = max(datetime.now(APP_TIMEZONE), stage_started)
         stages.append(
             {
                 "stage_name": name,
                 "status": "SUCCESS",
                 "started_at": stage_started,
-                "ended_at": datetime.now(APP_TIMEZONE),
+                "ended_at": stage_ended_at,
                 "duration_seconds": round(perf_counter() - tick, 3),
                 "records_processed": 0,
                 "error_message": None,
@@ -346,9 +354,39 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
             if snapshots.get(source.source_name, {}).get("file_checksum_sha256") != source.checksum_sha256
         ]
         return_source_hashes = set(snapshots.get("RETURN_EVENTS", {}).get("payload_hashes", []))
+        with engine.connect() as connection:
+            stale_return_rows = connection.execute(
+                text("""
+                    SELECT source_order_id, source_line_number
+                    FROM audit.stale_fact_corrections
+                    WHERE source_name = 'RETURN_EVENTS' AND resolved_at IS NULL
+                """)
+            ).all()
+        stale_return_keys = set()
+        for business_key, line_number in stale_return_rows:
+            channel, separator, return_id = str(business_key).partition(":")
+            if separator and return_id:
+                stale_return_keys.add((channel, return_id, int(line_number)))
+        if stale_return_keys and return_source.frame.empty:
+            # The current file checksum may already match a recorded snapshot
+            # even though a stale correction remains unresolved. Re-read just
+            # this auxiliary file so the known business keys can be retried.
+            return_source = stage(
+                "return_stale_retry_scan", lambda: extract_return_events(source_dir)
+            )
         return_delta = stage(
-            "return_incremental_extract", lambda: filter_unseen_rows(return_source, return_source_hashes)
+            "return_incremental_extract",
+            lambda: filter_unseen_return_rows(return_source, return_source_hashes, stale_return_keys),
         )
+        if stale_return_keys:
+            LOGGER.info(
+                "return_stale_correction_retry_scan",
+                extra={
+                    "run_id": str(run_id),
+                    "unresolved_stale_corrections": len(stale_return_keys),
+                    "return_rows_selected": len(return_delta.frame),
+                },
+            )
         snapshot_sources = [*scanned_sources, *promo_sources, return_source]
         stages[-1]["records_processed"] = sum(len(source.frame) for source in sources)
         extracted_count = sum(len(source.frame) for source in sources if source.source_name != "PRODUCT_MASTER")

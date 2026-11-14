@@ -231,12 +231,34 @@ def operations_status():
             WHERE status = 'FAILED' AND started_at >= CURRENT_TIMESTAMP - INTERVAL '7 days'
         """)
         ).scalar_one()
+        stale_correction_count = connection.execute(
+            text("SELECT COUNT(*) FROM audit.stale_fact_corrections WHERE resolved_at IS NULL")
+        ).scalar_one()
+        stale_corrections = connection.execute(
+            text("""
+                SELECT CASE WHEN source_name = 'RETURN_EVENTS'
+                            THEN 'Return / ' || split_part(source_order_id, ':', 1)
+                            ELSE source_name END AS source_name,
+                       CASE WHEN source_name = 'RETURN_EVENTS'
+                            THEN substring(source_order_id FROM position(':' IN source_order_id) + 1)
+                            ELSE source_order_id END AS source_order_id,
+                       CASE WHEN source_name = 'RETURN_EVENTS' THEN 'RETURN' ELSE 'SALES' END AS record_type,
+                       source_line_number,
+                       rejected_run_id, source_row_number, rejection_reason, rejected_at
+                FROM audit.stale_fact_corrections
+                WHERE resolved_at IS NULL
+                ORDER BY rejected_at DESC
+                LIMIT 100
+            """)
+        ).mappings().all()
     return jsonify(
         {
             "dag_id": "ecommerce_sales_pipeline",
             "schedule": "0 13 * * * (13:00 WIB)",
             "airflow": _airflow_health(),
             "failed_runs_last_7_days": failed_runs_7d,
+            "stale_fact_correction_count": stale_correction_count,
+            "stale_fact_corrections": [dict(row) for row in stale_corrections],
             "recent_runs": operation_runs_for_display(runs),
         }
     )

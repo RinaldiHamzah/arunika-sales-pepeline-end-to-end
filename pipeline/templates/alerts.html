@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Laporan Pipeline Arunika</title>
+    <style>
+      @media only screen and (max-width: 600px) {
+        .email-shell { padding: 10px 5px !important; }
+        .hero-cell { padding: 15px !important; }
+        .summary-cell { width: 33.33% !important; padding: 3px !important; }
+        .source-name { white-space: normal !important; }
+      }
+    </style>
+  </head>
+  <body style="margin:0;padding:14px 8px;background:#f2f6f5;font-family:Arial,sans-serif">
+    <table role="presentation" align="center" width="100%" cellspacing="0" cellpadding="0"
+      class="email-shell" style="max-width:760px;margin:0 auto">
+      <tr><td>
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0"
+          style="margin-bottom:10px;border-radius:12px;background:#123c35">
+          <tr><td class="hero-cell" style="padding:16px 20px">
+            <div style="color:#a9d2c8;font:bold 11px Arial,sans-serif;letter-spacing:1.4px">
+              PT ARUNIKA BEAUTY INDONESIA
+            </div>
+            <div style="margin-top:6px;color:#fff;font:bold 21px Arial,sans-serif">Laporan Pipeline</div>
+            {% if success %}
+            <span style="display:inline-block;margin-top:9px;padding:5px 9px;border-radius:20px;background:#e6f4ef;
+              color:#087f5b;font:bold 11px Arial,sans-serif;letter-spacing:.5px">{{ status }}</span>
+            {% else %}
+            <span style="display:inline-block;margin-top:9px;padding:5px 9px;border-radius:20px;background:#fef0ef;
+              color:#b42318;font:bold 11px Arial,sans-serif;letter-spacing:.5px">{{ status }}</span>
+            {% endif %}
+            <table role="presentation" cellspacing="0" cellpadding="0" style="margin-top:10px">
+              <tr>
+                <td style="padding:0 14px 0 0;color:#c1d9d3;font:10px Arial,sans-serif">
+                  MULAI<br><strong style="display:inline-block;margin-top:3px;color:#fff;font-size:11px">{{ started }}</strong>
+                </td>
+                <td style="padding:0 14px 0 0;color:#c1d9d3;font:10px Arial,sans-serif">
+                  SELESAI<br><strong style="display:inline-block;margin-top:3px;color:#fff;font-size:11px">{{ ended }}</strong>
+                </td>
+                <td style="padding:0;color:#c1d9d3;font:10px Arial,sans-serif">
+                  DURASI<br><strong style="display:inline-block;margin-top:3px;color:#fff;font-size:11px">{{ duration }}</strong>
+                </td>
+              </tr>
+            </table>
+            <div style="margin-top:8px;color:#c1d9d3;font:11px Arial,sans-serif">Run ID: {{ run_id }}</div>
+          </td></tr>
+        </table>
+
+        {% for section in sections %}
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0"
+          style="margin:0 0 9px;border:1px solid #dfe9e6;border-radius:10px;background:#fff">
+          <tr><td style="padding:9px 12px;border-bottom:1px solid #edf2f0;color:#123f37;
+            font:bold 13px Arial,sans-serif;letter-spacing:.2px">{{ section.title }}</td></tr>
+          <tr><td style="padding:6px">
+            {% if section.kind == "summary" %}
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+              {% for row in section.rows %}
+                {% if loop.index0 is divisibleby 3 %}<tr>{% endif %}
+                <td class="summary-cell" width="33%" style="width:33.33%;padding:4px;vertical-align:top">
+                  <table role="presentation" width="100%" cellspacing="0" cellpadding="0"
+                    style="border:1px solid #dce8e5;border-radius:8px;background:#fff">
+                    <tr><td style="padding:8px 9px 2px;color:#60736f;font:10px Arial,sans-serif">{{ row.label }}</td></tr>
+                    <tr><td style="padding:0 9px 8px;color:#123c35;font:bold 17px Arial,sans-serif">{{ row.value }}</td></tr>
+                  </table>
+                </td>
+                {% if loop.last and loop.length % 3 == 1 %}
+                <td class="summary-cell" width="33%" style="width:33.33%;padding:4px"></td>
+                <td class="summary-cell" width="33%" style="width:33.33%;padding:4px"></td>
+                {% elif loop.last and loop.length % 3 == 2 %}
+                <td class="summary-cell" width="33%" style="width:33.33%;padding:4px"></td>
+                {% endif %}
+                {% if loop.index is divisibleby 3 or loop.last %}</tr>{% endif %}
+              {% endfor %}
+            </table>
+            {% elif section.kind == "sources" %}
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0"
+              style="border:1px solid #e1eae7;border-radius:8px">
+              {% for row in section.rows %}
+              <tr>
+                <td class="source-name" style="padding:7px 9px;border-bottom:1px solid #e8efed;
+                  vertical-align:top;color:#163f38;font:bold 12px Arial,sans-serif;white-space:nowrap">{{ row.label }}</td>
+                <td style="padding:4px 7px;border-bottom:1px solid #e8efed">
+                  {% for part in row.parts %}
+                  <span style="display:inline-block;margin:2px 3px 2px 0;padding:4px 6px;border-radius:10px;
+                    background:#eef5f3;color:#315c54;font:11px Arial,sans-serif">{{ part }}</span>
+                  {% endfor %}
+                  {% if not row.parts %}{{ row.value }}{% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </table>
+            {% else %}
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+              {% for row in section.rows %}
+              <tr>
+                {% if row.label %}
+                <td style="width:42%;padding:8px 10px;border-bottom:1px solid #e8efed;
+                  color:#536b66;font:13px Arial,sans-serif">{{ row.label }}</td>
+                <td style="padding:8px 10px;border-bottom:1px solid #e8efed;color:#173d37;
+                  font:13px Arial,sans-serif;overflow-wrap:anywhere">{{ row.value }}</td>
+                {% else %}
+                <td colspan="2" style="padding:8px 10px;border-bottom:1px solid #e8efed;
+                  color:#536b66;font:13px Arial,sans-serif;overflow-wrap:anywhere">{{ row.value }}</td>
+                {% endif %}
+              </tr>
+              {% endfor %}
+            </table>
+            {% endif %}
+          </td></tr>
+        </table>
+        {% endfor %}
+
+        {% if error %}
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0"
+          style="margin:0 0 16px;border:1px solid #f1c7c3;border-radius:10px;background:#fff6f5">
+          <tr><td style="padding:14px;color:#9e2b23;font:13px Arial,sans-serif">
+            <strong>ERROR</strong><br>{{ error }}
+          </td></tr>
+        </table>
+        {% endif %}
+
+        {% if success %}
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0"
+          style="margin-top:10px;border-left:4px solid #087f5b;background:#e6f4ef;border-radius:7px">
+          <tr><td style="padding:10px 13px;color:#183d36;font:12px/1.45 Arial,sans-serif">
+            <strong>Kesimpulan</strong><br>{{ conclusion }}
+          </td></tr>
+        </table>
+        {% else %}
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0"
+          style="margin-top:10px;border-left:4px solid #b42318;background:#fef0ef;border-radius:7px">
+          <tr><td style="padding:10px 13px;color:#183d36;font:12px/1.45 Arial,sans-serif">
+            <strong>Kesimpulan</strong><br>{{ conclusion }}
+          </td></tr>
+        </table>
+        {% endif %}
+        <div style="padding:7px 4px;color:#7b8d89;font:10px Arial,sans-serif">
+        </div>
+      </td></tr>
+    </table>
+  </body>
+</html>

@@ -290,10 +290,10 @@ def test_email_shows_processing_results_without_snapshot_metrics():
         },
     }
     body = format_pipeline_report(report)
-    assert "Transaksi baru atau berubah: 20" in body
-    assert "Master Produk diproses: 20" in body
-    assert "Duplikat business key: 3" in body
-    assert "Total fact ditulis: 15" in body
+    assert "Transaksi kanal baru/berubah: 20" in body
+    assert "Baris terdampak duplikat business key: 3" in body
+    assert "Total Fact Sales ditulis: 15" in body
+    assert body.splitlines()[-1].startswith("Kesimpulan: ")
     assert "identik" not in body.lower()
 
 
@@ -312,7 +312,7 @@ def test_success_report_uses_timestamps_and_has_no_error_section():
     )
     assert "Status:" not in body
     assert "tanpa data baru atau perubahan" in body
-    assert "Durasi: 14.473 detik" in body
+    assert "Durasi          : 14.473 detik" in body
     assert "ERROR" not in body
 
 
@@ -378,15 +378,18 @@ def test_report_includes_return_event_counts_when_present():
             "status": "SUCCESS",
             "report_summary": {
                 "raw": {},
-                "returns": {"raw_records_inserted": 4, "loaded_events": 3, "rejected_events": 1},
+                "auxiliary_sources": [{
+                    "source_name": "RETURN_EVENTS", "source_records": 4, "processed": 4,
+                    "validated": 3, "rejected": 1, "duplicates": 0,
+                    "raw_inserted": 4, "staging_written": 3, "warehouse_written": 3,
+                }],
             },
         }
     )
 
-    assert "RETUR & REFUND" in body
-    assert "Event baru ke Raw: 4" in body
-    assert "Event valid dimuat ke Warehouse: 3" in body
-    assert "Event ditolak: 1" in body
+    assert "- Return: sumber 4 | berubah 4 | valid 3 | ditolak 1 | duplikat 0" in body
+    assert "QUALITY CHECK — RETURN" in body
+    assert body.splitlines()[-1].startswith("Kesimpulan: ")
 
 
 def test_email_report_hides_reconciliation_details():

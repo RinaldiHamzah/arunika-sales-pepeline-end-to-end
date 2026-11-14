@@ -2,7 +2,7 @@
 
 import smtplib
 
-from pipeline.alerts import send_pipeline_report
+from pipeline.alerts import format_pipeline_report_html, send_pipeline_report
 
 
 def test_email_report_skips_without_smtp_password(monkeypatch):
@@ -35,7 +35,8 @@ def test_email_report_uses_starttls_and_sends(monkeypatch):
             events.append(("login", username, password))
 
         def send_message(self, message):
-            events.append(("send", message["To"], message["Subject"]))
+            events.append(("send", message["To"], message["Subject"], message.is_multipart(),
+                           [part.get_content_type() for part in message.iter_parts()]))
 
     monkeypatch.setenv("SMTP_HOST", "smtp.example.com")
     monkeypatch.setenv("SMTP_PORT", "587")
@@ -49,7 +50,22 @@ def test_email_report_uses_starttls_and_sends(monkeypatch):
     assert send_pipeline_report({"run_id": "run-1", "status": "SUCCESS"}) is True
     assert events[0] == ("connect", "smtp.example.com", 587, 15)
     assert ("starttls",) in events
-    assert any(event[0] == "send" for event in events)
+    sent = next(event for event in events if event[0] == "send")
+    assert sent[3] is True
+    assert sent[4] == ["text/plain", "text/html"]
+
+
+def test_html_email_escapes_report_content_and_places_conclusion_last():
+    body = format_pipeline_report_html({
+        "status": "FAILED",
+        "run_id": "<script>alert(1)</script>",
+        "error_message": "<img src=x onerror=alert(1)>",
+    })
+
+    assert "<script>" not in body
+    assert "&lt;script&gt;" in body
+    assert "&lt;img" in body
+    assert body.index("Kesimpulan") > body.index("ERROR")
 
 
 def test_gmail_app_password_spaces_are_removed(monkeypatch):

@@ -241,9 +241,9 @@ Halaman Transaksi menampilkan baris transaksi sesuai filter terakhir dari Ringka
 Token Administrator diperlukan untuk operasi yang membutuhkan akses admin:
 
 1. Masukkan token pada area **Token Administrator**.
-2. Pilih sumber data dan unggah CSV pada Langkah 1.
-3. Klik **Jalankan** pada Langkah 2.
-4. Gunakan **Check Status** untuk membaca riwayat pipeline.
+2. Pilih sumber data dan unggah CSV. Setelah upload berhasil disimpan, dashboard otomatis menjalankan pipeline dan menampilkan status run.
+3. Tunggu status selesai sebelum mengunggah file berikutnya; gunakan **Check Status** untuk memuat ulang riwayat.
+4. Tombol **Jalankan** tetap tersedia untuk menjalankan pipeline secara manual. Baris yang sudah pernah diproses dapat dilewati oleh incremental loading, sehingga upload berhasil tidak selalu berarti ada baris baru di warehouse.
 
 Token tidak disimpan di `localStorage`; dashboard hanya menggunakannya selama halaman masih terbuka.
 

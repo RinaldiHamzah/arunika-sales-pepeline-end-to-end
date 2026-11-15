@@ -5,6 +5,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pandas as pd
+import pytest
 
 from pipeline.alerts import format_pipeline_report
 from pipeline.extract.base import ExtractedSource, extract_delimited, filter_unseen_rows, raw_payload_hash
@@ -367,9 +368,41 @@ def test_outcome_message_summarizes_all_sources_and_both_warehouse_facts():
 
     assert outcome_message(report) == (
         "Pipeline berhasil memproses 612 baris dari seluruh sumber, 480 transaksi kanal, "
-        "20 Master Produk, 12 Master Promo, dan 100 Return. Sebanyak 448 fact sales dan "
+        "20 Master Produk, 12 Master Promo, dan 100 Return. Dimensi Produk diperbarui 0; "
+        "Dimensi Promo diperbarui 0. Sebanyak 448 fact sales dan "
         "100 fact return dimuat ke warehouse."
     )
+
+
+@pytest.mark.parametrize(
+    ("source_metrics", "auxiliary_sources", "dimensions", "expected"),
+    [
+        ([{"source_name": "PRODUCT_MASTER", "extracted_records": 2}], [],
+         {"products_processed": 2, "promotions_processed": 0}, "2 Master Produk"),
+        ([], [{"source_name": "PROMO_MASTER", "processed": 3}],
+         {"products_processed": 0, "promotions_processed": 3}, "3 Master Promo"),
+        ([], [{"source_name": "RETURN_EVENTS", "processed": 4, "warehouse_written": 4}],
+         {"products_processed": 0, "promotions_processed": 0}, "4 Return"),
+    ],
+)
+def test_outcome_message_recognizes_auxiliary_only_changes(
+    source_metrics, auxiliary_sources, dimensions, expected
+):
+    report = {
+        "status": "SUCCESS",
+        "extracted_records": 0,
+        "loaded_records": 0,
+        "source_metrics": source_metrics,
+        "report_summary": {
+            "auxiliary_sources": auxiliary_sources,
+            "dimensions": dimensions,
+            "return_warehouse": {"facts_written": 4 if "4 Return" in expected else 0},
+        },
+    }
+
+    message = outcome_message(report)
+    assert expected in message
+    assert "tanpa data baru atau perubahan" not in message
 
 
 def test_report_includes_return_event_counts_when_present():

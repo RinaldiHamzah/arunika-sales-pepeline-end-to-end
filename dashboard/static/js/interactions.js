@@ -181,6 +181,26 @@ function setPipelineProgress(message, stateName = 'idle') {
   progress.dataset.state = stateName;
 }
 
+function watchPipelineRun(runId) {
+  stopPipelinePolling();
+  clearError();
+  state.pipelineExpectedRunId = runId || null;
+  state.pipelineProgressAttempts = 0;
+  state.pipelineProgressFailures = 0;
+  $('run-pipeline').disabled = true;
+  $('run-pipeline').textContent = 'Pipeline berjalan';
+  $('upload-button').disabled = true;
+  $('upload-button').textContent = 'Pipeline berjalan…';
+  setPipelineProgress('Menyambungkan ke status pipeline…', 'running');
+  state.pipelineProgressTimer = window.setTimeout(pollPipelineProgress, 0);
+}
+
+function runHasSourceChanges(run) {
+  if (Number(run.extracted_records || 0) > 0) return true;
+  if ((run.source_metrics || []).some(source => Number(source.extracted_records || 0) > 0)) return true;
+  return (run.report_summary?.auxiliary_sources || []).some(source => Number(source.processed || 0) > 0);
+}
+
 async function pollPipelineProgress() {
   try {
     const query = state.pipelineExpectedRunId
@@ -201,29 +221,58 @@ async function pollPipelineProgress() {
     if (run.status === 'RUNNING') {
       state.pipelineExpectedRunId ||= run.run_id || null;
       state.pipelineProgressAttempts = 0;
+      state.pipelineProgressFailures = 0;
       setPipelineProgress(`Tahap aktif: ${run.current_stage || 'menyiapkan'}`, 'running');
       state.pipelineProgressTimer = window.setTimeout(pollPipelineProgress, 1000);
       return;
     }
     stopPipelinePolling();
     state.pipelineExpectedRunId = null;
-    loadOperations();
+    state.pipelineProgressFailures = 0;
+    await loadOperations();
     button.disabled = false;
     button.textContent = 'Jalankan';
+    $('upload-button').disabled = false;
     if (run.status === 'SUCCESS') {
-      // Batch yang menunggu telah mencapai status akhir pipeline, sehingga
-      // pengingat unggahan tidak lagi diperlukan. Tetap tampilkan jika run gagal.
-      setUploadStatus();
-      setPipelineProgress(`Selesai · ${formatJakartaDateTime(run.ended_at)} WIB.`, 'success');
-      loadDashboard();
+      if (state.pendingUploadSummary) {
+        const { rows, source } = state.pendingUploadSummary;
+        const outcome = run.outcome_message || 'Lihat Detail Proses untuk ringkasan validasi dan pemuatan.';
+        if (runHasSourceChanges(run)) {
+          setUploadStatus(`Upload ${source} (${number(rows)} baris) selesai diproses. ${outcome} Buka Detail Proses untuk rinciannya.`);
+        } else {
+          setUploadStatus(`Upload ${source} tersimpan (${number(rows)} baris), tetapi tidak ada baris baru atau berubah untuk diproses. Baris yang sudah pernah dimuat akan dilewati. ${outcome}`);
+        }
+        state.pendingUploadSummary = null;
+      }
+      const completionHint = runHasSourceChanges(run)
+        ? ''
+        : ' Tidak ada data baru atau perubahan; untuk memproses batch CSV, gunakan Upload CSV.';
+      setPipelineProgress(`Selesai · ${formatJakartaDateTime(run.ended_at)} WIB.${completionHint}`, 'success');
+      await loadDashboard();
     } else {
+      if (state.pendingUploadSummary) {
+        setUploadStatus(`File ${state.pendingUploadSummary.source} tersimpan, tetapi pipeline gagal. Periksa Detail Proses sebelum mencoba upload ulang.`);
+        state.pendingUploadSummary = null;
+      }
       setPipelineProgress('Pipeline gagal. ' + (run.error_message || 'Lihat rincian riwayat eksekusi.'), 'failed');
     }
   } catch (error) {
+    state.pipelineProgressFailures += 1;
+    if (state.pipelineExpectedRunId && state.pipelineProgressFailures <= 5) {
+      const delay = Math.min(1000 * (2 ** (state.pipelineProgressFailures - 1)), 8000);
+      setPipelineProgress('Koneksi status terganggu. Mencoba menyambung kembali…', 'running');
+      state.pipelineProgressTimer = window.setTimeout(pollPipelineProgress, delay);
+      return;
+    }
     stopPipelinePolling();
     $('run-pipeline').disabled = false;
     $('run-pipeline').textContent = 'Jalankan';
-    setPipelineProgress('Status pipeline tidak dapat dimuat.', 'failed');
+    $('upload-button').disabled = false;
+    $('upload-button').textContent = 'Upload CSV';
+    if (state.pendingUploadSummary) {
+      setUploadStatus(`File ${state.pendingUploadSummary.source} tersimpan, tetapi status pipeline tidak dapat dipastikan. Periksa Riwayat Pipeline sebelum upload ulang.`);
+    }
+    setPipelineProgress('Status pipeline belum tersambung. Klik Check Status untuk melanjutkan pemantauan run aktif.', 'failed');
     showError(error.message);
   }
 }
@@ -232,22 +281,19 @@ async function runPipeline() {
   const button = $('run-pipeline');
   button.disabled = true;
   button.textContent = 'Memulai…';
+  $('upload-button').disabled = true;
   try {
     const data = await requestJson('/api/pipeline/run', { method: 'POST', headers: adminHeaders() });
-    stopPipelinePolling();
-    state.pipelineProgressAttempts = 0;
-    state.pipelineExpectedRunId = data.run_id || null;
-    if (data.status === 'already_running') {
-      button.textContent = 'Pipeline berjalan';
-      setPipelineProgress('Pipeline sudah berjalan. Memuat tahap aktif…', 'running');
-    } else {
-      button.textContent = 'Pipeline berjalan';
-      setPipelineProgress('Pipeline dimulai. Memuat tahap aktif…', 'running');
-    }
-    state.pipelineProgressTimer = window.setTimeout(pollPipelineProgress, 500);
+    watchPipelineRun(data.run_id);
+    if (data.status === 'already_running') setPipelineProgress('Pipeline sudah berjalan. Memuat tahap aktif…', 'running');
+    else setPipelineProgress('Pipeline dimulai. Memuat tahap aktif…', 'running');
   } catch (error) {
     button.disabled = false;
     button.textContent = 'Jalankan';
+    $('upload-button').disabled = false;
+    if (state.pendingUploadSummary) {
+      setUploadStatus(`File ${state.pendingUploadSummary.source} tersimpan, tetapi pipeline tidak berhasil dimulai. Gunakan tombol Jalankan setelah memeriksa Riwayat Pipeline; jangan upload ulang.`);
+    }
     setPipelineProgress('Pipeline belum dijalankan.', 'failed');
     showError(error.message);
   }
@@ -268,6 +314,7 @@ async function uploadBatch() {
   const file = $('upload-file').files[0];
   if (!file) return showError('Pilih file CSV terlebih dahulu.');
   const button = $('upload-button');
+  const source = $('upload-source').selectedOptions[0]?.textContent.trim() || $('upload-source').value;
   setUploadStatus();
   button.disabled = true;
   button.textContent = 'Mengunggah…';
@@ -278,15 +325,22 @@ async function uploadBatch() {
     const data = await requestJson('/api/ingestion/upload', {
       method: 'POST', headers: adminHeaders(), body,
     });
-    setUploadStatus(`${data.rows_appended} baris ditambahkan ke sumber. Jalankan Pipeline untuk memvalidasi dan memproses data.`);
+    state.pendingUploadSummary = { rows: data.rows_appended, source };
+    setUploadStatus(`${number(data.rows_appended)} baris dari ${source} tersimpan. Pipeline dimulai otomatis…`);
     $('upload-file').value = '';
     updateFileName();
+    await runPipeline();
   } catch (error) {
     setUploadStatus();
     showError(error.message);
   } finally {
-    button.disabled = false;
-    button.textContent = 'Upload CSV';
+    if (!state.pipelineExpectedRunId) {
+      button.disabled = false;
+      button.textContent = 'Upload CSV';
+    } else {
+      button.disabled = true;
+      button.textContent = 'Pipeline berjalan…';
+    }
   }
 }
 
@@ -314,6 +368,8 @@ async function loadOperations() {
       <td>${escapeHtml(item.rejection_reason)}</td></tr>`).join('');
     $('operation-run-rows').innerHTML = renderOperationRows(data.recent_runs);
     labelTableCells();
+    const activeRun = data.recent_runs.find(run => run.status === 'RUNNING');
+    if (activeRun && !state.pipelineProgressTimer) watchPipelineRun(activeRun.run_id);
   } catch (error) {
     showError(error.message);
   } finally {

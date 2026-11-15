@@ -139,13 +139,17 @@ def pipeline_progress():
         query = (
             text("""
             SELECT run_id, status, current_stage, current_stage_started_at, started_at, ended_at,
-                   duration_seconds, error_message, outcome_message
+                   duration_seconds, extracted_records, validated_records, rejected_records,
+                   duplicate_records, loaded_records, source_metrics, report_summary,
+                   error_message, outcome_message
             FROM audit.pipeline_runs WHERE run_id = :run_id
         """)
             if requested_run_id
             else text("""
             SELECT run_id, status, current_stage, current_stage_started_at, started_at, ended_at,
-                   duration_seconds, error_message, outcome_message
+                   duration_seconds, extracted_records, validated_records, rejected_records,
+                   duplicate_records, loaded_records, source_metrics, report_summary,
+                   error_message, outcome_message
             FROM audit.pipeline_runs ORDER BY (status = 'RUNNING') DESC, started_at DESC LIMIT 1
         """)
         )

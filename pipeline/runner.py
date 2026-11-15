@@ -234,9 +234,6 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
             )
             report_metrics["source_reconciliation"] = reconciliation
             stages[-1]["records_processed"] = sum(item["deactivated_records"] for item in reconciliation)
-            message = outcome_message(
-                {**report_metrics, "status": "SUCCESS", "extracted_records": 0, "loaded_records": 0}
-            )
             report_metrics["report_summary"] = run_report_summary(
                 report_metrics,
                 raw_transaction_total=raw_transaction_total(connection),
@@ -246,6 +243,14 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
             # CSV yang disusun ulang tetapi isinya sama tetap mendapat checksum terbaru.
             report_metrics["report_summary"]["auxiliary_sources"] = auxiliary_source_summary(
                 promo_sources, promo_deltas, promo_metrics, return_source, return_delta,
+            )
+            message = outcome_message(
+                {
+                    **report_metrics,
+                    "status": "SUCCESS",
+                    "extracted_records": 0,
+                    "loaded_records": 0,
+                }
             )
             report_metrics["report_summary"]["database_table_counts"] = database_table_counts(connection)
             # Tidak ada baris yang dimuat ke raw karena seluruh payload sudah tercatat.
@@ -611,20 +616,14 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
                 promo_sources, promo_deltas, promo_metrics, return_source, return_delta,
                 return_result=return_summary, promotions_written=dimension_counts["promotions"],
             )
-            if extracted_count:
-                report_metrics["outcome_message"] = outcome_message(
-                    {
-                        **report_metrics,
-                        "status": "SUCCESS",
-                        "extracted_records": extracted_count,
-                        "loaded_records": fact_count,
-                    }
-                )
-            if extracted_count == 0 and (promo_changed or not return_delta.frame.empty):
-                report_metrics["outcome_message"] = (
-                    "Pemrosesan sumber tambahan selesai. Tidak ada transaksi penjualan baru atau berubah; "
-                    "lihat rincian Master Promo dan Return."
-                )
+            report_metrics["outcome_message"] = outcome_message(
+                {
+                    **report_metrics,
+                    "status": "SUCCESS",
+                    "extracted_records": extracted_count,
+                    "loaded_records": fact_count,
+                }
+            )
             report_metrics["report_summary"]["source_reconciliation"] = reconciliation
             report_metrics["report_summary"]["database_table_counts"] = database_table_counts(connection)
             save_source_snapshots(connection, run_id, snapshot_sources, snapshots)

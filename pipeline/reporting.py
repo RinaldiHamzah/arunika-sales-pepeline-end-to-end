@@ -246,7 +246,17 @@ def outcome_message(report):
     extracted_records = _count(report, "extracted_records")
     if extracted_records is None:
         return "Run lama: jumlah data yang diproses belum direkam."
-    if extracted_records == 0:
+    source_metrics = report.get("source_metrics") or []
+    product_master_records = _source_metric(report, "PRODUCT_MASTER", "extracted_records")
+    summary = report.get("report_summary") or {}
+    auxiliary = {
+        item.get("source_name"): item
+        for item in (summary.get("auxiliary_sources") or [])
+    }
+    promo_records = int((auxiliary.get("PROMO_MASTER") or {}).get("processed", 0) or 0)
+    return_records = int((auxiliary.get("RETURN_EVENTS") or {}).get("processed", 0) or 0)
+    all_source_records = extracted_records + product_master_records + promo_records + return_records
+    if all_source_records == 0:
         reconciliation = report.get("source_reconciliation") or []
         deactivated = sum(int(item.get("deactivated_records", 0)) for item in reconciliation)
         if deactivated:
@@ -255,40 +265,26 @@ def outcome_message(report):
                 f"{deactivated} baris yang hilang dari snapshot lengkap."
             )
         return "Pipeline selesai tanpa data baru atau perubahan untuk diproses."
-    source_metrics = report.get("source_metrics") or []
-    summary = report.get("report_summary") or {}
-    auxiliary = {
-        item.get("source_name"): item
-        for item in (summary.get("auxiliary_sources") or [])
-    }
-    product_master_records = _source_metric(report, "PRODUCT_MASTER", "extracted_records")
-    promo_records = int((auxiliary.get("PROMO_MASTER") or {}).get("processed", 0) or 0)
-    return_records = int((auxiliary.get("RETURN_EVENTS") or {}).get("processed", 0) or 0)
-    if source_metrics and auxiliary:
-        total_records = extracted_records + product_master_records + promo_records + return_records
+    if source_metrics or auxiliary:
+        total_records = all_source_records
         return_fact_count = (summary.get("return_warehouse") or {}).get(
             "facts_written", (auxiliary.get("RETURN_EVENTS") or {}).get("warehouse_written", 0)
         ) or 0
-        if report.get("loaded_records", 0) or return_fact_count:
-            return (
-                f"Pipeline berhasil memproses {total_records} baris dari seluruh sumber, "
-                f"{extracted_records} transaksi kanal, {product_master_records} Master Produk, "
-                f"{promo_records} Master Promo, dan {return_records} Return. "
-                f"Sebanyak {report.get('loaded_records', 0)} fact sales dan "
-                f"{return_fact_count} fact return dimuat ke warehouse."
-            )
-    product_master_records = _source_metric(report, "PRODUCT_MASTER", "extracted_records")
-    product_context = (
-        f" Master Produk: {product_master_records} record diproses untuk mapping produk."
-        if product_master_records
-        else ""
-    )
+        dimensions = summary.get("dimensions") or {}
+        return (
+            f"Pipeline berhasil memproses {total_records} baris dari seluruh sumber, "
+            f"{extracted_records} transaksi kanal, {product_master_records} Master Produk, "
+            f"{promo_records} Master Promo, dan {return_records} Return. "
+            f"Dimensi Produk diperbarui {dimensions.get('products_processed', 0)}; "
+            f"Dimensi Promo diperbarui {dimensions.get('promotions_processed', 0)}. "
+            f"Sebanyak {report.get('loaded_records', 0)} fact sales dan "
+            f"{return_fact_count} fact return dimuat ke warehouse."
+        )
     if report.get("loaded_records", 0):
         return (
             f"Pipeline berhasil memproses {extracted_records} transaksi penjualan."
-            f"{product_context} Sebanyak {report['loaded_records']} fact ditulis ke warehouse."
+            f" Sebanyak {report['loaded_records']} fact ditulis ke warehouse."
         )
     return (
         f"Pipeline memproses {extracted_records} transaksi penjualan, tetapi tidak ada fact yang ditulis ke warehouse."
-        f"{product_context}"
     )

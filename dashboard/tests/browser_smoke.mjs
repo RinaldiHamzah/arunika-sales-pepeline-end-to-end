@@ -66,6 +66,9 @@ let fail = false;
 let blockChart = false;
 let dashboardRequests = 0;
 const requests = [];
+let pipelineRunCount = 0;
+let activeRunId = null;
+const progressReadsByRun = new Map();
 const server = createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
   if (url.pathname.startsWith('/api/')) {
@@ -95,9 +98,31 @@ const server = createServer(async (req, res) => {
           extracted_records: 20, validated_records: 18, rejected_records: 2, duplicate_records: 0 }],
       }] }));
     } else if (url.pathname === '/api/pipeline/run') {
-      res.end(JSON.stringify({ status: 'started' }));
+      pipelineRunCount++;
+      activeRunId = 'fixture-run-' + pipelineRunCount;
+      progressReadsByRun.set(activeRunId, 0);
+      res.end(JSON.stringify({ status: 'started', run_id: activeRunId }));
     } else if (url.pathname === '/api/pipeline/progress') {
-      res.end(JSON.stringify({ run: { status: 'RUNNING', current_stage: 'staging_load' } }));
+      const runId = url.searchParams.get('run_id') || activeRunId;
+      const reads = progressReadsByRun.get(runId) || 0;
+      progressReadsByRun.set(runId, reads + 1);
+      if (runId === 'fixture-run-1' && reads === 0) {
+        res.statusCode = 503;
+        res.end(JSON.stringify({ error: 'Fixture: temporary status interruption' }));
+        return;
+      }
+      const isFirstPoll = runId === 'fixture-run-1' && reads === 1;
+      res.end(JSON.stringify({ run: {
+        run_id: runId,
+        status: isFirstPoll ? 'RUNNING' : 'SUCCESS',
+        current_stage: isFirstPoll ? 'staging_load' : 'completed',
+        ended_at: '2026-11-15T10:00:02+07:00',
+        extracted_records: 0,
+        loaded_records: 0,
+        source_metrics: [],
+        report_summary: { auxiliary_sources: [] },
+        outcome_message: 'Pipeline selesai tanpa data baru atau perubahan untuk diproses.',
+      } }));
     } else if (url.pathname === '/api/ingestion/upload') {
       res.end(JSON.stringify({ rows_appended: 20, source: 'shopee', next_step: 'Jalankan pipeline.' }));
     } else res.end('{}');
@@ -295,8 +320,12 @@ try {
   assert.equal(await evaluate("document.querySelector('.run-explanation').textContent.includes('Warehouse tidak dijalankan')"), false);
   await until("document.getElementById('pipeline-progress').textContent.includes('staging_load')");
   assert.ok(requests.includes('/api/pipeline/run'));
+  await until("document.getElementById('run-pipeline').disabled===false");
+  const runsBeforeUpload = pipelineRunCount;
   await evaluate("const input=document.getElementById('upload-file'); const dt=new DataTransfer(); dt.items.add(new File(['order_id\\n1'], 'new-batch.csv', {type:'text/csv'})); input.files=dt.files; input.dispatchEvent(new Event('change')); document.getElementById('upload-button').click()");
-  await until("document.getElementById('upload-status').textContent.includes('20 baris')");
+  await until("document.getElementById('upload-status').textContent.includes('tidak ada baris baru atau berubah')");
+  assert.equal(pipelineRunCount, runsBeforeUpload + 1, 'Successful upload starts exactly one pipeline run');
+  assert.equal(await evaluate("document.getElementById('upload-button').disabled"), false, 'Upload is re-enabled after the run completes');
   fail = true;
   await send('Page.navigate', { url: origin + '/?case=initial-failure#settings' });
   await until("document.getElementById('message')?.textContent.includes('unavailable')");

@@ -120,16 +120,6 @@ class _PrettyConsoleFormatter(_ApplicationTimeFormatter):
         promo_candidate = int(promo.get("processed", 0) or 0)
         return_candidate = int(returns.get("processed", 0) or 0)
         all_source_candidates = sales_candidates + product_candidate + promo_candidate + return_candidate
-        sales_valid = sum(int(source_metrics.get(name, {}).get("validated_records", 0) or 0)
-                          for name in channel_names)
-        product_valid = int(source_metrics.get("PRODUCT_MASTER", {}).get("validated_records", 0) or 0)
-        all_valid = sales_valid + product_valid + int(promo.get("validated", 0) or 0) + int(returns.get("validated", 0) or 0)
-        all_rejected = (sum(int(source_metrics.get(name, {}).get("rejected_records", 0) or 0)
-                            for name in (*channel_names, "PRODUCT_MASTER"))
-                        + int(promo.get("rejected", 0) or 0) + int(returns.get("rejected", 0) or 0))
-        all_duplicates = (sum(int(source_metrics.get(name, {}).get("duplicate_records", 0) or 0)
-                              for name in (*channel_names, "PRODUCT_MASTER"))
-                          + int(promo.get("duplicates", 0) or 0) + int(returns.get("duplicates", 0) or 0))
         status = getattr(record, "status", "UNKNOWN")
         lines = [
             f"{'=' * 72}",
@@ -139,19 +129,14 @@ class _PrettyConsoleFormatter(_ApplicationTimeFormatter):
             f"Pipeline        : {getattr(record, 'pipeline_name', '—')}",
             f"Mulai           : {getattr(record, 'start_time', '—')}",
             f"Selesai         : {getattr(record, 'end_time', '—')}",
-            f"Durasi          : {getattr(record, 'duration_seconds', '—')} detik",
+            f"Durasi          : {getattr(record, 'duration_seconds', '—')} Detik",
             "",
             "RINGKASAN RECORD",
             f"- Kandidat Transaksi kanal : {sales_candidates}",
             f"- Kandidat Master Produk   : {product_candidate}",
-            f"- Kandidat Promo baru      : {promo_candidate}",
+            f"- Baris Promo diproses     : {promo_candidate}",
             f"- Kandidat Return baru     : {return_candidate}",
             f"- Total baris semua sumber : {all_source_candidates}",
-            f"- Total valid              : {all_valid}",
-            f"- Total ditolak            : {all_rejected}",
-            f"- Total duplikat           : {all_duplicates}",
-            f"- Fact Sales ditulis       : {getattr(record, 'loaded_records', 0)}",
-            f"- Fact Return ditulis      : {return_warehouse.get('facts_written', returns.get('warehouse_written', 0))}",
             "",
             "RINCIAN PER SUMBER",
         ]
@@ -178,7 +163,7 @@ class _PrettyConsoleFormatter(_ApplicationTimeFormatter):
                         "ditolak {rejected} | duplikat {duplicates}{details}".format(
                             source_records=source.get("source_records", 0), processed=source.get("processed", 0),
                             catalog_valid=source.get("catalog_validated", source.get("validated", 0)),
-                            valid=source.get("validated", 0), rejected=source.get("rejected", 0),
+                            rejected=source.get("rejected", 0),
                             duplicates=source.get("duplicates", 0), details=details,
                         )
                     )
@@ -214,13 +199,15 @@ class _PrettyConsoleFormatter(_ApplicationTimeFormatter):
                 source_label = "Master Produk"
             else:
                 source_label = name
+            candidate = int(source.get("extracted_records", 0) or 0)
             lines.append(
                 "- {name}: sumber {source_total} | kandidat {candidate} | valid {valid} | "
                 "ditolak {rejected} | duplikat dilewati {duplicates}{extra}".format(
                     name=source_label, source_total=source.get("source_records", 0),
-                    candidate=source.get("extracted_records", 0),
-                    valid=source.get("validated_records", 0), rejected=source.get("rejected_records", 0),
-                    duplicates=source.get("duplicate_records", 0),
+                    candidate=candidate,
+                    valid=source.get("validated_records", 0) if candidate else 0,
+                    rejected=source.get("rejected_records", 0) if candidate else 0,
+                    duplicates=source.get("duplicate_records", 0) if candidate else 0,
                     extra=(
                         (f" | Raw ditambah {product_master['inserted_to_raw']}" if product_master.get("inserted_to_raw", 0) else "")
                         + (f" | Dimensi Produk diproses {dimensions['products_processed']}" if dimensions.get("products_processed", 0) else "")
@@ -248,6 +235,16 @@ class _PrettyConsoleFormatter(_ApplicationTimeFormatter):
             )
         if isinstance(quality_staging, dict):
             lines.extend(["", "QUALITY CHECK — SALES"])
+            lines.append(
+                "- Diperiksa: {checked_records} | valid: {valid_records} | ditolak: {rejected_records} | "
+                "duplikat: {duplicate_records} | peringatan: {warning_count}".format(
+                    checked_records=quality_staging.get("checked_records", 0),
+                    valid_records=quality_staging.get("valid_records", 0),
+                    rejected_records=quality_staging.get("rejected_records", 0),
+                    duplicate_records=quality_staging.get("duplicate_records", 0),
+                    warning_count=quality_staging.get("warning_count", 0),
+                )
+            )
             for key, label in (
                 ("missing_value", "Nilai kosong"),
                 ("duplicate_business_key", "Baris terdampak duplikat business key"),
@@ -263,6 +260,12 @@ class _PrettyConsoleFormatter(_ApplicationTimeFormatter):
                 if count:
                     details = self._field_counts(finding)
                     lines.append(f"- {label}: {count}" + (f" ({details})" if details else ""))
+            finding_keys = (
+                "missing_value", "duplicate_business_key", "invalid_quantity", "invalid_price",
+                "invalid_status", "invalid_date", "unmapped_product", "type_cast_failure",
+            )
+            if not any(self._mapping(quality_staging.get(key)).get("total", 0) for key in finding_keys) and not quality_staging.get("warning_count", 0):
+                lines.append("- Tidak ditemukan masalah pada aturan quality check yang dikonfigurasi.")
         else:
             lines.extend(["", "QUALITY CHECK — SALES", "- Tidak dijalankan karena tidak ada data baru atau perubahan."])
         return_reasons = self._mapping(returns.get("rejection_reasons"))

@@ -190,7 +190,6 @@ function watchPipelineRun(runId) {
   $('run-pipeline').disabled = true;
   $('run-pipeline').textContent = 'Pipeline berjalan';
   $('upload-button').disabled = true;
-  $('upload-button').textContent = 'Pipeline berjalan…';
   setPipelineProgress('Menyambungkan ke status pipeline…', 'running');
   state.pipelineProgressTimer = window.setTimeout(pollPipelineProgress, 0);
 }
@@ -199,6 +198,12 @@ function runHasSourceChanges(run) {
   if (Number(run.extracted_records || 0) > 0) return true;
   if ((run.source_metrics || []).some(source => Number(source.extracted_records || 0) > 0)) return true;
   return (run.report_summary?.auxiliary_sources || []).some(source => Number(source.processed || 0) > 0);
+}
+
+function describePendingUploads() {
+  const rows = state.pendingUploadSummary.reduce((total, upload) => total + Number(upload.rows || 0), 0);
+  const sources = [...new Set(state.pendingUploadSummary.map(upload => upload.source))];
+  return `${number(rows)} baris dari ${sources.join(', ')}`;
 }
 
 async function pollPipelineProgress() {
@@ -234,25 +239,16 @@ async function pollPipelineProgress() {
     button.textContent = 'Jalankan';
     $('upload-button').disabled = false;
     if (run.status === 'SUCCESS') {
-      if (state.pendingUploadSummary) {
-        const { rows, source } = state.pendingUploadSummary;
-        const outcome = run.outcome_message || 'Lihat Detail Proses untuk ringkasan validasi dan pemuatan.';
-        if (runHasSourceChanges(run)) {
-          setUploadStatus(`Upload ${source} (${number(rows)} baris) selesai diproses. ${outcome} Buka Detail Proses untuk rinciannya.`);
-        } else {
-          setUploadStatus(`Upload ${source} tersimpan (${number(rows)} baris), tetapi tidak ada baris baru atau berubah untuk diproses. Baris yang sudah pernah dimuat akan dilewati. ${outcome}`);
-        }
-        state.pendingUploadSummary = null;
-      }
+      if (state.pendingUploadSummary.length) setUploadStatus();
+      state.pendingUploadSummary = [];
       const completionHint = runHasSourceChanges(run)
         ? ''
         : ' Tidak ada data baru atau perubahan; untuk memproses batch CSV, gunakan Upload CSV.';
       setPipelineProgress(`Selesai · ${formatJakartaDateTime(run.ended_at)} WIB.${completionHint}`, 'success');
       await loadDashboard();
     } else {
-      if (state.pendingUploadSummary) {
-        setUploadStatus(`File ${state.pendingUploadSummary.source} tersimpan, tetapi pipeline gagal. Periksa Detail Proses sebelum mencoba upload ulang.`);
-        state.pendingUploadSummary = null;
+      if (state.pendingUploadSummary.length) {
+        setUploadStatus(`Batch tersimpan (${describePendingUploads()}), tetapi pipeline gagal. Periksa Detail Proses sebelum mencoba upload ulang.`);
       }
       setPipelineProgress('Pipeline gagal. ' + (run.error_message || 'Lihat rincian riwayat eksekusi.'), 'failed');
     }
@@ -268,9 +264,8 @@ async function pollPipelineProgress() {
     $('run-pipeline').disabled = false;
     $('run-pipeline').textContent = 'Jalankan';
     $('upload-button').disabled = false;
-    $('upload-button').textContent = 'Upload CSV';
-    if (state.pendingUploadSummary) {
-      setUploadStatus(`File ${state.pendingUploadSummary.source} tersimpan, tetapi status pipeline tidak dapat dipastikan. Periksa Riwayat Pipeline sebelum upload ulang.`);
+    if (state.pendingUploadSummary.length) {
+      setUploadStatus(`Batch tersimpan (${describePendingUploads()}), tetapi status pipeline tidak dapat dipastikan. Periksa Riwayat Pipeline sebelum menjalankan ulang.`);
     }
     setPipelineProgress('Status pipeline belum tersambung. Klik Check Status untuk melanjutkan pemantauan run aktif.', 'failed');
     showError(error.message);
@@ -291,8 +286,8 @@ async function runPipeline() {
     button.disabled = false;
     button.textContent = 'Jalankan';
     $('upload-button').disabled = false;
-    if (state.pendingUploadSummary) {
-      setUploadStatus(`File ${state.pendingUploadSummary.source} tersimpan, tetapi pipeline tidak berhasil dimulai. Gunakan tombol Jalankan setelah memeriksa Riwayat Pipeline; jangan upload ulang.`);
+    if (state.pendingUploadSummary.length) {
+      setUploadStatus(`Batch tersimpan (${describePendingUploads()}), tetapi pipeline belum dimulai. Periksa Riwayat Pipeline, lalu gunakan tombol Jalankan; jangan upload ulang.`);
     }
     setPipelineProgress('Pipeline belum dijalankan.', 'failed');
     showError(error.message);
@@ -315,9 +310,11 @@ async function uploadBatch() {
   if (!file) return showError('Pilih file CSV terlebih dahulu.');
   const button = $('upload-button');
   const source = $('upload-source').selectedOptions[0]?.textContent.trim() || $('upload-source').value;
-  setUploadStatus();
+  if (!state.pendingUploadSummary.length) setUploadStatus();
   button.disabled = true;
   button.textContent = 'Mengunggah…';
+  $('run-pipeline').disabled = true;
+  $('run-pipeline').textContent = 'Menunggu upload…';
   try {
     const body = new FormData();
     body.append('source', $('upload-source').value);
@@ -325,22 +322,17 @@ async function uploadBatch() {
     const data = await requestJson('/api/ingestion/upload', {
       method: 'POST', headers: adminHeaders(), body,
     });
-    state.pendingUploadSummary = { rows: data.rows_appended, source };
-    setUploadStatus(`${number(data.rows_appended)} baris dari ${source} tersimpan. Pipeline dimulai otomatis…`);
+    state.pendingUploadSummary.push({ rows: data.rows_appended, source });
+    setUploadStatus(`${describePendingUploads()} tersimpan. Data belum diproses; unggah file lain jika perlu, lalu klik Jalankan.`);
     $('upload-file').value = '';
     updateFileName();
-    await runPipeline();
   } catch (error) {
-    setUploadStatus();
     showError(error.message);
   } finally {
-    if (!state.pipelineExpectedRunId) {
-      button.disabled = false;
-      button.textContent = 'Upload CSV';
-    } else {
-      button.disabled = true;
-      button.textContent = 'Pipeline berjalan…';
-    }
+    button.disabled = false;
+    button.textContent = 'Upload CSV';
+    $('run-pipeline').disabled = false;
+    $('run-pipeline').textContent = 'Jalankan';
   }
 }
 

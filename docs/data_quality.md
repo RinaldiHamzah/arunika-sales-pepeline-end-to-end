@@ -35,7 +35,7 @@ product_id,product_name,brand,kategori,harga_satuan
 | Harga dan total | Nilai uang positif, maksimal dua desimal. | Nilai tidak valid ditolak. |
 | Diskon item | `discount_amount` harus bernilai nol atau positif, maksimal dua desimal, dan tidak melebihi gross item. | Nilai negatif, format salah, atau diskon lebih besar dari gross ditolak. |
 | Master promo | Kode unik, nama, tipe `fixed`/`percentage`, nilai, rentang tanggal, dan status divalidasi dari `promo_master.csv`. | Baris tidak valid atau kode duplikat menghentikan ingestion dengan informasi baris. |
-| Promo pada item | `promo_code` dan `discount_amount` berada pada baris item kanal; kode harus ada di master, tanggal order berada dalam periode promo, diskon nonnegatif dan tidak melebihi gross item. Diskon positif wajib memiliki kode promo. | Kode tak dikenal, periode tidak sesuai, nilai salah, atau diskon melebihi gross menghentikan ingestion. |
+| Promo pada item | `promo_code` dan `discount_amount` berada pada baris item kanal; kode harus ada di master dengan status `active`, tanggal order berada dalam periode promo, diskon nonnegatif dan tidak melebihi gross item. Diskon positif wajib memiliki kode promo. | Kode tak dikenal/nonaktif, periode tidak sesuai, nilai salah, atau diskon melebihi gross menghentikan ingestion. |
 | Total Website | `total_amount` harus sama dengan gross atau net item yang dihitung. | Missing atau mismatch ditolak. |
 | Status | Hanya `COMPLETED`, `CANCELLED`, `RETURNED`. | Status lain ditolak. |
 | Tanggal | Format setiap sumber dibaca sesuai aturan lalu diubah ke `YYYY-MM-DD`. | Tanggal yang tidak mungkin atau format yang tidak dikenali ditolak. |

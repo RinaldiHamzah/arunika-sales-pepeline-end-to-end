@@ -2,7 +2,7 @@
 
 Folder `alembic/` mengelola perubahan struktur database PostgreSQL yang sudah digunakan oleh aplikasi. Alembic memastikan perubahan seperti penambahan kolom, tabel audit, indeks, atau analytics view dapat diterapkan secara bertahap tanpa menghapus data yang sudah ada.
 
-Pada proyek ini, Alembic digunakan untuk database yang telah berjalan. Sementara itu, file pada [`database/schema/`](../database/schema/) digunakan sebagai bootstrap saat volume PostgreSQL masih benar-benar baru.
+Pada proyek ini, Alembic digunakan untuk database yang telah berjalan. Sementara itu, file pada [`database/schema/`](../database/schema/) digunakan sebagai bootstrap saat volume PostgreSQL masih benar-benar baru. Bootstrap menyertakan `alembic_version` pada revision head saat ini karena schema SQL sudah mencakup struktur terbaru; jangan memutar ulang migrasi historis di atasnya.
 
 ## Kapan menggunakan Alembic
 

@@ -4,9 +4,9 @@ from pathlib import Path
 
 import pandas as pd
 
+from pipeline.extract.product import source_path
 from pipeline.validation.contracts import CHANNEL_LABELS, CLEAN_PRODUCT_COLUMNS, CLEAN_SALES_COLUMNS
 from pipeline.validation.data_quality import ROOT, SPECS, analyze, run_quality
-from pipeline.extract.product import source_path
 
 SALES_COLUMNS = list(CLEAN_SALES_COLUMNS)
 PRODUCT_COLUMNS = list(CLEAN_PRODUCT_COLUMNS)

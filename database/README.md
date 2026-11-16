@@ -49,6 +49,7 @@ Pada volume PostgreSQL yang masih baru, script di `database/schema/` dijalankan 
 8. `7_audit_tables.sql` membuat tabel audit dan quality.
 9. `8_analytics_views.sql` membuat view analitik.
 10. `9_security_hardening.sql` mengatur hak akses database.
+11. `zz_alembic_version.sql` menandai schema bootstrap pada revision Alembic terbaru agar migrasi historis tidak dijalankan ulang di atas struktur yang sudah lengkap.
 
 Script init Docker berjalan saat volume database pertama kali dibuat. Untuk memperbarui database yang sudah berisi data, gunakan migration Alembic; jangan menghapus volume sebagai cara rutin memperbarui schema.
 

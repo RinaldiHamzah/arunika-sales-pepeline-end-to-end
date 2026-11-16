@@ -124,12 +124,61 @@ def _summarize_quality_issues(issues) -> dict:
     return sections
 
 
-def quality_staging_summary(results, *, passed_to_staging: int, written_to_staging: int) -> dict:
+def quality_result_counts(result, selected_row_numbers=None) -> dict:
+    """Hitung hasil quality untuk seluruh sumber atau baris kandidat pada run ini."""
+    if selected_row_numbers is None:
+        return result.summary
+
+    selected = set(selected_row_numbers)
+
+    def selected_rows(frame):
+        if "source_row_number" not in frame:
+            return frame.iloc[0:0]
+        return frame[frame["source_row_number"].isin(selected)]
+
+    clean = selected_rows(result.clean)
+    rejected = selected_rows(result.rejected)
+    duplicates = selected_rows(result.duplicates)
+    return {
+        "source": result.summary["source"],
+        "extracted_records": len(selected),
+        "valid_records": len(clean),
+        "duplicate_records": len(duplicates),
+        "invalid_records": len(rejected),
+        "warning_count": int(
+            result.issues[
+                result.issues["source_row_number"].isin(selected)
+                & (result.issues["severity"] == "WARNING")
+            ].shape[0]
+        )
+        if "source_row_number" in result.issues and "severity" in result.issues
+        else 0,
+    }
+
+
+def quality_staging_summary(
+    results,
+    *,
+    passed_to_staging: int,
+    written_to_staging: int,
+    selected_row_numbers: dict | None = None,
+) -> dict:
     sections = _empty_quality_sections()
     by_source = []
+    totals = {
+        "checked_records": 0,
+        "valid_records": 0,
+        "rejected_records": 0,
+        "duplicate_records": 0,
+        "warning_count": 0,
+    }
     for source, result in results.items():
-        source_sections = _summarize_quality_issues(result.issues)
-        summary = result.summary
+        source_rows = (selected_row_numbers or {}).get(source)
+        summary = quality_result_counts(result, source_rows)
+        issues = result.issues
+        if source_rows is not None and "source_row_number" in issues:
+            issues = issues[issues["source_row_number"].isin(set(source_rows))]
+        source_sections = _summarize_quality_issues(issues)
         by_source.append(
             {
                 "source_name": RESULT_SOURCE_NAMES[source],
@@ -141,12 +190,18 @@ def quality_staging_summary(results, *, passed_to_staging: int, written_to_stagi
             }
         )
         if source != "product":
+            totals["checked_records"] += int(summary.get("extracted_records", 0))
+            totals["valid_records"] += int(summary.get("valid_records", 0))
+            totals["rejected_records"] += int(summary.get("invalid_records", 0))
+            totals["duplicate_records"] += int(summary.get("duplicate_records", 0))
+            totals["warning_count"] += int(summary.get("warning_count", 0))
             for key, _ in QUALITY_SECTIONS:
                 sections[key]["total"] += source_sections[key]["total"]
                 for field, count in source_sections[key]["by_field"].items():
                     sections[key]["by_field"][field] = sections[key]["by_field"].get(field, 0) + count
     return {
         "checked": True,
+        **totals,
         **sections,
         "by_source": by_source,
         "passed_to_staging": max(0, int(passed_to_staging)),
@@ -158,10 +213,12 @@ def auxiliary_source_summary(promo_sources, promo_deltas, promo_metrics, return_
                              *, return_result=None, promotions_written=0):
     """Metrik sumber tambahan; hitungan promo mencakup scan penuh, return memakai delta."""
     changed = {source.source_name for source in promo_deltas}
+    deltas = {source.source_name: source for source in promo_deltas}
     result = []
     for source in promo_sources:
         metrics = promo_metrics[source.source_name]
         source_changed = source.source_name in changed
+        delta_count = len(deltas[source.source_name].frame) if source_changed else 0
         result.append({
             "source_name": source.source_name,
             "source_records": source.source_records if source.source_records is not None else len(source.frame),
@@ -169,9 +226,9 @@ def auxiliary_source_summary(promo_sources, promo_deltas, promo_metrics, return_
             "catalog_checked": metrics.get("catalog_checked", len(source.frame)),
             "catalog_validated": metrics.get("catalog_validated", metrics["valid"]),
             "catalog_duplicates": metrics.get("duplicates", 0),
-            "processed": len(source.frame) if source_changed else 0,
+            "processed": delta_count,
             "file_changed": source_changed,
-            "raw_inserted": len(source.frame) if source_changed else 0,
+            "raw_inserted": delta_count,
             "validated": metrics["valid"] if source_changed else 0,
             "duplicates": metrics["duplicates"] if source_changed else 0,
             "rejected": 0,

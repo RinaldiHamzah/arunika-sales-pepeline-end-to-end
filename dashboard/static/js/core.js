@@ -18,7 +18,7 @@ export const state = {
   pipelineProgressAttempts: 0,
   pipelineProgressFailures: 0,
   pipelineExpectedRunId: null,
-  pendingUploadSummary: null,
+  pendingUploadSummary: [],
 };
 export const JAKARTA_TIME_ZONE = 'Asia/Jakarta';
 export const pageMetadata = {

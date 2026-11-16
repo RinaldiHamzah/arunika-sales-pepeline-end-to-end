@@ -1,0 +1,2741 @@
+========================================================================
+PIPELINE SUCCESS
+========================================================================
+Run ID          : be219b05-9aa3-47a6-8534-aef6654daf09
+Pipeline        : ecommerce_sales_pipeline
+Mulai           : 2026-11-16T21:15:45.739071+07:00
+Selesai         : 2026-11-16T21:15:58.149201+07:00
+Durasi          : 12.41 Detik
+
+RINGKASAN RECORD
+- Kandidat Transaksi kanal : 880
+- Kandidat Master Produk   : 30
+- Baris Promo diproses     : 22
+- Kandidat Return baru     : 150
+- Total baris semua sumber : 1082
+
+RINCIAN PER SUMBER
+- Master Produk: sumber 30 | kandidat 30 | valid 20 | ditolak 0 | duplikat dilewati 10 | Raw ditambah 30 | Dimensi Produk diproses 20
+- Master Promo: katalog 22 | valid katalog 12 | baru/berubah 22 | ditolak 0 | duplikat 10 | Raw ditambah 22 | Dimensi Promo diproses 12 | Kode promo cocok 587/587
+- SHOPEE: sumber 220 | kandidat 220 | valid 212 | ditolak 7 | duplikat dilewati 1
+- TOKOPEDIA: sumber 220 | kandidat 220 | valid 212 | ditolak 7 | duplikat dilewati 1
+- WEBSITE: sumber 220 | kandidat 220 | valid 212 | ditolak 7 | duplikat dilewati 1
+- OFFLINE_STORE: sumber 220 | kandidat 220 | valid 212 | ditolak 7 | duplikat dilewati 1
+- Return: sumber 150 | berubah 150 | valid 150 | ditolak 0 | duplikat 0 | Raw ditambah 150 | Staging dimuat 150 | Fact ditulis 150
+
+RAW LAYER
+- Transaksi kanal baru/berubah: 880 | Raw ditambah 880 | total Raw: 880
+- Master Produk baru/berubah: 30 | Raw ditambah 30 | total Raw: 30
+- Master Promo baru/berubah: 22 | Raw ditambah 22 | total Raw: 22
+- Return baru/berubah: 150 | Raw ditambah 150 | total Raw: 150
+
+QUALITY CHECK — SALES
+- Nilai kosong: 8 (qty: 1, customer_name: 1, quantity: 2, buyer_name: 1, customer_email: 1, units: 1, store_city: 1)
+- Baris terdampak duplikat business key: 12 (business_key: 12)
+- Kuantitas tidak valid: 1 (quantity: 1)
+- Harga atau amount tidak valid: 1 (total_amount: 1)
+- Status tidak valid: 5 (status: 5)
+- Tanggal tidak valid: 4 (order_date: 1, transaction_date: 1, created_at: 1, sold_at: 1)
+- Produk tidak termapping: 5 (product_name: 1, item_name: 1, product_identifier: 1, item_description: 2)
+
+QUALITY CHECK — RETURN
+- Baris sumber: 150 | berubah: 150 | tidak berubah: 0
+- Diperiksa: 150
+- Valid: 150
+- Ditolak: 0
+- Duplikat: 0
+
+STAGING LAYER
+- Sales lolos ke Staging: 848
+- Sales dimuat ke Staging: 848
+- Return lolos ke Staging: 150
+- Return dimuat ke Staging: 150
+
+WAREHOUSE LAYER
+- Fact Sales siap dimuat : 848
+- Fact Sales baru        : 848
+- Fact Sales diperbarui  : 0
+- Total Fact Sales ditulis: 848
+- Fact Return siap dimuat: 150
+- Fact Return baru       : 150
+- Fact Return diperbarui : 0
+- Total Fact Return ditulis: 150
+
+JUMLAH BARIS DALAM DATABASE
+- raw.shopee_orders                 : 220
+- raw.tokopedia_transactions        : 220
+- raw.website_transactions          : 220
+- raw.offline_store_sales           : 220
+- raw.product_master                : 30
+- raw.promo_master                  : 22
+- raw.return_events                 : 150
+- staging.stg_sales                 : 848
+- staging.stg_returns               : 150
+- warehouse.fact_sales              : 848
+- warehouse.fact_returns            : 150
+2026-11-16T21:15:58.189528+07:00 | WARNING | pipeline.alerts | pipeline_email_skipped | status=SUCCESS
+========================================================================
+PIPELINE SUCCESS
+========================================================================
+Run ID          : 6c4c165c-deb6-402d-bfa7-7207f8348bed
+Pipeline        : ecommerce_sales_pipeline
+Mulai           : 2026-11-16T21:15:58.589217+07:00
+Selesai         : 2026-11-16T21:15:59.758466+07:00
+Durasi          : 0.687 Detik
+
+RINGKASAN RECORD
+- Kandidat Transaksi kanal : 0
+- Kandidat Master Produk   : 0
+- Baris Promo diproses     : 0
+- Kandidat Return baru     : 0
+- Total baris semua sumber : 0
+
+RINCIAN PER SUMBER
+- Master Produk: sumber 30 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Master Promo: katalog 22 | valid katalog 0 | baru/berubah 0 | ditolak 0 | duplikat 0
+- SHOPEE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- TOKOPEDIA: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- WEBSITE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- OFFLINE_STORE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Return: sumber 150 | berubah 0 | valid 0 | ditolak 0 | duplikat 0
+
+RAW LAYER
+- Transaksi kanal baru/berubah: 0 | Raw ditambah 0 | total Raw: 880
+- Master Produk baru/berubah: 0 | Raw ditambah 0 | total Raw: 30
+- Master Promo baru/berubah: 0 | Raw ditambah 0 | total Raw: 22
+- Return baru/berubah: 0 | Raw ditambah 0 | total Raw: 150
+
+QUALITY CHECK — SALES
+- Tidak dijalankan karena tidak ada data baru atau perubahan.
+
+QUALITY CHECK — RETURN
+- Tidak dijalankan karena tidak ada data baru atau perubahan.
+
+STAGING LAYER
+- Sales lolos ke Staging: 0
+- Sales dimuat ke Staging: 0
+- Return lolos ke Staging: 0
+- Return dimuat ke Staging: 0
+
+WAREHOUSE LAYER
+- Fact Sales siap dimuat : 0
+- Fact Sales baru        : 0
+- Fact Sales diperbarui  : 0
+- Total Fact Sales ditulis: 0
+- Fact Return siap dimuat: 0
+- Fact Return baru       : 0
+- Fact Return diperbarui : 0
+- Total Fact Return ditulis: 0
+
+JUMLAH BARIS DALAM DATABASE
+- raw.shopee_orders                 : 220
+- raw.tokopedia_transactions        : 220
+- raw.website_transactions          : 220
+- raw.offline_store_sales           : 220
+- raw.product_master                : 30
+- raw.promo_master                  : 22
+- raw.return_events                 : 150
+- staging.stg_sales                 : 848
+- staging.stg_returns               : 150
+- warehouse.fact_sales              : 848
+- warehouse.fact_returns            : 150
+2026-11-16T21:15:59.775466+07:00 | WARNING | pipeline.alerts | pipeline_email_skipped | status=SUCCESS
+========================================================================
+PIPELINE SUCCESS
+========================================================================
+Run ID          : 7701442f-d853-4d14-8abc-017fb159ba23
+Pipeline        : ecommerce_sales_pipeline
+Mulai           : 2026-11-16T21:16:00.073028+07:00
+Selesai         : 2026-11-16T21:16:03.673620+07:00
+Durasi          : 3.601 Detik
+
+RINGKASAN RECORD
+- Kandidat Transaksi kanal : 0
+- Kandidat Master Produk   : 0
+- Baris Promo diproses     : 12
+- Kandidat Return baru     : 0
+- Total baris semua sumber : 12
+
+RINCIAN PER SUMBER
+- Master Produk: sumber 30 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Master Promo: katalog 34 | valid katalog 24 | baru/berubah 12 | ditolak 0 | duplikat 10 | Raw ditambah 12 | Dimensi Promo diproses 24 | Kode promo cocok 587/587
+- SHOPEE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- TOKOPEDIA: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- WEBSITE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- OFFLINE_STORE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Return: sumber 150 | berubah 0 | valid 0 | ditolak 0 | duplikat 0
+
+RAW LAYER
+- Transaksi kanal baru/berubah: 0 | Raw ditambah 0 | total Raw: 880
+- Master Produk baru/berubah: 0 | Raw ditambah 0 | total Raw: 30
+- Master Promo baru/berubah: 12 | Raw ditambah 12 | total Raw: 34
+- Return baru/berubah: 0 | Raw ditambah 0 | total Raw: 150
+
+QUALITY CHECK — SALES
+
+QUALITY CHECK — RETURN
+- Tidak dijalankan karena tidak ada data baru atau perubahan.
+
+STAGING LAYER
+- Sales lolos ke Staging: 0
+- Sales dimuat ke Staging: 0
+- Return lolos ke Staging: 0
+- Return dimuat ke Staging: 0
+
+WAREHOUSE LAYER
+- Fact Sales siap dimuat : 0
+- Fact Sales baru        : 0
+- Fact Sales diperbarui  : 0
+- Total Fact Sales ditulis: 0
+- Fact Return siap dimuat: 0
+- Fact Return baru       : 0
+- Fact Return diperbarui : 0
+- Total Fact Return ditulis: 0
+
+JUMLAH BARIS DALAM DATABASE
+- raw.shopee_orders                 : 220
+- raw.tokopedia_transactions        : 220
+- raw.website_transactions          : 220
+- raw.offline_store_sales           : 220
+- raw.product_master                : 30
+- raw.promo_master                  : 34
+- raw.return_events                 : 150
+- staging.stg_sales                 : 848
+- staging.stg_returns               : 150
+- warehouse.fact_sales              : 848
+- warehouse.fact_returns            : 150
+2026-11-16T21:16:03.694736+07:00 | WARNING | pipeline.alerts | pipeline_email_skipped | status=SUCCESS
+========================================================================
+PIPELINE SUCCESS
+========================================================================
+Run ID          : 5cdee734-6c14-4a15-a83a-82d45b2cce4f
+Pipeline        : ecommerce_sales_pipeline
+Mulai           : 2026-11-16T21:16:03.840202+07:00
+Selesai         : 2026-11-16T21:16:06.975046+07:00
+Durasi          : 3.135 Detik
+
+RINGKASAN RECORD
+- Kandidat Transaksi kanal : 20
+- Kandidat Master Produk   : 0
+- Baris Promo diproses     : 0
+- Kandidat Return baru     : 0
+- Total baris semua sumber : 20
+
+RINCIAN PER SUMBER
+- Master Produk: sumber 30 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Master Promo: katalog 34 | valid katalog 24 | baru/berubah 0 | ditolak 0 | duplikat 0 | Kode promo cocok 587/587
+- SHOPEE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- TOKOPEDIA: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- WEBSITE: sumber 240 | kandidat 20 | valid 20 | ditolak 0 | duplikat dilewati 0
+- OFFLINE_STORE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Return: sumber 150 | berubah 0 | valid 0 | ditolak 0 | duplikat 0
+
+RAW LAYER
+- Transaksi kanal baru/berubah: 20 | Raw ditambah 20 | total Raw: 900
+- Master Produk baru/berubah: 0 | Raw ditambah 0 | total Raw: 30
+- Master Promo baru/berubah: 0 | Raw ditambah 0 | total Raw: 34
+- Return baru/berubah: 0 | Raw ditambah 0 | total Raw: 150
+
+QUALITY CHECK — SALES
+
+QUALITY CHECK — RETURN
+- Tidak dijalankan karena tidak ada data baru atau perubahan.
+
+STAGING LAYER
+- Sales lolos ke Staging: 20
+- Sales dimuat ke Staging: 20
+- Return lolos ke Staging: 0
+- Return dimuat ke Staging: 0
+
+WAREHOUSE LAYER
+- Fact Sales siap dimuat : 20
+- Fact Sales baru        : 20
+- Fact Sales diperbarui  : 0
+- Total Fact Sales ditulis: 20
+- Fact Return siap dimuat: 0
+- Fact Return baru       : 0
+- Fact Return diperbarui : 0
+- Total Fact Return ditulis: 0
+
+JUMLAH BARIS DALAM DATABASE
+- raw.shopee_orders                 : 220
+- raw.tokopedia_transactions        : 220
+- raw.website_transactions          : 240
+- raw.offline_store_sales           : 220
+- raw.product_master                : 30
+- raw.promo_master                  : 34
+- raw.return_events                 : 150
+- staging.stg_sales                 : 868
+- staging.stg_returns               : 150
+- warehouse.fact_sales              : 868
+- warehouse.fact_returns            : 150
+2026-11-16T21:16:06.992948+07:00 | WARNING | pipeline.alerts | pipeline_email_skipped | status=SUCCESS
+========================================================================
+PIPELINE SUCCESS
+========================================================================
+Run ID          : 5d32347a-13ed-47e3-9324-2447377619d2
+Pipeline        : ecommerce_sales_pipeline
+Mulai           : 2026-11-16T21:16:07.143540+07:00
+Selesai         : 2026-11-16T21:16:09.066351+07:00
+Durasi          : 1.923 Detik
+
+RINGKASAN RECORD
+- Kandidat Transaksi kanal : 5
+- Kandidat Master Produk   : 0
+- Baris Promo diproses     : 0
+- Kandidat Return baru     : 0
+- Total baris semua sumber : 5
+
+RINCIAN PER SUMBER
+- Master Produk: sumber 30 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Master Promo: katalog 34 | valid katalog 24 | baru/berubah 0 | ditolak 0 | duplikat 0 | Kode promo cocok 587/587
+- SHOPEE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- TOKOPEDIA: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- WEBSITE: sumber 245 | kandidat 5 | valid 5 | ditolak 0 | duplikat dilewati 0
+- OFFLINE_STORE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Return: sumber 150 | berubah 0 | valid 0 | ditolak 0 | duplikat 0
+
+RAW LAYER
+- Transaksi kanal baru/berubah: 5 | Raw ditambah 5 | total Raw: 905
+- Master Produk baru/berubah: 0 | Raw ditambah 0 | total Raw: 30
+- Master Promo baru/berubah: 0 | Raw ditambah 0 | total Raw: 34
+- Return baru/berubah: 0 | Raw ditambah 0 | total Raw: 150
+
+QUALITY CHECK — SALES
+
+QUALITY CHECK — RETURN
+- Tidak dijalankan karena tidak ada data baru atau perubahan.
+
+STAGING LAYER
+- Sales lolos ke Staging: 5
+- Sales dimuat ke Staging: 5
+- Return lolos ke Staging: 0
+- Return dimuat ke Staging: 0
+
+WAREHOUSE LAYER
+- Fact Sales siap dimuat : 5
+- Fact Sales baru        : 5
+- Fact Sales diperbarui  : 0
+- Total Fact Sales ditulis: 5
+- Fact Return siap dimuat: 0
+- Fact Return baru       : 0
+- Fact Return diperbarui : 0
+- Total Fact Return ditulis: 0
+
+JUMLAH BARIS DALAM DATABASE
+- raw.shopee_orders                 : 220
+- raw.tokopedia_transactions        : 220
+- raw.website_transactions          : 245
+- raw.offline_store_sales           : 220
+- raw.product_master                : 30
+- raw.promo_master                  : 34
+- raw.return_events                 : 150
+- staging.stg_sales                 : 873
+- staging.stg_returns               : 150
+- warehouse.fact_sales              : 873
+- warehouse.fact_returns            : 150
+2026-11-16T21:16:09.082862+07:00 | WARNING | pipeline.alerts | pipeline_email_skipped | status=SUCCESS
+========================================================================
+PIPELINE SUCCESS
+========================================================================
+Run ID          : 5f7bf0f2-7ba3-4ff9-85f5-46996c2e2142
+Pipeline        : ecommerce_sales_pipeline
+Mulai           : 2026-11-16T21:16:09.215804+07:00
+Selesai         : 2026-11-16T21:16:09.882042+07:00
+Durasi          : 0.446 Detik
+
+RINGKASAN RECORD
+- Kandidat Transaksi kanal : 0
+- Kandidat Master Produk   : 0
+- Baris Promo diproses     : 0
+- Kandidat Return baru     : 0
+- Total baris semua sumber : 0
+
+RINCIAN PER SUMBER
+- Master Produk: sumber 30 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Master Promo: katalog 34 | valid katalog 0 | baru/berubah 0 | ditolak 0 | duplikat 0
+- SHOPEE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- TOKOPEDIA: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- WEBSITE: sumber 245 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- OFFLINE_STORE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Return: sumber 150 | berubah 0 | valid 0 | ditolak 0 | duplikat 0
+
+RAW LAYER
+- Transaksi kanal baru/berubah: 0 | Raw ditambah 0 | total Raw: 905
+- Master Produk baru/berubah: 0 | Raw ditambah 0 | total Raw: 30
+- Master Promo baru/berubah: 0 | Raw ditambah 0 | total Raw: 34
+- Return baru/berubah: 0 | Raw ditambah 0 | total Raw: 150
+
+QUALITY CHECK — SALES
+- Tidak dijalankan karena tidak ada data baru atau perubahan.
+
+QUALITY CHECK — RETURN
+- Tidak dijalankan karena tidak ada data baru atau perubahan.
+
+STAGING LAYER
+- Sales lolos ke Staging: 0
+- Sales dimuat ke Staging: 0
+- Return lolos ke Staging: 0
+- Return dimuat ke Staging: 0
+
+WAREHOUSE LAYER
+- Fact Sales siap dimuat : 0
+- Fact Sales baru        : 0
+- Fact Sales diperbarui  : 0
+- Total Fact Sales ditulis: 0
+- Fact Return siap dimuat: 0
+- Fact Return baru       : 0
+- Fact Return diperbarui : 0
+- Total Fact Return ditulis: 0
+
+JUMLAH BARIS DALAM DATABASE
+- raw.shopee_orders                 : 220
+- raw.tokopedia_transactions        : 220
+- raw.website_transactions          : 245
+- raw.offline_store_sales           : 220
+- raw.product_master                : 30
+- raw.promo_master                  : 34
+- raw.return_events                 : 150
+- staging.stg_sales                 : 873
+- staging.stg_returns               : 150
+- warehouse.fact_sales              : 873
+- warehouse.fact_returns            : 150
+2026-11-16T21:16:09.895312+07:00 | WARNING | pipeline.alerts | pipeline_email_skipped | status=SUCCESS
+========================================================================
+PIPELINE SUCCESS
+========================================================================
+Run ID          : 7eda090a-37c2-4262-a507-73a100827e8b
+Pipeline        : ecommerce_sales_pipeline
+Mulai           : 2026-11-16T21:16:10.045396+07:00
+Selesai         : 2026-11-16T21:16:12.454388+07:00
+Durasi          : 2.409 Detik
+
+RINGKASAN RECORD
+- Kandidat Transaksi kanal : 1
+- Kandidat Master Produk   : 0
+- Baris Promo diproses     : 0
+- Kandidat Return baru     : 0
+- Total baris semua sumber : 1
+
+RINCIAN PER SUMBER
+- Master Produk: sumber 30 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Master Promo: katalog 34 | valid katalog 24 | baru/berubah 0 | ditolak 0 | duplikat 0 | Kode promo cocok 587/587
+- SHOPEE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- TOKOPEDIA: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- WEBSITE: sumber 245 | kandidat 1 | valid 1 | ditolak 0 | duplikat dilewati 0
+- OFFLINE_STORE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Return: sumber 150 | berubah 0 | valid 0 | ditolak 0 | duplikat 0
+
+RAW LAYER
+- Transaksi kanal baru/berubah: 1 | Raw ditambah 1 | total Raw: 906
+- Master Produk baru/berubah: 0 | Raw ditambah 0 | total Raw: 30
+- Master Promo baru/berubah: 0 | Raw ditambah 0 | total Raw: 34
+- Return baru/berubah: 0 | Raw ditambah 0 | total Raw: 150
+
+QUALITY CHECK — SALES
+
+QUALITY CHECK — RETURN
+- Tidak dijalankan karena tidak ada data baru atau perubahan.
+
+STAGING LAYER
+- Sales lolos ke Staging: 1
+- Sales dimuat ke Staging: 1
+- Return lolos ke Staging: 0
+- Return dimuat ke Staging: 0
+
+WAREHOUSE LAYER
+- Fact Sales siap dimuat : 1
+- Fact Sales baru        : 0
+- Fact Sales diperbarui  : 1
+- Total Fact Sales ditulis: 1
+- Fact Return siap dimuat: 0
+- Fact Return baru       : 0
+- Fact Return diperbarui : 0
+- Total Fact Return ditulis: 0
+
+JUMLAH BARIS DALAM DATABASE
+- raw.shopee_orders                 : 220
+- raw.tokopedia_transactions        : 220
+- raw.website_transactions          : 246
+- raw.offline_store_sales           : 220
+- raw.product_master                : 30
+- raw.promo_master                  : 34
+- raw.return_events                 : 150
+- staging.stg_sales                 : 873
+- staging.stg_returns               : 150
+- warehouse.fact_sales              : 873
+- warehouse.fact_returns            : 150
+2026-11-16T21:16:12.471494+07:00 | WARNING | pipeline.alerts | pipeline_email_skipped | status=SUCCESS
+========================================================================
+PIPELINE SUCCESS
+========================================================================
+Run ID          : d48a43b8-a986-49bf-8e8b-55122521ab55
+Pipeline        : ecommerce_sales_pipeline
+Mulai           : 2026-11-16T21:16:12.647269+07:00
+Selesai         : 2026-11-16T21:16:15.250267+07:00
+Durasi          : 2.603 Detik
+
+RINGKASAN RECORD
+- Kandidat Transaksi kanal : 1
+- Kandidat Master Produk   : 0
+- Baris Promo diproses     : 0
+- Kandidat Return baru     : 0
+- Total baris semua sumber : 1
+
+RINCIAN PER SUMBER
+- Master Produk: sumber 30 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Master Promo: katalog 34 | valid katalog 24 | baru/berubah 0 | ditolak 0 | duplikat 0 | Kode promo cocok 587/587
+- SHOPEE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- TOKOPEDIA: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- WEBSITE: sumber 245 | kandidat 1 | valid 0 | ditolak 1 | duplikat dilewati 0
+- OFFLINE_STORE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Return: sumber 150 | berubah 0 | valid 0 | ditolak 0 | duplikat 0
+
+RAW LAYER
+- Transaksi kanal baru/berubah: 1 | Raw ditambah 1 | total Raw: 907
+- Master Produk baru/berubah: 0 | Raw ditambah 0 | total Raw: 30
+- Master Promo baru/berubah: 0 | Raw ditambah 0 | total Raw: 34
+- Return baru/berubah: 0 | Raw ditambah 0 | total Raw: 150
+
+QUALITY CHECK — SALES
+- Kuantitas tidak valid: 1 (quantity: 1)
+
+QUALITY CHECK — RETURN
+- Tidak dijalankan karena tidak ada data baru atau perubahan.
+
+STAGING LAYER
+- Sales lolos ke Staging: 0
+- Sales dimuat ke Staging: 0
+- Return lolos ke Staging: 0
+- Return dimuat ke Staging: 0
+
+WAREHOUSE LAYER
+- Fact Sales siap dimuat : 0
+- Fact Sales baru        : 0
+- Fact Sales diperbarui  : 0
+- Total Fact Sales ditulis: 0
+- Fact Return siap dimuat: 0
+- Fact Return baru       : 0
+- Fact Return diperbarui : 0
+- Total Fact Return ditulis: 0
+
+JUMLAH BARIS DALAM DATABASE
+- raw.shopee_orders                 : 220
+- raw.tokopedia_transactions        : 220
+- raw.website_transactions          : 247
+- raw.offline_store_sales           : 220
+- raw.product_master                : 30
+- raw.promo_master                  : 34
+- raw.return_events                 : 150
+- staging.stg_sales                 : 873
+- staging.stg_returns               : 150
+- warehouse.fact_sales              : 873
+- warehouse.fact_returns            : 150
+2026-11-16T21:16:15.274089+07:00 | WARNING | pipeline.alerts | pipeline_email_skipped | status=SUCCESS
+========================================================================
+PIPELINE SUCCESS
+========================================================================
+Run ID          : 669c8eaf-5cd0-4ca1-be38-c2e2121ebb4b
+Pipeline        : ecommerce_sales_pipeline
+Mulai           : 2026-11-16T21:16:16.842311+07:00
+Selesai         : 2026-11-16T21:16:20.388131+07:00
+Durasi          : 3.546 Detik
+
+RINGKASAN RECORD
+- Kandidat Transaksi kanal : 1
+- Kandidat Master Produk   : 0
+- Baris Promo diproses     : 0
+- Kandidat Return baru     : 0
+- Total baris semua sumber : 1
+
+RINCIAN PER SUMBER
+- Master Produk: sumber 30 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Master Promo: katalog 34 | valid katalog 24 | baru/berubah 0 | ditolak 0 | duplikat 0 | Kode promo cocok 587/587
+- SHOPEE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- TOKOPEDIA: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- WEBSITE: sumber 245 | kandidat 1 | valid 1 | ditolak 0 | duplikat dilewati 0
+- OFFLINE_STORE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Return: sumber 150 | berubah 0 | valid 0 | ditolak 0 | duplikat 0
+
+RAW LAYER
+- Transaksi kanal baru/berubah: 1 | Raw ditambah 1 | total Raw: 908
+- Master Produk baru/berubah: 0 | Raw ditambah 0 | total Raw: 30
+- Master Promo baru/berubah: 0 | Raw ditambah 0 | total Raw: 34
+- Return baru/berubah: 0 | Raw ditambah 0 | total Raw: 150
+
+QUALITY CHECK — SALES
+
+QUALITY CHECK — RETURN
+- Tidak dijalankan karena tidak ada data baru atau perubahan.
+
+STAGING LAYER
+- Sales lolos ke Staging: 1
+- Sales dimuat ke Staging: 1
+- Return lolos ke Staging: 0
+- Return dimuat ke Staging: 0
+
+WAREHOUSE LAYER
+- Fact Sales siap dimuat : 1
+- Fact Sales baru        : 0
+- Fact Sales diperbarui  : 0
+- Total Fact Sales ditulis: 0
+- Fact Return siap dimuat: 0
+- Fact Return baru       : 0
+- Fact Return diperbarui : 0
+- Total Fact Return ditulis: 0
+
+JUMLAH BARIS DALAM DATABASE
+- raw.shopee_orders                 : 220
+- raw.tokopedia_transactions        : 220
+- raw.website_transactions          : 248
+- raw.offline_store_sales           : 220
+- raw.product_master                : 30
+- raw.promo_master                  : 34
+- raw.return_events                 : 150
+- staging.stg_sales                 : 873
+- staging.stg_returns               : 150
+- warehouse.fact_sales              : 873
+- warehouse.fact_returns            : 150
+2026-11-16T21:16:20.403489+07:00 | WARNING | pipeline.alerts | pipeline_email_skipped | status=SUCCESS
+========================================================================
+PIPELINE SUCCESS
+========================================================================
+Run ID          : 3be643f0-0923-4267-b9d2-0048d08c5015
+Pipeline        : ecommerce_sales_pipeline
+Mulai           : 2026-11-16T21:16:20.535467+07:00
+Selesai         : 2026-11-16T21:16:22.743709+07:00
+Durasi          : 2.208 Detik
+
+RINGKASAN RECORD
+- Kandidat Transaksi kanal : 1
+- Kandidat Master Produk   : 0
+- Baris Promo diproses     : 0
+- Kandidat Return baru     : 0
+- Total baris semua sumber : 1
+
+RINCIAN PER SUMBER
+- Master Produk: sumber 30 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Master Promo: katalog 34 | valid katalog 24 | baru/berubah 0 | ditolak 0 | duplikat 0 | Kode promo cocok 587/587
+- SHOPEE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- TOKOPEDIA: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- WEBSITE: sumber 246 | kandidat 1 | valid 1 | ditolak 0 | duplikat dilewati 0
+- OFFLINE_STORE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Return: sumber 150 | berubah 0 | valid 0 | ditolak 0 | duplikat 0
+
+RAW LAYER
+- Transaksi kanal baru/berubah: 1 | Raw ditambah 1 | total Raw: 909
+- Master Produk baru/berubah: 0 | Raw ditambah 0 | total Raw: 30
+- Master Promo baru/berubah: 0 | Raw ditambah 0 | total Raw: 34
+- Return baru/berubah: 0 | Raw ditambah 0 | total Raw: 150
+
+QUALITY CHECK — SALES
+
+QUALITY CHECK — RETURN
+- Tidak dijalankan karena tidak ada data baru atau perubahan.
+
+STAGING LAYER
+- Sales lolos ke Staging: 1
+- Sales dimuat ke Staging: 1
+- Return lolos ke Staging: 0
+- Return dimuat ke Staging: 0
+
+WAREHOUSE LAYER
+- Fact Sales siap dimuat : 1
+- Fact Sales baru        : 1
+- Fact Sales diperbarui  : 0
+- Total Fact Sales ditulis: 1
+- Fact Return siap dimuat: 0
+- Fact Return baru       : 0
+- Fact Return diperbarui : 0
+- Total Fact Return ditulis: 0
+
+JUMLAH BARIS DALAM DATABASE
+- raw.shopee_orders                 : 220
+- raw.tokopedia_transactions        : 220
+- raw.website_transactions          : 249
+- raw.offline_store_sales           : 220
+- raw.product_master                : 30
+- raw.promo_master                  : 34
+- raw.return_events                 : 150
+- staging.stg_sales                 : 874
+- staging.stg_returns               : 150
+- warehouse.fact_sales              : 874
+- warehouse.fact_returns            : 150
+2026-11-16T21:16:22.753394+07:00 | WARNING | pipeline.alerts | pipeline_email_skipped | status=SUCCESS
+========================================================================
+PIPELINE SUCCESS
+========================================================================
+Run ID          : f85c869d-5ff5-4648-bcde-8f8cf05c2aff
+Pipeline        : ecommerce_sales_pipeline
+Mulai           : 2026-11-16T21:16:22.855241+07:00
+Selesai         : 2026-11-16T21:16:24.710652+07:00
+Durasi          : 1.855 Detik
+
+RINGKASAN RECORD
+- Kandidat Transaksi kanal : 1
+- Kandidat Master Produk   : 0
+- Baris Promo diproses     : 0
+- Kandidat Return baru     : 0
+- Total baris semua sumber : 1
+
+RINCIAN PER SUMBER
+- Master Produk: sumber 30 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Master Promo: katalog 34 | valid katalog 24 | baru/berubah 0 | ditolak 0 | duplikat 0 | Kode promo cocok 587/587
+- SHOPEE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- TOKOPEDIA: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- WEBSITE: sumber 245 | kandidat 1 | valid 1 | ditolak 0 | duplikat dilewati 0
+- OFFLINE_STORE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Return: sumber 150 | berubah 0 | valid 0 | ditolak 0 | duplikat 0
+
+RAW LAYER
+- Transaksi kanal baru/berubah: 1 | Raw ditambah 1 | total Raw: 910
+- Master Produk baru/berubah: 0 | Raw ditambah 0 | total Raw: 30
+- Master Promo baru/berubah: 0 | Raw ditambah 0 | total Raw: 34
+- Return baru/berubah: 0 | Raw ditambah 0 | total Raw: 150
+
+QUALITY CHECK — SALES
+
+QUALITY CHECK — RETURN
+- Tidak dijalankan karena tidak ada data baru atau perubahan.
+
+STAGING LAYER
+- Sales lolos ke Staging: 1
+- Sales dimuat ke Staging: 1
+- Return lolos ke Staging: 0
+- Return dimuat ke Staging: 0
+
+WAREHOUSE LAYER
+- Fact Sales siap dimuat : 1
+- Fact Sales baru        : 0
+- Fact Sales diperbarui  : 1
+- Total Fact Sales ditulis: 1
+- Fact Return siap dimuat: 0
+- Fact Return baru       : 0
+- Fact Return diperbarui : 0
+- Total Fact Return ditulis: 0
+
+JUMLAH BARIS DALAM DATABASE
+- raw.shopee_orders                 : 220
+- raw.tokopedia_transactions        : 220
+- raw.website_transactions          : 250
+- raw.offline_store_sales           : 220
+- raw.product_master                : 30
+- raw.promo_master                  : 34
+- raw.return_events                 : 150
+- staging.stg_sales                 : 874
+- staging.stg_returns               : 150
+- warehouse.fact_sales              : 874
+- warehouse.fact_returns            : 150
+2026-11-16T21:16:24.723498+07:00 | WARNING | pipeline.alerts | pipeline_email_skipped | status=SUCCESS
+========================================================================
+PIPELINE SUCCESS
+========================================================================
+Run ID          : 131edf7c-b48b-4b9d-b9d0-9e2ad05d6bd3
+Pipeline        : ecommerce_sales_pipeline
+Mulai           : 2026-11-16T21:16:24.896385+07:00
+Selesai         : 2026-11-16T21:16:27.159229+07:00
+Durasi          : 2.263 Detik
+
+RINGKASAN RECORD
+- Kandidat Transaksi kanal : 1
+- Kandidat Master Produk   : 0
+- Baris Promo diproses     : 0
+- Kandidat Return baru     : 0
+- Total baris semua sumber : 1
+
+RINCIAN PER SUMBER
+- Master Produk: sumber 30 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Master Promo: katalog 34 | valid katalog 24 | baru/berubah 0 | ditolak 0 | duplikat 0 | Kode promo cocok 587/587
+- SHOPEE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- TOKOPEDIA: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- WEBSITE: sumber 246 | kandidat 1 | valid 1 | ditolak 0 | duplikat dilewati 0
+- OFFLINE_STORE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Return: sumber 150 | berubah 0 | valid 0 | ditolak 0 | duplikat 0
+
+RAW LAYER
+- Transaksi kanal baru/berubah: 1 | Raw ditambah 1 | total Raw: 911
+- Master Produk baru/berubah: 0 | Raw ditambah 0 | total Raw: 30
+- Master Promo baru/berubah: 0 | Raw ditambah 0 | total Raw: 34
+- Return baru/berubah: 0 | Raw ditambah 0 | total Raw: 150
+
+QUALITY CHECK — SALES
+
+QUALITY CHECK — RETURN
+- Tidak dijalankan karena tidak ada data baru atau perubahan.
+
+STAGING LAYER
+- Sales lolos ke Staging: 1
+- Sales dimuat ke Staging: 1
+- Return lolos ke Staging: 0
+- Return dimuat ke Staging: 0
+
+WAREHOUSE LAYER
+- Fact Sales siap dimuat : 1
+- Fact Sales baru        : 0
+- Fact Sales diperbarui  : 1
+- Total Fact Sales ditulis: 1
+- Fact Return siap dimuat: 0
+- Fact Return baru       : 0
+- Fact Return diperbarui : 0
+- Total Fact Return ditulis: 0
+
+JUMLAH BARIS DALAM DATABASE
+- raw.shopee_orders                 : 220
+- raw.tokopedia_transactions        : 220
+- raw.website_transactions          : 251
+- raw.offline_store_sales           : 220
+- raw.product_master                : 30
+- raw.promo_master                  : 34
+- raw.return_events                 : 150
+- staging.stg_sales                 : 874
+- staging.stg_returns               : 150
+- warehouse.fact_sales              : 874
+- warehouse.fact_returns            : 150
+2026-11-16T21:16:27.178761+07:00 | WARNING | pipeline.alerts | pipeline_email_skipped | status=SUCCESS
+========================================================================
+PIPELINE SUCCESS
+========================================================================
+Run ID          : 8a50b2fc-2b56-4364-87f5-a287cd93498b
+Pipeline        : ecommerce_sales_pipeline
+Mulai           : 2026-11-16T21:16:27.300449+07:00
+Selesai         : 2026-11-16T21:16:28.042736+07:00
+Durasi          : 0.493 Detik
+
+RINGKASAN RECORD
+- Kandidat Transaksi kanal : 0
+- Kandidat Master Produk   : 0
+- Baris Promo diproses     : 0
+- Kandidat Return baru     : 0
+- Total baris semua sumber : 0
+
+RINCIAN PER SUMBER
+- Master Produk: sumber 30 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Master Promo: katalog 34 | valid katalog 0 | baru/berubah 0 | ditolak 0 | duplikat 0
+- SHOPEE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- TOKOPEDIA: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- WEBSITE: sumber 245 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- OFFLINE_STORE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Return: sumber 150 | berubah 0 | valid 0 | ditolak 0 | duplikat 0
+
+RAW LAYER
+- Transaksi kanal baru/berubah: 0 | Raw ditambah 0 | total Raw: 911
+- Master Produk baru/berubah: 0 | Raw ditambah 0 | total Raw: 30
+- Master Promo baru/berubah: 0 | Raw ditambah 0 | total Raw: 34
+- Return baru/berubah: 0 | Raw ditambah 0 | total Raw: 150
+
+QUALITY CHECK — SALES
+- Tidak dijalankan karena tidak ada data baru atau perubahan.
+
+QUALITY CHECK — RETURN
+- Tidak dijalankan karena tidak ada data baru atau perubahan.
+
+STAGING LAYER
+- Sales lolos ke Staging: 0
+- Sales dimuat ke Staging: 0
+- Return lolos ke Staging: 0
+- Return dimuat ke Staging: 0
+
+WAREHOUSE LAYER
+- Fact Sales siap dimuat : 0
+- Fact Sales baru        : 0
+- Fact Sales diperbarui  : 0
+- Total Fact Sales ditulis: 0
+- Fact Return siap dimuat: 0
+- Fact Return baru       : 0
+- Fact Return diperbarui : 0
+- Total Fact Return ditulis: 0
+
+JUMLAH BARIS DALAM DATABASE
+- raw.shopee_orders                 : 220
+- raw.tokopedia_transactions        : 220
+- raw.website_transactions          : 251
+- raw.offline_store_sales           : 220
+- raw.product_master                : 30
+- raw.promo_master                  : 34
+- raw.return_events                 : 150
+- staging.stg_sales                 : 874
+- staging.stg_returns               : 150
+- warehouse.fact_sales              : 874
+- warehouse.fact_returns            : 150
+2026-11-16T21:16:28.055777+07:00 | WARNING | pipeline.alerts | pipeline_email_skipped | status=SUCCESS
+========================================================================
+PIPELINE SUCCESS
+========================================================================
+Run ID          : 541ececd-d742-4ed8-bc18-9cb2e6c6b4bd
+Pipeline        : ecommerce_sales_pipeline
+Mulai           : 2026-11-16T21:16:28.181619+07:00
+Selesai         : 2026-11-16T21:16:29.002750+07:00
+Durasi          : 0.451 Detik
+
+RINGKASAN RECORD
+- Kandidat Transaksi kanal : 0
+- Kandidat Master Produk   : 0
+- Baris Promo diproses     : 0
+- Kandidat Return baru     : 0
+- Total baris semua sumber : 0
+
+RINCIAN PER SUMBER
+- Master Produk: sumber 30 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Master Promo: katalog 34 | valid katalog 0 | baru/berubah 0 | ditolak 0 | duplikat 0
+- SHOPEE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- TOKOPEDIA: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- WEBSITE: sumber 0 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- OFFLINE_STORE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Return: sumber 150 | berubah 0 | valid 0 | ditolak 0 | duplikat 0
+
+RAW LAYER
+- Transaksi kanal baru/berubah: 0 | Raw ditambah 0 | total Raw: 911
+- Master Produk baru/berubah: 0 | Raw ditambah 0 | total Raw: 30
+- Master Promo baru/berubah: 0 | Raw ditambah 0 | total Raw: 34
+- Return baru/berubah: 0 | Raw ditambah 0 | total Raw: 150
+
+QUALITY CHECK — SALES
+- Tidak dijalankan karena tidak ada data baru atau perubahan.
+
+QUALITY CHECK — RETURN
+- Tidak dijalankan karena tidak ada data baru atau perubahan.
+
+STAGING LAYER
+- Sales lolos ke Staging: 0
+- Sales dimuat ke Staging: 0
+- Return lolos ke Staging: 0
+- Return dimuat ke Staging: 0
+
+WAREHOUSE LAYER
+- Fact Sales siap dimuat : 0
+- Fact Sales baru        : 0
+- Fact Sales diperbarui  : 0
+- Total Fact Sales ditulis: 0
+- Fact Return siap dimuat: 0
+- Fact Return baru       : 0
+- Fact Return diperbarui : 0
+- Total Fact Return ditulis: 0
+
+JUMLAH BARIS DALAM DATABASE
+- raw.shopee_orders                 : 220
+- raw.tokopedia_transactions        : 220
+- raw.website_transactions          : 251
+- raw.offline_store_sales           : 220
+- raw.product_master                : 30
+- raw.promo_master                  : 34
+- raw.return_events                 : 150
+- staging.stg_sales                 : 874
+- staging.stg_returns               : 150
+- warehouse.fact_sales              : 874
+- warehouse.fact_returns            : 150
+2026-11-16T21:16:29.013512+07:00 | WARNING | pipeline.alerts | pipeline_email_skipped | status=SUCCESS
+========================================================================
+PIPELINE SUCCESS
+========================================================================
+Run ID          : 3b4da841-e7da-478f-9eb6-431cf02701f1
+Pipeline        : ecommerce_sales_pipeline
+Mulai           : 2026-11-16T21:16:29.126494+07:00
+Selesai         : 2026-11-16T21:16:31.867662+07:00
+Durasi          : 2.741 Detik
+
+RINGKASAN RECORD
+- Kandidat Transaksi kanal : 226
+- Kandidat Master Produk   : 0
+- Baris Promo diproses     : 0
+- Kandidat Return baru     : 0
+- Total baris semua sumber : 226
+
+RINCIAN PER SUMBER
+- Master Produk: sumber 30 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Master Promo: katalog 34 | valid katalog 24 | baru/berubah 0 | ditolak 0 | duplikat 0 | Kode promo cocok 587/587
+- SHOPEE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- TOKOPEDIA: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- WEBSITE: sumber 226 | kandidat 226 | valid 218 | ditolak 7 | duplikat dilewati 1
+- OFFLINE_STORE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Return: sumber 150 | berubah 0 | valid 0 | ditolak 0 | duplikat 0
+
+RAW LAYER
+- Transaksi kanal baru/berubah: 226 | Raw ditambah 226 | total Raw: 1137
+- Master Produk baru/berubah: 0 | Raw ditambah 0 | total Raw: 30
+- Master Promo baru/berubah: 0 | Raw ditambah 0 | total Raw: 34
+- Return baru/berubah: 0 | Raw ditambah 0 | total Raw: 150
+
+QUALITY CHECK — SALES
+- Nilai kosong: 2 (quantity: 1, customer_email: 1)
+- Baris terdampak duplikat business key: 3 (business_key: 3)
+- Harga atau amount tidak valid: 1 (total_amount: 1)
+- Status tidak valid: 1 (status: 1)
+- Tanggal tidak valid: 1 (created_at: 1)
+- Produk tidak termapping: 1 (product_identifier: 1)
+
+QUALITY CHECK — RETURN
+- Tidak dijalankan karena tidak ada data baru atau perubahan.
+
+STAGING LAYER
+- Sales lolos ke Staging: 218
+- Sales dimuat ke Staging: 218
+- Return lolos ke Staging: 0
+- Return dimuat ke Staging: 0
+
+WAREHOUSE LAYER
+- Fact Sales siap dimuat : 218
+- Fact Sales baru        : 0
+- Fact Sales diperbarui  : 218
+- Total Fact Sales ditulis: 218
+- Fact Return siap dimuat: 0
+- Fact Return baru       : 0
+- Fact Return diperbarui : 0
+- Total Fact Return ditulis: 0
+
+JUMLAH BARIS DALAM DATABASE
+- raw.shopee_orders                 : 220
+- raw.tokopedia_transactions        : 220
+- raw.website_transactions          : 477
+- raw.offline_store_sales           : 220
+- raw.product_master                : 30
+- raw.promo_master                  : 34
+- raw.return_events                 : 150
+- staging.stg_sales                 : 874
+- staging.stg_returns               : 150
+- warehouse.fact_sales              : 874
+- warehouse.fact_returns            : 150
+2026-11-16T21:16:31.880362+07:00 | WARNING | pipeline.alerts | pipeline_email_skipped | status=SUCCESS
+========================================================================
+PIPELINE SUCCESS
+========================================================================
+Run ID          : 1fd7a7f0-1ba5-4a9e-9d64-1faab9734842
+Pipeline        : ecommerce_sales_pipeline
+Mulai           : 2026-11-16T21:16:33.132087+07:00
+Selesai         : 2026-11-16T21:16:36.040530+07:00
+Durasi          : 2.909 Detik
+
+RINGKASAN RECORD
+- Kandidat Transaksi kanal : 0
+- Kandidat Master Produk   : 0
+- Baris Promo diproses     : 0
+- Kandidat Return baru     : 0
+- Total baris semua sumber : 0
+
+RINCIAN PER SUMBER
+- Master Produk: sumber 30 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Master Promo: katalog 68 | valid katalog 24 | baru/berubah 0 | ditolak 0 | duplikat 44 | Dimensi Promo diproses 24 | Kode promo cocok 587/587
+- SHOPEE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- TOKOPEDIA: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- WEBSITE: sumber 226 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- OFFLINE_STORE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Return: sumber 300 | berubah 0 | valid 0 | ditolak 0 | duplikat 0
+
+RAW LAYER
+- Transaksi kanal baru/berubah: 0 | Raw ditambah 0 | total Raw: 1137
+- Master Produk baru/berubah: 0 | Raw ditambah 0 | total Raw: 30
+- Master Promo baru/berubah: 0 | Raw ditambah 0 | total Raw: 34
+- Return baru/berubah: 0 | Raw ditambah 0 | total Raw: 150
+
+QUALITY CHECK — SALES
+
+QUALITY CHECK — RETURN
+- Tidak dijalankan karena tidak ada data baru atau perubahan.
+
+STAGING LAYER
+- Sales lolos ke Staging: 0
+- Sales dimuat ke Staging: 0
+- Return lolos ke Staging: 0
+- Return dimuat ke Staging: 0
+
+WAREHOUSE LAYER
+- Fact Sales siap dimuat : 0
+- Fact Sales baru        : 0
+- Fact Sales diperbarui  : 0
+- Total Fact Sales ditulis: 0
+- Fact Return siap dimuat: 0
+- Fact Return baru       : 0
+- Fact Return diperbarui : 0
+- Total Fact Return ditulis: 0
+
+JUMLAH BARIS DALAM DATABASE
+- raw.shopee_orders                 : 220
+- raw.tokopedia_transactions        : 220
+- raw.website_transactions          : 477
+- raw.offline_store_sales           : 220
+- raw.product_master                : 30
+- raw.promo_master                  : 34
+- raw.return_events                 : 150
+- staging.stg_sales                 : 874
+- staging.stg_returns               : 150
+- warehouse.fact_sales              : 874
+- warehouse.fact_returns            : 150
+2026-11-16T21:16:36.056362+07:00 | WARNING | pipeline.alerts | pipeline_email_skipped | status=SUCCESS
+========================================================================
+PIPELINE SUCCESS
+========================================================================
+Run ID          : a93a4053-5220-4145-80d0-1fb9ea3a0596
+Pipeline        : ecommerce_sales_pipeline
+Mulai           : 2026-11-16T21:16:36.912528+07:00
+Selesai         : 2026-11-16T21:16:39.272905+07:00
+Durasi          : 2.36 Detik
+
+RINGKASAN RECORD
+- Kandidat Transaksi kanal : 1
+- Kandidat Master Produk   : 0
+- Baris Promo diproses     : 0
+- Kandidat Return baru     : 0
+- Total baris semua sumber : 1
+
+RINCIAN PER SUMBER
+- Master Produk: sumber 30 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Master Promo: katalog 68 | valid katalog 24 | baru/berubah 0 | ditolak 0 | duplikat 0 | Kode promo cocok 587/587
+- SHOPEE: sumber 220 | kandidat 1 | valid 1 | ditolak 0 | duplikat dilewati 0
+- TOKOPEDIA: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- WEBSITE: sumber 226 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- OFFLINE_STORE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Return: sumber 300 | berubah 0 | valid 0 | ditolak 0 | duplikat 0
+
+RAW LAYER
+- Transaksi kanal baru/berubah: 1 | Raw ditambah 1 | total Raw: 1138
+- Master Produk baru/berubah: 0 | Raw ditambah 0 | total Raw: 30
+- Master Promo baru/berubah: 0 | Raw ditambah 0 | total Raw: 34
+- Return baru/berubah: 0 | Raw ditambah 0 | total Raw: 150
+
+QUALITY CHECK — SALES
+
+QUALITY CHECK — RETURN
+- Tidak dijalankan karena tidak ada data baru atau perubahan.
+
+STAGING LAYER
+- Sales lolos ke Staging: 1
+- Sales dimuat ke Staging: 1
+- Return lolos ke Staging: 0
+- Return dimuat ke Staging: 0
+
+WAREHOUSE LAYER
+- Fact Sales siap dimuat : 1
+- Fact Sales baru        : 0
+- Fact Sales diperbarui  : 1
+- Total Fact Sales ditulis: 1
+- Fact Return siap dimuat: 0
+- Fact Return baru       : 0
+- Fact Return diperbarui : 0
+- Total Fact Return ditulis: 0
+
+JUMLAH BARIS DALAM DATABASE
+- raw.shopee_orders                 : 221
+- raw.tokopedia_transactions        : 220
+- raw.website_transactions          : 477
+- raw.offline_store_sales           : 220
+- raw.product_master                : 30
+- raw.promo_master                  : 34
+- raw.return_events                 : 150
+- staging.stg_sales                 : 874
+- staging.stg_returns               : 150
+- warehouse.fact_sales              : 874
+- warehouse.fact_returns            : 150
+2026-11-16T21:16:39.295626+07:00 | WARNING | pipeline.alerts | pipeline_email_skipped | status=SUCCESS
+========================================================================
+PIPELINE SUCCESS
+========================================================================
+Run ID          : 201dddef-ae73-4443-8b2a-f62504d204cb
+Pipeline        : ecommerce_sales_pipeline
+Mulai           : 2026-11-16T21:16:39.674780+07:00
+Selesai         : 2026-11-16T21:16:42.099055+07:00
+Durasi          : 2.424 Detik
+
+RINGKASAN RECORD
+- Kandidat Transaksi kanal : 2
+- Kandidat Master Produk   : 0
+- Baris Promo diproses     : 0
+- Kandidat Return baru     : 2
+- Total baris semua sumber : 4
+
+RINCIAN PER SUMBER
+- Master Produk: sumber 30 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Master Promo: katalog 68 | valid katalog 24 | baru/berubah 0 | ditolak 0 | duplikat 0 | Kode promo cocok 588/588
+- SHOPEE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- TOKOPEDIA: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- WEBSITE: sumber 228 | kandidat 2 | valid 2 | ditolak 0 | duplikat dilewati 0
+- OFFLINE_STORE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Return: sumber 302 | berubah 2 | valid 2 | ditolak 0 | duplikat 0 | Raw ditambah 2 | Staging dimuat 2 | Fact ditulis 2
+
+RAW LAYER
+- Transaksi kanal baru/berubah: 2 | Raw ditambah 2 | total Raw: 1140
+- Master Produk baru/berubah: 0 | Raw ditambah 0 | total Raw: 30
+- Master Promo baru/berubah: 0 | Raw ditambah 0 | total Raw: 34
+- Return baru/berubah: 2 | Raw ditambah 2 | total Raw: 152
+
+QUALITY CHECK — SALES
+
+QUALITY CHECK — RETURN
+- Baris sumber: 302 | berubah: 2 | tidak berubah: 300
+- Diperiksa: 2
+- Valid: 2
+- Ditolak: 0
+- Duplikat: 0
+
+STAGING LAYER
+- Sales lolos ke Staging: 2
+- Sales dimuat ke Staging: 2
+- Return lolos ke Staging: 2
+- Return dimuat ke Staging: 2
+
+WAREHOUSE LAYER
+- Fact Sales siap dimuat : 2
+- Fact Sales baru        : 2
+- Fact Sales diperbarui  : 0
+- Total Fact Sales ditulis: 2
+- Fact Return siap dimuat: 2
+- Fact Return baru       : 2
+- Fact Return diperbarui : 0
+- Total Fact Return ditulis: 2
+
+JUMLAH BARIS DALAM DATABASE
+- raw.shopee_orders                 : 221
+- raw.tokopedia_transactions        : 220
+- raw.website_transactions          : 479
+- raw.offline_store_sales           : 220
+- raw.product_master                : 30
+- raw.promo_master                  : 34
+- raw.return_events                 : 152
+- staging.stg_sales                 : 876
+- staging.stg_returns               : 152
+- warehouse.fact_sales              : 876
+- warehouse.fact_returns            : 152
+2026-11-16T21:16:42.113933+07:00 | WARNING | pipeline.alerts | pipeline_email_skipped | status=SUCCESS
+========================================================================
+PIPELINE SUCCESS
+========================================================================
+Run ID          : d042abe2-195d-4c21-8bdd-daf46493e06d
+Pipeline        : ecommerce_sales_pipeline
+Mulai           : 2026-11-16T21:16:42.457975+07:00
+Selesai         : 2026-11-16T21:16:43.854677+07:00
+Durasi          : 1.397 Detik
+
+RINGKASAN RECORD
+- Kandidat Transaksi kanal : 0
+- Kandidat Master Produk   : 0
+- Baris Promo diproses     : 0
+- Kandidat Return baru     : 1
+- Total baris semua sumber : 1
+
+RINCIAN PER SUMBER
+- Master Produk: sumber 30 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Master Promo: katalog 68 | valid katalog 0 | baru/berubah 0 | ditolak 0 | duplikat 0
+- SHOPEE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- TOKOPEDIA: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- WEBSITE: sumber 228 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- OFFLINE_STORE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Return: sumber 302 | berubah 1 | valid 0 | ditolak 1 | duplikat 0 | Raw ditambah 1
+
+RAW LAYER
+- Transaksi kanal baru/berubah: 0 | Raw ditambah 0 | total Raw: 1140
+- Master Produk baru/berubah: 0 | Raw ditambah 0 | total Raw: 30
+- Master Promo baru/berubah: 0 | Raw ditambah 0 | total Raw: 34
+- Return baru/berubah: 1 | Raw ditambah 1 | total Raw: 153
+
+QUALITY CHECK — SALES
+
+QUALITY CHECK — RETURN
+- Baris sumber: 302 | berubah: 1 | tidak berubah: 301
+- Diperiksa: 1
+- Valid: 0
+- Ditolak: 1
+- Duplikat: 0
+
+- Tanggal tidak valid: 1
+Rincian: return_date harus berformat YYYY-MM-DD: 1
+
+STAGING LAYER
+- Sales lolos ke Staging: 0
+- Sales dimuat ke Staging: 0
+- Return lolos ke Staging: 0
+- Return dimuat ke Staging: 0
+
+WAREHOUSE LAYER
+- Fact Sales siap dimuat : 0
+- Fact Sales baru        : 0
+- Fact Sales diperbarui  : 0
+- Total Fact Sales ditulis: 0
+- Fact Return siap dimuat: 0
+- Fact Return baru       : 0
+- Fact Return diperbarui : 0
+- Total Fact Return ditulis: 0
+
+JUMLAH BARIS DALAM DATABASE
+- raw.shopee_orders                 : 221
+- raw.tokopedia_transactions        : 220
+- raw.website_transactions          : 479
+- raw.offline_store_sales           : 220
+- raw.product_master                : 30
+- raw.promo_master                  : 34
+- raw.return_events                 : 153
+- staging.stg_sales                 : 876
+- staging.stg_returns               : 152
+- warehouse.fact_sales              : 876
+- warehouse.fact_returns            : 152
+2026-11-16T21:16:43.868486+07:00 | WARNING | pipeline.alerts | pipeline_email_skipped | status=SUCCESS
+2026-11-16T21:16:44.658780+07:00 | INFO | pipeline.runner | return_stale_correction_retry_scan | run_id=5e3a020d-dfba-433c-8749-1834d90e4927
+========================================================================
+PIPELINE SUCCESS
+========================================================================
+Run ID          : 5e3a020d-dfba-433c-8749-1834d90e4927
+Pipeline        : ecommerce_sales_pipeline
+Mulai           : 2026-11-16T21:16:44.101137+07:00
+Selesai         : 2026-11-16T21:16:46.000011+07:00
+Durasi          : 1.899 Detik
+
+RINGKASAN RECORD
+- Kandidat Transaksi kanal : 0
+- Kandidat Master Produk   : 0
+- Baris Promo diproses     : 0
+- Kandidat Return baru     : 2
+- Total baris semua sumber : 2
+
+RINCIAN PER SUMBER
+- Master Produk: sumber 30 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Master Promo: katalog 68 | valid katalog 0 | baru/berubah 0 | ditolak 0 | duplikat 0
+- SHOPEE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- TOKOPEDIA: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- WEBSITE: sumber 228 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- OFFLINE_STORE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Return: sumber 302 | berubah 2 | valid 1 | ditolak 0 | duplikat 1 | Raw ditambah 2
+
+RAW LAYER
+- Transaksi kanal baru/berubah: 0 | Raw ditambah 0 | total Raw: 1140
+- Master Produk baru/berubah: 0 | Raw ditambah 0 | total Raw: 30
+- Master Promo baru/berubah: 0 | Raw ditambah 0 | total Raw: 34
+- Return baru/berubah: 2 | Raw ditambah 2 | total Raw: 155
+
+QUALITY CHECK — SALES
+
+QUALITY CHECK — RETURN
+- Baris sumber: 302 | berubah: 2 | tidak berubah: 300
+- Diperiksa: 2
+- Valid: 1
+- Ditolak: 0
+- Duplikat: 1
+
+STAGING LAYER
+- Sales lolos ke Staging: 0
+- Sales dimuat ke Staging: 0
+- Return lolos ke Staging: 1
+- Return dimuat ke Staging: 0
+
+WAREHOUSE LAYER
+- Fact Sales siap dimuat : 0
+- Fact Sales baru        : 0
+- Fact Sales diperbarui  : 0
+- Total Fact Sales ditulis: 0
+- Fact Return siap dimuat: 1
+- Fact Return baru       : 0
+- Fact Return diperbarui : 0
+- Total Fact Return ditulis: 0
+
+JUMLAH BARIS DALAM DATABASE
+- raw.shopee_orders                 : 221
+- raw.tokopedia_transactions        : 220
+- raw.website_transactions          : 479
+- raw.offline_store_sales           : 220
+- raw.product_master                : 30
+- raw.promo_master                  : 34
+- raw.return_events                 : 155
+- staging.stg_sales                 : 876
+- staging.stg_returns               : 152
+- warehouse.fact_sales              : 876
+- warehouse.fact_returns            : 152
+2026-11-16T21:16:46.033906+07:00 | WARNING | pipeline.alerts | pipeline_email_skipped | status=SUCCESS
+========================================================================
+PIPELINE SUCCESS
+========================================================================
+Run ID          : 01947bf1-599a-49e1-a7c1-5108fdfa3f3a
+Pipeline        : ecommerce_sales_pipeline
+Mulai           : 2026-11-16T21:22:22.423943+07:00
+Selesai         : 2026-11-16T21:22:31.811376+07:00
+Durasi          : 9.388 Detik
+
+RINGKASAN RECORD
+- Kandidat Transaksi kanal : 880
+- Kandidat Master Produk   : 30
+- Baris Promo diproses     : 22
+- Kandidat Return baru     : 150
+- Total baris semua sumber : 1082
+
+RINCIAN PER SUMBER
+- Master Produk: sumber 30 | kandidat 30 | valid 20 | ditolak 0 | duplikat dilewati 10 | Raw ditambah 30 | Dimensi Produk diproses 20
+- Master Promo: katalog 22 | valid katalog 12 | baru/berubah 22 | ditolak 0 | duplikat 10 | Raw ditambah 22 | Dimensi Promo diproses 12 | Kode promo cocok 587/587
+- SHOPEE: sumber 220 | kandidat 220 | valid 212 | ditolak 7 | duplikat dilewati 1
+- TOKOPEDIA: sumber 220 | kandidat 220 | valid 212 | ditolak 7 | duplikat dilewati 1
+- WEBSITE: sumber 220 | kandidat 220 | valid 212 | ditolak 7 | duplikat dilewati 1
+- OFFLINE_STORE: sumber 220 | kandidat 220 | valid 212 | ditolak 7 | duplikat dilewati 1
+- Return: sumber 150 | berubah 150 | valid 150 | ditolak 0 | duplikat 0 | Raw ditambah 150 | Staging dimuat 150 | Fact ditulis 150
+
+RAW LAYER
+- Transaksi kanal baru/berubah: 880 | Raw ditambah 880 | total Raw: 880
+- Master Produk baru/berubah: 30 | Raw ditambah 30 | total Raw: 30
+- Master Promo baru/berubah: 22 | Raw ditambah 22 | total Raw: 22
+- Return baru/berubah: 150 | Raw ditambah 150 | total Raw: 150
+
+QUALITY CHECK — SALES
+- Nilai kosong: 8 (qty: 1, customer_name: 1, quantity: 2, buyer_name: 1, customer_email: 1, units: 1, store_city: 1)
+- Baris terdampak duplikat business key: 12 (business_key: 12)
+- Kuantitas tidak valid: 1 (quantity: 1)
+- Harga atau amount tidak valid: 1 (total_amount: 1)
+- Status tidak valid: 5 (status: 5)
+- Tanggal tidak valid: 4 (order_date: 1, transaction_date: 1, created_at: 1, sold_at: 1)
+- Produk tidak termapping: 5 (product_name: 1, item_name: 1, product_identifier: 1, item_description: 2)
+
+QUALITY CHECK — RETURN
+- Baris sumber: 150 | berubah: 150 | tidak berubah: 0
+- Diperiksa: 150
+- Valid: 150
+- Ditolak: 0
+- Duplikat: 0
+
+STAGING LAYER
+- Sales lolos ke Staging: 848
+- Sales dimuat ke Staging: 848
+- Return lolos ke Staging: 150
+- Return dimuat ke Staging: 150
+
+WAREHOUSE LAYER
+- Fact Sales siap dimuat : 848
+- Fact Sales baru        : 848
+- Fact Sales diperbarui  : 0
+- Total Fact Sales ditulis: 848
+- Fact Return siap dimuat: 150
+- Fact Return baru       : 150
+- Fact Return diperbarui : 0
+- Total Fact Return ditulis: 150
+
+JUMLAH BARIS DALAM DATABASE
+- raw.shopee_orders                 : 220
+- raw.tokopedia_transactions        : 220
+- raw.website_transactions          : 220
+- raw.offline_store_sales           : 220
+- raw.product_master                : 30
+- raw.promo_master                  : 22
+- raw.return_events                 : 150
+- staging.stg_sales                 : 848
+- staging.stg_returns               : 150
+- warehouse.fact_sales              : 848
+- warehouse.fact_returns            : 150
+2026-11-16T21:22:31.834256+07:00 | WARNING | pipeline.alerts | pipeline_email_skipped | status=SUCCESS
+========================================================================
+PIPELINE SUCCESS
+========================================================================
+Run ID          : 0208f45d-4156-449e-9003-9a42fd5e96ef
+Pipeline        : ecommerce_sales_pipeline
+Mulai           : 2026-11-16T21:22:32.013788+07:00
+Selesai         : 2026-11-16T21:22:32.744109+07:00
+Durasi          : 0.448 Detik
+
+RINGKASAN RECORD
+- Kandidat Transaksi kanal : 0
+- Kandidat Master Produk   : 0
+- Baris Promo diproses     : 0
+- Kandidat Return baru     : 0
+- Total baris semua sumber : 0
+
+RINCIAN PER SUMBER
+- Master Produk: sumber 30 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Master Promo: katalog 22 | valid katalog 0 | baru/berubah 0 | ditolak 0 | duplikat 0
+- SHOPEE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- TOKOPEDIA: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- WEBSITE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- OFFLINE_STORE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Return: sumber 150 | berubah 0 | valid 0 | ditolak 0 | duplikat 0
+
+RAW LAYER
+- Transaksi kanal baru/berubah: 0 | Raw ditambah 0 | total Raw: 880
+- Master Produk baru/berubah: 0 | Raw ditambah 0 | total Raw: 30
+- Master Promo baru/berubah: 0 | Raw ditambah 0 | total Raw: 22
+- Return baru/berubah: 0 | Raw ditambah 0 | total Raw: 150
+
+QUALITY CHECK — SALES
+- Tidak dijalankan karena tidak ada data baru atau perubahan.
+
+QUALITY CHECK — RETURN
+- Tidak dijalankan karena tidak ada data baru atau perubahan.
+
+STAGING LAYER
+- Sales lolos ke Staging: 0
+- Sales dimuat ke Staging: 0
+- Return lolos ke Staging: 0
+- Return dimuat ke Staging: 0
+
+WAREHOUSE LAYER
+- Fact Sales siap dimuat : 0
+- Fact Sales baru        : 0
+- Fact Sales diperbarui  : 0
+- Total Fact Sales ditulis: 0
+- Fact Return siap dimuat: 0
+- Fact Return baru       : 0
+- Fact Return diperbarui : 0
+- Total Fact Return ditulis: 0
+
+JUMLAH BARIS DALAM DATABASE
+- raw.shopee_orders                 : 220
+- raw.tokopedia_transactions        : 220
+- raw.website_transactions          : 220
+- raw.offline_store_sales           : 220
+- raw.product_master                : 30
+- raw.promo_master                  : 22
+- raw.return_events                 : 150
+- staging.stg_sales                 : 848
+- staging.stg_returns               : 150
+- warehouse.fact_sales              : 848
+- warehouse.fact_returns            : 150
+2026-11-16T21:22:32.757046+07:00 | WARNING | pipeline.alerts | pipeline_email_skipped | status=SUCCESS
+========================================================================
+PIPELINE SUCCESS
+========================================================================
+Run ID          : 7a3cdf7d-53bb-4c5e-b7a6-bbbf57f67931
+Pipeline        : ecommerce_sales_pipeline
+Mulai           : 2026-11-16T21:22:32.946192+07:00
+Selesai         : 2026-11-16T21:22:34.664698+07:00
+Durasi          : 1.719 Detik
+
+RINGKASAN RECORD
+- Kandidat Transaksi kanal : 0
+- Kandidat Master Produk   : 0
+- Baris Promo diproses     : 12
+- Kandidat Return baru     : 0
+- Total baris semua sumber : 12
+
+RINCIAN PER SUMBER
+- Master Produk: sumber 30 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Master Promo: katalog 34 | valid katalog 24 | baru/berubah 12 | ditolak 0 | duplikat 10 | Raw ditambah 12 | Dimensi Promo diproses 24 | Kode promo cocok 587/587
+- SHOPEE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- TOKOPEDIA: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- WEBSITE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- OFFLINE_STORE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Return: sumber 150 | berubah 0 | valid 0 | ditolak 0 | duplikat 0
+
+RAW LAYER
+- Transaksi kanal baru/berubah: 0 | Raw ditambah 0 | total Raw: 880
+- Master Produk baru/berubah: 0 | Raw ditambah 0 | total Raw: 30
+- Master Promo baru/berubah: 12 | Raw ditambah 12 | total Raw: 34
+- Return baru/berubah: 0 | Raw ditambah 0 | total Raw: 150
+
+QUALITY CHECK — SALES
+
+QUALITY CHECK — RETURN
+- Tidak dijalankan karena tidak ada data baru atau perubahan.
+
+STAGING LAYER
+- Sales lolos ke Staging: 0
+- Sales dimuat ke Staging: 0
+- Return lolos ke Staging: 0
+- Return dimuat ke Staging: 0
+
+WAREHOUSE LAYER
+- Fact Sales siap dimuat : 0
+- Fact Sales baru        : 0
+- Fact Sales diperbarui  : 0
+- Total Fact Sales ditulis: 0
+- Fact Return siap dimuat: 0
+- Fact Return baru       : 0
+- Fact Return diperbarui : 0
+- Total Fact Return ditulis: 0
+
+JUMLAH BARIS DALAM DATABASE
+- raw.shopee_orders                 : 220
+- raw.tokopedia_transactions        : 220
+- raw.website_transactions          : 220
+- raw.offline_store_sales           : 220
+- raw.product_master                : 30
+- raw.promo_master                  : 34
+- raw.return_events                 : 150
+- staging.stg_sales                 : 848
+- staging.stg_returns               : 150
+- warehouse.fact_sales              : 848
+- warehouse.fact_returns            : 150
+2026-11-16T21:22:34.679523+07:00 | WARNING | pipeline.alerts | pipeline_email_skipped | status=SUCCESS
+========================================================================
+PIPELINE SUCCESS
+========================================================================
+Run ID          : fc03593b-9ab9-4212-b3ac-3474de2b4847
+Pipeline        : ecommerce_sales_pipeline
+Mulai           : 2026-11-16T21:22:34.777455+07:00
+Selesai         : 2026-11-16T21:22:36.872468+07:00
+Durasi          : 2.095 Detik
+
+RINGKASAN RECORD
+- Kandidat Transaksi kanal : 20
+- Kandidat Master Produk   : 0
+- Baris Promo diproses     : 0
+- Kandidat Return baru     : 0
+- Total baris semua sumber : 20
+
+RINCIAN PER SUMBER
+- Master Produk: sumber 30 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Master Promo: katalog 34 | valid katalog 24 | baru/berubah 0 | ditolak 0 | duplikat 0 | Kode promo cocok 587/587
+- SHOPEE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- TOKOPEDIA: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- WEBSITE: sumber 240 | kandidat 20 | valid 20 | ditolak 0 | duplikat dilewati 0
+- OFFLINE_STORE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Return: sumber 150 | berubah 0 | valid 0 | ditolak 0 | duplikat 0
+
+RAW LAYER
+- Transaksi kanal baru/berubah: 20 | Raw ditambah 20 | total Raw: 900
+- Master Produk baru/berubah: 0 | Raw ditambah 0 | total Raw: 30
+- Master Promo baru/berubah: 0 | Raw ditambah 0 | total Raw: 34
+- Return baru/berubah: 0 | Raw ditambah 0 | total Raw: 150
+
+QUALITY CHECK — SALES
+
+QUALITY CHECK — RETURN
+- Tidak dijalankan karena tidak ada data baru atau perubahan.
+
+STAGING LAYER
+- Sales lolos ke Staging: 20
+- Sales dimuat ke Staging: 20
+- Return lolos ke Staging: 0
+- Return dimuat ke Staging: 0
+
+WAREHOUSE LAYER
+- Fact Sales siap dimuat : 20
+- Fact Sales baru        : 20
+- Fact Sales diperbarui  : 0
+- Total Fact Sales ditulis: 20
+- Fact Return siap dimuat: 0
+- Fact Return baru       : 0
+- Fact Return diperbarui : 0
+- Total Fact Return ditulis: 0
+
+JUMLAH BARIS DALAM DATABASE
+- raw.shopee_orders                 : 220
+- raw.tokopedia_transactions        : 220
+- raw.website_transactions          : 240
+- raw.offline_store_sales           : 220
+- raw.product_master                : 30
+- raw.promo_master                  : 34
+- raw.return_events                 : 150
+- staging.stg_sales                 : 868
+- staging.stg_returns               : 150
+- warehouse.fact_sales              : 868
+- warehouse.fact_returns            : 150
+2026-11-16T21:22:36.890201+07:00 | WARNING | pipeline.alerts | pipeline_email_skipped | status=SUCCESS
+========================================================================
+PIPELINE SUCCESS
+========================================================================
+Run ID          : 25f0745b-9ba9-48a7-9a33-8b570ab2f259
+Pipeline        : ecommerce_sales_pipeline
+Mulai           : 2026-11-16T21:22:37.015777+07:00
+Selesai         : 2026-11-16T21:22:38.692711+07:00
+Durasi          : 1.677 Detik
+
+RINGKASAN RECORD
+- Kandidat Transaksi kanal : 5
+- Kandidat Master Produk   : 0
+- Baris Promo diproses     : 0
+- Kandidat Return baru     : 0
+- Total baris semua sumber : 5
+
+RINCIAN PER SUMBER
+- Master Produk: sumber 30 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Master Promo: katalog 34 | valid katalog 24 | baru/berubah 0 | ditolak 0 | duplikat 0 | Kode promo cocok 587/587
+- SHOPEE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- TOKOPEDIA: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- WEBSITE: sumber 245 | kandidat 5 | valid 5 | ditolak 0 | duplikat dilewati 0
+- OFFLINE_STORE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Return: sumber 150 | berubah 0 | valid 0 | ditolak 0 | duplikat 0
+
+RAW LAYER
+- Transaksi kanal baru/berubah: 5 | Raw ditambah 5 | total Raw: 905
+- Master Produk baru/berubah: 0 | Raw ditambah 0 | total Raw: 30
+- Master Promo baru/berubah: 0 | Raw ditambah 0 | total Raw: 34
+- Return baru/berubah: 0 | Raw ditambah 0 | total Raw: 150
+
+QUALITY CHECK — SALES
+
+QUALITY CHECK — RETURN
+- Tidak dijalankan karena tidak ada data baru atau perubahan.
+
+STAGING LAYER
+- Sales lolos ke Staging: 5
+- Sales dimuat ke Staging: 5
+- Return lolos ke Staging: 0
+- Return dimuat ke Staging: 0
+
+WAREHOUSE LAYER
+- Fact Sales siap dimuat : 5
+- Fact Sales baru        : 5
+- Fact Sales diperbarui  : 0
+- Total Fact Sales ditulis: 5
+- Fact Return siap dimuat: 0
+- Fact Return baru       : 0
+- Fact Return diperbarui : 0
+- Total Fact Return ditulis: 0
+
+JUMLAH BARIS DALAM DATABASE
+- raw.shopee_orders                 : 220
+- raw.tokopedia_transactions        : 220
+- raw.website_transactions          : 245
+- raw.offline_store_sales           : 220
+- raw.product_master                : 30
+- raw.promo_master                  : 34
+- raw.return_events                 : 150
+- staging.stg_sales                 : 873
+- staging.stg_returns               : 150
+- warehouse.fact_sales              : 873
+- warehouse.fact_returns            : 150
+2026-11-16T21:22:38.709871+07:00 | WARNING | pipeline.alerts | pipeline_email_skipped | status=SUCCESS
+========================================================================
+PIPELINE SUCCESS
+========================================================================
+Run ID          : 66038775-ad21-4927-a2be-f38b25dd438d
+Pipeline        : ecommerce_sales_pipeline
+Mulai           : 2026-11-16T21:22:38.813648+07:00
+Selesai         : 2026-11-16T21:22:39.505162+07:00
+Durasi          : 0.441 Detik
+
+RINGKASAN RECORD
+- Kandidat Transaksi kanal : 0
+- Kandidat Master Produk   : 0
+- Baris Promo diproses     : 0
+- Kandidat Return baru     : 0
+- Total baris semua sumber : 0
+
+RINCIAN PER SUMBER
+- Master Produk: sumber 30 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Master Promo: katalog 34 | valid katalog 0 | baru/berubah 0 | ditolak 0 | duplikat 0
+- SHOPEE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- TOKOPEDIA: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- WEBSITE: sumber 245 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- OFFLINE_STORE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Return: sumber 150 | berubah 0 | valid 0 | ditolak 0 | duplikat 0
+
+RAW LAYER
+- Transaksi kanal baru/berubah: 0 | Raw ditambah 0 | total Raw: 905
+- Master Produk baru/berubah: 0 | Raw ditambah 0 | total Raw: 30
+- Master Promo baru/berubah: 0 | Raw ditambah 0 | total Raw: 34
+- Return baru/berubah: 0 | Raw ditambah 0 | total Raw: 150
+
+QUALITY CHECK — SALES
+- Tidak dijalankan karena tidak ada data baru atau perubahan.
+
+QUALITY CHECK — RETURN
+- Tidak dijalankan karena tidak ada data baru atau perubahan.
+
+STAGING LAYER
+- Sales lolos ke Staging: 0
+- Sales dimuat ke Staging: 0
+- Return lolos ke Staging: 0
+- Return dimuat ke Staging: 0
+
+WAREHOUSE LAYER
+- Fact Sales siap dimuat : 0
+- Fact Sales baru        : 0
+- Fact Sales diperbarui  : 0
+- Total Fact Sales ditulis: 0
+- Fact Return siap dimuat: 0
+- Fact Return baru       : 0
+- Fact Return diperbarui : 0
+- Total Fact Return ditulis: 0
+
+JUMLAH BARIS DALAM DATABASE
+- raw.shopee_orders                 : 220
+- raw.tokopedia_transactions        : 220
+- raw.website_transactions          : 245
+- raw.offline_store_sales           : 220
+- raw.product_master                : 30
+- raw.promo_master                  : 34
+- raw.return_events                 : 150
+- staging.stg_sales                 : 873
+- staging.stg_returns               : 150
+- warehouse.fact_sales              : 873
+- warehouse.fact_returns            : 150
+2026-11-16T21:22:39.516942+07:00 | WARNING | pipeline.alerts | pipeline_email_skipped | status=SUCCESS
+========================================================================
+PIPELINE SUCCESS
+========================================================================
+Run ID          : eb4ea20a-a992-48f9-8c3e-ccfa67604a50
+Pipeline        : ecommerce_sales_pipeline
+Mulai           : 2026-11-16T21:22:39.625657+07:00
+Selesai         : 2026-11-16T21:22:41.445594+07:00
+Durasi          : 1.82 Detik
+
+RINGKASAN RECORD
+- Kandidat Transaksi kanal : 1
+- Kandidat Master Produk   : 0
+- Baris Promo diproses     : 0
+- Kandidat Return baru     : 0
+- Total baris semua sumber : 1
+
+RINCIAN PER SUMBER
+- Master Produk: sumber 30 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Master Promo: katalog 34 | valid katalog 24 | baru/berubah 0 | ditolak 0 | duplikat 0 | Kode promo cocok 587/587
+- SHOPEE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- TOKOPEDIA: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- WEBSITE: sumber 245 | kandidat 1 | valid 1 | ditolak 0 | duplikat dilewati 0
+- OFFLINE_STORE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Return: sumber 150 | berubah 0 | valid 0 | ditolak 0 | duplikat 0
+
+RAW LAYER
+- Transaksi kanal baru/berubah: 1 | Raw ditambah 1 | total Raw: 906
+- Master Produk baru/berubah: 0 | Raw ditambah 0 | total Raw: 30
+- Master Promo baru/berubah: 0 | Raw ditambah 0 | total Raw: 34
+- Return baru/berubah: 0 | Raw ditambah 0 | total Raw: 150
+
+QUALITY CHECK — SALES
+
+QUALITY CHECK — RETURN
+- Tidak dijalankan karena tidak ada data baru atau perubahan.
+
+STAGING LAYER
+- Sales lolos ke Staging: 1
+- Sales dimuat ke Staging: 1
+- Return lolos ke Staging: 0
+- Return dimuat ke Staging: 0
+
+WAREHOUSE LAYER
+- Fact Sales siap dimuat : 1
+- Fact Sales baru        : 0
+- Fact Sales diperbarui  : 1
+- Total Fact Sales ditulis: 1
+- Fact Return siap dimuat: 0
+- Fact Return baru       : 0
+- Fact Return diperbarui : 0
+- Total Fact Return ditulis: 0
+
+JUMLAH BARIS DALAM DATABASE
+- raw.shopee_orders                 : 220
+- raw.tokopedia_transactions        : 220
+- raw.website_transactions          : 246
+- raw.offline_store_sales           : 220
+- raw.product_master                : 30
+- raw.promo_master                  : 34
+- raw.return_events                 : 150
+- staging.stg_sales                 : 873
+- staging.stg_returns               : 150
+- warehouse.fact_sales              : 873
+- warehouse.fact_returns            : 150
+2026-11-16T21:22:41.458932+07:00 | WARNING | pipeline.alerts | pipeline_email_skipped | status=SUCCESS
+========================================================================
+PIPELINE SUCCESS
+========================================================================
+Run ID          : 5276249d-184a-48e2-a5e1-3b0c34eb4c99
+Pipeline        : ecommerce_sales_pipeline
+Mulai           : 2026-11-16T21:22:41.585257+07:00
+Selesai         : 2026-11-16T21:22:43.288301+07:00
+Durasi          : 1.703 Detik
+
+RINGKASAN RECORD
+- Kandidat Transaksi kanal : 1
+- Kandidat Master Produk   : 0
+- Baris Promo diproses     : 0
+- Kandidat Return baru     : 0
+- Total baris semua sumber : 1
+
+RINCIAN PER SUMBER
+- Master Produk: sumber 30 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Master Promo: katalog 34 | valid katalog 24 | baru/berubah 0 | ditolak 0 | duplikat 0 | Kode promo cocok 587/587
+- SHOPEE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- TOKOPEDIA: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- WEBSITE: sumber 245 | kandidat 1 | valid 0 | ditolak 1 | duplikat dilewati 0
+- OFFLINE_STORE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Return: sumber 150 | berubah 0 | valid 0 | ditolak 0 | duplikat 0
+
+RAW LAYER
+- Transaksi kanal baru/berubah: 1 | Raw ditambah 1 | total Raw: 907
+- Master Produk baru/berubah: 0 | Raw ditambah 0 | total Raw: 30
+- Master Promo baru/berubah: 0 | Raw ditambah 0 | total Raw: 34
+- Return baru/berubah: 0 | Raw ditambah 0 | total Raw: 150
+
+QUALITY CHECK — SALES
+- Kuantitas tidak valid: 1 (quantity: 1)
+
+QUALITY CHECK — RETURN
+- Tidak dijalankan karena tidak ada data baru atau perubahan.
+
+STAGING LAYER
+- Sales lolos ke Staging: 0
+- Sales dimuat ke Staging: 0
+- Return lolos ke Staging: 0
+- Return dimuat ke Staging: 0
+
+WAREHOUSE LAYER
+- Fact Sales siap dimuat : 0
+- Fact Sales baru        : 0
+- Fact Sales diperbarui  : 0
+- Total Fact Sales ditulis: 0
+- Fact Return siap dimuat: 0
+- Fact Return baru       : 0
+- Fact Return diperbarui : 0
+- Total Fact Return ditulis: 0
+
+JUMLAH BARIS DALAM DATABASE
+- raw.shopee_orders                 : 220
+- raw.tokopedia_transactions        : 220
+- raw.website_transactions          : 247
+- raw.offline_store_sales           : 220
+- raw.product_master                : 30
+- raw.promo_master                  : 34
+- raw.return_events                 : 150
+- staging.stg_sales                 : 873
+- staging.stg_returns               : 150
+- warehouse.fact_sales              : 873
+- warehouse.fact_returns            : 150
+2026-11-16T21:22:43.304943+07:00 | WARNING | pipeline.alerts | pipeline_email_skipped | status=SUCCESS
+========================================================================
+PIPELINE SUCCESS
+========================================================================
+Run ID          : ee63f3ae-deef-4ad8-b1e8-90edeca8de1b
+Pipeline        : ecommerce_sales_pipeline
+Mulai           : 2026-11-16T21:22:44.060866+07:00
+Selesai         : 2026-11-16T21:22:46.033550+07:00
+Durasi          : 1.973 Detik
+
+RINGKASAN RECORD
+- Kandidat Transaksi kanal : 1
+- Kandidat Master Produk   : 0
+- Baris Promo diproses     : 0
+- Kandidat Return baru     : 0
+- Total baris semua sumber : 1
+
+RINCIAN PER SUMBER
+- Master Produk: sumber 30 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Master Promo: katalog 34 | valid katalog 24 | baru/berubah 0 | ditolak 0 | duplikat 0 | Kode promo cocok 587/587
+- SHOPEE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- TOKOPEDIA: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- WEBSITE: sumber 245 | kandidat 1 | valid 1 | ditolak 0 | duplikat dilewati 0
+- OFFLINE_STORE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Return: sumber 150 | berubah 0 | valid 0 | ditolak 0 | duplikat 0
+
+RAW LAYER
+- Transaksi kanal baru/berubah: 1 | Raw ditambah 1 | total Raw: 908
+- Master Produk baru/berubah: 0 | Raw ditambah 0 | total Raw: 30
+- Master Promo baru/berubah: 0 | Raw ditambah 0 | total Raw: 34
+- Return baru/berubah: 0 | Raw ditambah 0 | total Raw: 150
+
+QUALITY CHECK — SALES
+
+QUALITY CHECK — RETURN
+- Tidak dijalankan karena tidak ada data baru atau perubahan.
+
+STAGING LAYER
+- Sales lolos ke Staging: 1
+- Sales dimuat ke Staging: 1
+- Return lolos ke Staging: 0
+- Return dimuat ke Staging: 0
+
+WAREHOUSE LAYER
+- Fact Sales siap dimuat : 1
+- Fact Sales baru        : 0
+- Fact Sales diperbarui  : 0
+- Total Fact Sales ditulis: 0
+- Fact Return siap dimuat: 0
+- Fact Return baru       : 0
+- Fact Return diperbarui : 0
+- Total Fact Return ditulis: 0
+
+JUMLAH BARIS DALAM DATABASE
+- raw.shopee_orders                 : 220
+- raw.tokopedia_transactions        : 220
+- raw.website_transactions          : 248
+- raw.offline_store_sales           : 220
+- raw.product_master                : 30
+- raw.promo_master                  : 34
+- raw.return_events                 : 150
+- staging.stg_sales                 : 873
+- staging.stg_returns               : 150
+- warehouse.fact_sales              : 873
+- warehouse.fact_returns            : 150
+2026-11-16T21:22:46.050877+07:00 | WARNING | pipeline.alerts | pipeline_email_skipped | status=SUCCESS
+========================================================================
+PIPELINE SUCCESS
+========================================================================
+Run ID          : 9076cd38-a072-42df-b761-eeba79c6cd8c
+Pipeline        : ecommerce_sales_pipeline
+Mulai           : 2026-11-16T21:22:46.202822+07:00
+Selesai         : 2026-11-16T21:22:48.109417+07:00
+Durasi          : 1.907 Detik
+
+RINGKASAN RECORD
+- Kandidat Transaksi kanal : 1
+- Kandidat Master Produk   : 0
+- Baris Promo diproses     : 0
+- Kandidat Return baru     : 0
+- Total baris semua sumber : 1
+
+RINCIAN PER SUMBER
+- Master Produk: sumber 30 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Master Promo: katalog 34 | valid katalog 24 | baru/berubah 0 | ditolak 0 | duplikat 0 | Kode promo cocok 587/587
+- SHOPEE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- TOKOPEDIA: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- WEBSITE: sumber 246 | kandidat 1 | valid 1 | ditolak 0 | duplikat dilewati 0
+- OFFLINE_STORE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Return: sumber 150 | berubah 0 | valid 0 | ditolak 0 | duplikat 0
+
+RAW LAYER
+- Transaksi kanal baru/berubah: 1 | Raw ditambah 1 | total Raw: 909
+- Master Produk baru/berubah: 0 | Raw ditambah 0 | total Raw: 30
+- Master Promo baru/berubah: 0 | Raw ditambah 0 | total Raw: 34
+- Return baru/berubah: 0 | Raw ditambah 0 | total Raw: 150
+
+QUALITY CHECK — SALES
+
+QUALITY CHECK — RETURN
+- Tidak dijalankan karena tidak ada data baru atau perubahan.
+
+STAGING LAYER
+- Sales lolos ke Staging: 1
+- Sales dimuat ke Staging: 1
+- Return lolos ke Staging: 0
+- Return dimuat ke Staging: 0
+
+WAREHOUSE LAYER
+- Fact Sales siap dimuat : 1
+- Fact Sales baru        : 1
+- Fact Sales diperbarui  : 0
+- Total Fact Sales ditulis: 1
+- Fact Return siap dimuat: 0
+- Fact Return baru       : 0
+- Fact Return diperbarui : 0
+- Total Fact Return ditulis: 0
+
+JUMLAH BARIS DALAM DATABASE
+- raw.shopee_orders                 : 220
+- raw.tokopedia_transactions        : 220
+- raw.website_transactions          : 249
+- raw.offline_store_sales           : 220
+- raw.product_master                : 30
+- raw.promo_master                  : 34
+- raw.return_events                 : 150
+- staging.stg_sales                 : 874
+- staging.stg_returns               : 150
+- warehouse.fact_sales              : 874
+- warehouse.fact_returns            : 150
+2026-11-16T21:22:48.122811+07:00 | WARNING | pipeline.alerts | pipeline_email_skipped | status=SUCCESS
+========================================================================
+PIPELINE SUCCESS
+========================================================================
+Run ID          : 54ec19a6-51c1-4a71-ac10-e46f5965f3fd
+Pipeline        : ecommerce_sales_pipeline
+Mulai           : 2026-11-16T21:22:48.251946+07:00
+Selesai         : 2026-11-16T21:22:50.017573+07:00
+Durasi          : 1.766 Detik
+
+RINGKASAN RECORD
+- Kandidat Transaksi kanal : 1
+- Kandidat Master Produk   : 0
+- Baris Promo diproses     : 0
+- Kandidat Return baru     : 0
+- Total baris semua sumber : 1
+
+RINCIAN PER SUMBER
+- Master Produk: sumber 30 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Master Promo: katalog 34 | valid katalog 24 | baru/berubah 0 | ditolak 0 | duplikat 0 | Kode promo cocok 587/587
+- SHOPEE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- TOKOPEDIA: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- WEBSITE: sumber 245 | kandidat 1 | valid 1 | ditolak 0 | duplikat dilewati 0
+- OFFLINE_STORE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Return: sumber 150 | berubah 0 | valid 0 | ditolak 0 | duplikat 0
+
+RAW LAYER
+- Transaksi kanal baru/berubah: 1 | Raw ditambah 1 | total Raw: 910
+- Master Produk baru/berubah: 0 | Raw ditambah 0 | total Raw: 30
+- Master Promo baru/berubah: 0 | Raw ditambah 0 | total Raw: 34
+- Return baru/berubah: 0 | Raw ditambah 0 | total Raw: 150
+
+QUALITY CHECK — SALES
+
+QUALITY CHECK — RETURN
+- Tidak dijalankan karena tidak ada data baru atau perubahan.
+
+STAGING LAYER
+- Sales lolos ke Staging: 1
+- Sales dimuat ke Staging: 1
+- Return lolos ke Staging: 0
+- Return dimuat ke Staging: 0
+
+WAREHOUSE LAYER
+- Fact Sales siap dimuat : 1
+- Fact Sales baru        : 0
+- Fact Sales diperbarui  : 1
+- Total Fact Sales ditulis: 1
+- Fact Return siap dimuat: 0
+- Fact Return baru       : 0
+- Fact Return diperbarui : 0
+- Total Fact Return ditulis: 0
+
+JUMLAH BARIS DALAM DATABASE
+- raw.shopee_orders                 : 220
+- raw.tokopedia_transactions        : 220
+- raw.website_transactions          : 250
+- raw.offline_store_sales           : 220
+- raw.product_master                : 30
+- raw.promo_master                  : 34
+- raw.return_events                 : 150
+- staging.stg_sales                 : 874
+- staging.stg_returns               : 150
+- warehouse.fact_sales              : 874
+- warehouse.fact_returns            : 150
+2026-11-16T21:22:50.030373+07:00 | WARNING | pipeline.alerts | pipeline_email_skipped | status=SUCCESS
+========================================================================
+PIPELINE SUCCESS
+========================================================================
+Run ID          : 266ec45a-44ba-4cb6-a0e5-69734f15dab5
+Pipeline        : ecommerce_sales_pipeline
+Mulai           : 2026-11-16T21:22:50.138712+07:00
+Selesai         : 2026-11-16T21:22:52.393336+07:00
+Durasi          : 2.255 Detik
+
+RINGKASAN RECORD
+- Kandidat Transaksi kanal : 1
+- Kandidat Master Produk   : 0
+- Baris Promo diproses     : 0
+- Kandidat Return baru     : 0
+- Total baris semua sumber : 1
+
+RINCIAN PER SUMBER
+- Master Produk: sumber 30 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Master Promo: katalog 34 | valid katalog 24 | baru/berubah 0 | ditolak 0 | duplikat 0 | Kode promo cocok 587/587
+- SHOPEE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- TOKOPEDIA: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- WEBSITE: sumber 246 | kandidat 1 | valid 1 | ditolak 0 | duplikat dilewati 0
+- OFFLINE_STORE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Return: sumber 150 | berubah 0 | valid 0 | ditolak 0 | duplikat 0
+
+RAW LAYER
+- Transaksi kanal baru/berubah: 1 | Raw ditambah 1 | total Raw: 911
+- Master Produk baru/berubah: 0 | Raw ditambah 0 | total Raw: 30
+- Master Promo baru/berubah: 0 | Raw ditambah 0 | total Raw: 34
+- Return baru/berubah: 0 | Raw ditambah 0 | total Raw: 150
+
+QUALITY CHECK — SALES
+
+QUALITY CHECK — RETURN
+- Tidak dijalankan karena tidak ada data baru atau perubahan.
+
+STAGING LAYER
+- Sales lolos ke Staging: 1
+- Sales dimuat ke Staging: 1
+- Return lolos ke Staging: 0
+- Return dimuat ke Staging: 0
+
+WAREHOUSE LAYER
+- Fact Sales siap dimuat : 1
+- Fact Sales baru        : 0
+- Fact Sales diperbarui  : 1
+- Total Fact Sales ditulis: 1
+- Fact Return siap dimuat: 0
+- Fact Return baru       : 0
+- Fact Return diperbarui : 0
+- Total Fact Return ditulis: 0
+
+JUMLAH BARIS DALAM DATABASE
+- raw.shopee_orders                 : 220
+- raw.tokopedia_transactions        : 220
+- raw.website_transactions          : 251
+- raw.offline_store_sales           : 220
+- raw.product_master                : 30
+- raw.promo_master                  : 34
+- raw.return_events                 : 150
+- staging.stg_sales                 : 874
+- staging.stg_returns               : 150
+- warehouse.fact_sales              : 874
+- warehouse.fact_returns            : 150
+2026-11-16T21:22:52.409527+07:00 | WARNING | pipeline.alerts | pipeline_email_skipped | status=SUCCESS
+========================================================================
+PIPELINE SUCCESS
+========================================================================
+Run ID          : 5904dffc-c372-49da-a40b-63ae193563f6
+Pipeline        : ecommerce_sales_pipeline
+Mulai           : 2026-11-16T21:22:52.532271+07:00
+Selesai         : 2026-11-16T21:22:53.380099+07:00
+Durasi          : 0.569 Detik
+
+RINGKASAN RECORD
+- Kandidat Transaksi kanal : 0
+- Kandidat Master Produk   : 0
+- Baris Promo diproses     : 0
+- Kandidat Return baru     : 0
+- Total baris semua sumber : 0
+
+RINCIAN PER SUMBER
+- Master Produk: sumber 30 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Master Promo: katalog 34 | valid katalog 0 | baru/berubah 0 | ditolak 0 | duplikat 0
+- SHOPEE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- TOKOPEDIA: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- WEBSITE: sumber 245 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- OFFLINE_STORE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Return: sumber 150 | berubah 0 | valid 0 | ditolak 0 | duplikat 0
+
+RAW LAYER
+- Transaksi kanal baru/berubah: 0 | Raw ditambah 0 | total Raw: 911
+- Master Produk baru/berubah: 0 | Raw ditambah 0 | total Raw: 30
+- Master Promo baru/berubah: 0 | Raw ditambah 0 | total Raw: 34
+- Return baru/berubah: 0 | Raw ditambah 0 | total Raw: 150
+
+QUALITY CHECK — SALES
+- Tidak dijalankan karena tidak ada data baru atau perubahan.
+
+QUALITY CHECK — RETURN
+- Tidak dijalankan karena tidak ada data baru atau perubahan.
+
+STAGING LAYER
+- Sales lolos ke Staging: 0
+- Sales dimuat ke Staging: 0
+- Return lolos ke Staging: 0
+- Return dimuat ke Staging: 0
+
+WAREHOUSE LAYER
+- Fact Sales siap dimuat : 0
+- Fact Sales baru        : 0
+- Fact Sales diperbarui  : 0
+- Total Fact Sales ditulis: 0
+- Fact Return siap dimuat: 0
+- Fact Return baru       : 0
+- Fact Return diperbarui : 0
+- Total Fact Return ditulis: 0
+
+JUMLAH BARIS DALAM DATABASE
+- raw.shopee_orders                 : 220
+- raw.tokopedia_transactions        : 220
+- raw.website_transactions          : 251
+- raw.offline_store_sales           : 220
+- raw.product_master                : 30
+- raw.promo_master                  : 34
+- raw.return_events                 : 150
+- staging.stg_sales                 : 874
+- staging.stg_returns               : 150
+- warehouse.fact_sales              : 874
+- warehouse.fact_returns            : 150
+2026-11-16T21:22:53.393522+07:00 | WARNING | pipeline.alerts | pipeline_email_skipped | status=SUCCESS
+========================================================================
+PIPELINE SUCCESS
+========================================================================
+Run ID          : e17b68ae-9f24-495e-8de1-b4552065cc6a
+Pipeline        : ecommerce_sales_pipeline
+Mulai           : 2026-11-16T21:22:53.508590+07:00
+Selesai         : 2026-11-16T21:22:54.337550+07:00
+Durasi          : 0.489 Detik
+
+RINGKASAN RECORD
+- Kandidat Transaksi kanal : 0
+- Kandidat Master Produk   : 0
+- Baris Promo diproses     : 0
+- Kandidat Return baru     : 0
+- Total baris semua sumber : 0
+
+RINCIAN PER SUMBER
+- Master Produk: sumber 30 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Master Promo: katalog 34 | valid katalog 0 | baru/berubah 0 | ditolak 0 | duplikat 0
+- SHOPEE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- TOKOPEDIA: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- WEBSITE: sumber 0 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- OFFLINE_STORE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Return: sumber 150 | berubah 0 | valid 0 | ditolak 0 | duplikat 0
+
+RAW LAYER
+- Transaksi kanal baru/berubah: 0 | Raw ditambah 0 | total Raw: 911
+- Master Produk baru/berubah: 0 | Raw ditambah 0 | total Raw: 30
+- Master Promo baru/berubah: 0 | Raw ditambah 0 | total Raw: 34
+- Return baru/berubah: 0 | Raw ditambah 0 | total Raw: 150
+
+QUALITY CHECK — SALES
+- Tidak dijalankan karena tidak ada data baru atau perubahan.
+
+QUALITY CHECK — RETURN
+- Tidak dijalankan karena tidak ada data baru atau perubahan.
+
+STAGING LAYER
+- Sales lolos ke Staging: 0
+- Sales dimuat ke Staging: 0
+- Return lolos ke Staging: 0
+- Return dimuat ke Staging: 0
+
+WAREHOUSE LAYER
+- Fact Sales siap dimuat : 0
+- Fact Sales baru        : 0
+- Fact Sales diperbarui  : 0
+- Total Fact Sales ditulis: 0
+- Fact Return siap dimuat: 0
+- Fact Return baru       : 0
+- Fact Return diperbarui : 0
+- Total Fact Return ditulis: 0
+
+JUMLAH BARIS DALAM DATABASE
+- raw.shopee_orders                 : 220
+- raw.tokopedia_transactions        : 220
+- raw.website_transactions          : 251
+- raw.offline_store_sales           : 220
+- raw.product_master                : 30
+- raw.promo_master                  : 34
+- raw.return_events                 : 150
+- staging.stg_sales                 : 874
+- staging.stg_returns               : 150
+- warehouse.fact_sales              : 874
+- warehouse.fact_returns            : 150
+2026-11-16T21:22:54.353278+07:00 | WARNING | pipeline.alerts | pipeline_email_skipped | status=SUCCESS
+========================================================================
+PIPELINE SUCCESS
+========================================================================
+Run ID          : 1d75d3fc-606e-437c-b17a-79565b8c26fc
+Pipeline        : ecommerce_sales_pipeline
+Mulai           : 2026-11-16T21:22:54.517101+07:00
+Selesai         : 2026-11-16T21:22:57.513142+07:00
+Durasi          : 2.996 Detik
+
+RINGKASAN RECORD
+- Kandidat Transaksi kanal : 226
+- Kandidat Master Produk   : 0
+- Baris Promo diproses     : 0
+- Kandidat Return baru     : 0
+- Total baris semua sumber : 226
+
+RINCIAN PER SUMBER
+- Master Produk: sumber 30 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Master Promo: katalog 34 | valid katalog 24 | baru/berubah 0 | ditolak 0 | duplikat 0 | Kode promo cocok 587/587
+- SHOPEE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- TOKOPEDIA: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- WEBSITE: sumber 226 | kandidat 226 | valid 218 | ditolak 7 | duplikat dilewati 1
+- OFFLINE_STORE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Return: sumber 150 | berubah 0 | valid 0 | ditolak 0 | duplikat 0
+
+RAW LAYER
+- Transaksi kanal baru/berubah: 226 | Raw ditambah 226 | total Raw: 1137
+- Master Produk baru/berubah: 0 | Raw ditambah 0 | total Raw: 30
+- Master Promo baru/berubah: 0 | Raw ditambah 0 | total Raw: 34
+- Return baru/berubah: 0 | Raw ditambah 0 | total Raw: 150
+
+QUALITY CHECK — SALES
+- Nilai kosong: 2 (quantity: 1, customer_email: 1)
+- Baris terdampak duplikat business key: 3 (business_key: 3)
+- Harga atau amount tidak valid: 1 (total_amount: 1)
+- Status tidak valid: 1 (status: 1)
+- Tanggal tidak valid: 1 (created_at: 1)
+- Produk tidak termapping: 1 (product_identifier: 1)
+
+QUALITY CHECK — RETURN
+- Tidak dijalankan karena tidak ada data baru atau perubahan.
+
+STAGING LAYER
+- Sales lolos ke Staging: 218
+- Sales dimuat ke Staging: 218
+- Return lolos ke Staging: 0
+- Return dimuat ke Staging: 0
+
+WAREHOUSE LAYER
+- Fact Sales siap dimuat : 218
+- Fact Sales baru        : 0
+- Fact Sales diperbarui  : 218
+- Total Fact Sales ditulis: 218
+- Fact Return siap dimuat: 0
+- Fact Return baru       : 0
+- Fact Return diperbarui : 0
+- Total Fact Return ditulis: 0
+
+JUMLAH BARIS DALAM DATABASE
+- raw.shopee_orders                 : 220
+- raw.tokopedia_transactions        : 220
+- raw.website_transactions          : 477
+- raw.offline_store_sales           : 220
+- raw.product_master                : 30
+- raw.promo_master                  : 34
+- raw.return_events                 : 150
+- staging.stg_sales                 : 874
+- staging.stg_returns               : 150
+- warehouse.fact_sales              : 874
+- warehouse.fact_returns            : 150
+2026-11-16T21:22:57.531672+07:00 | WARNING | pipeline.alerts | pipeline_email_skipped | status=SUCCESS
+========================================================================
+PIPELINE SUCCESS
+========================================================================
+Run ID          : 5e1cd547-b0b4-44cd-bb91-b6c3f15bef58
+Pipeline        : ecommerce_sales_pipeline
+Mulai           : 2026-11-16T21:22:58.752686+07:00
+Selesai         : 2026-11-16T21:23:00.567741+07:00
+Durasi          : 1.815 Detik
+
+RINGKASAN RECORD
+- Kandidat Transaksi kanal : 0
+- Kandidat Master Produk   : 0
+- Baris Promo diproses     : 0
+- Kandidat Return baru     : 0
+- Total baris semua sumber : 0
+
+RINCIAN PER SUMBER
+- Master Produk: sumber 30 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Master Promo: katalog 68 | valid katalog 24 | baru/berubah 0 | ditolak 0 | duplikat 44 | Dimensi Promo diproses 24 | Kode promo cocok 587/587
+- SHOPEE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- TOKOPEDIA: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- WEBSITE: sumber 226 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- OFFLINE_STORE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Return: sumber 300 | berubah 0 | valid 0 | ditolak 0 | duplikat 0
+
+RAW LAYER
+- Transaksi kanal baru/berubah: 0 | Raw ditambah 0 | total Raw: 1137
+- Master Produk baru/berubah: 0 | Raw ditambah 0 | total Raw: 30
+- Master Promo baru/berubah: 0 | Raw ditambah 0 | total Raw: 34
+- Return baru/berubah: 0 | Raw ditambah 0 | total Raw: 150
+
+QUALITY CHECK — SALES
+
+QUALITY CHECK — RETURN
+- Tidak dijalankan karena tidak ada data baru atau perubahan.
+
+STAGING LAYER
+- Sales lolos ke Staging: 0
+- Sales dimuat ke Staging: 0
+- Return lolos ke Staging: 0
+- Return dimuat ke Staging: 0
+
+WAREHOUSE LAYER
+- Fact Sales siap dimuat : 0
+- Fact Sales baru        : 0
+- Fact Sales diperbarui  : 0
+- Total Fact Sales ditulis: 0
+- Fact Return siap dimuat: 0
+- Fact Return baru       : 0
+- Fact Return diperbarui : 0
+- Total Fact Return ditulis: 0
+
+JUMLAH BARIS DALAM DATABASE
+- raw.shopee_orders                 : 220
+- raw.tokopedia_transactions        : 220
+- raw.website_transactions          : 477
+- raw.offline_store_sales           : 220
+- raw.product_master                : 30
+- raw.promo_master                  : 34
+- raw.return_events                 : 150
+- staging.stg_sales                 : 874
+- staging.stg_returns               : 150
+- warehouse.fact_sales              : 874
+- warehouse.fact_returns            : 150
+2026-11-16T21:23:00.582990+07:00 | WARNING | pipeline.alerts | pipeline_email_skipped | status=SUCCESS
+========================================================================
+PIPELINE SUCCESS
+========================================================================
+Run ID          : 681c4251-cc17-49c7-a87f-ba26d8ab3389
+Pipeline        : ecommerce_sales_pipeline
+Mulai           : 2026-11-16T21:23:01.321077+07:00
+Selesai         : 2026-11-16T21:23:04.155641+07:00
+Durasi          : 2.835 Detik
+
+RINGKASAN RECORD
+- Kandidat Transaksi kanal : 1
+- Kandidat Master Produk   : 0
+- Baris Promo diproses     : 0
+- Kandidat Return baru     : 0
+- Total baris semua sumber : 1
+
+RINCIAN PER SUMBER
+- Master Produk: sumber 30 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Master Promo: katalog 68 | valid katalog 24 | baru/berubah 0 | ditolak 0 | duplikat 0 | Kode promo cocok 587/587
+- SHOPEE: sumber 220 | kandidat 1 | valid 1 | ditolak 0 | duplikat dilewati 0
+- TOKOPEDIA: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- WEBSITE: sumber 226 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- OFFLINE_STORE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Return: sumber 300 | berubah 0 | valid 0 | ditolak 0 | duplikat 0
+
+RAW LAYER
+- Transaksi kanal baru/berubah: 1 | Raw ditambah 1 | total Raw: 1138
+- Master Produk baru/berubah: 0 | Raw ditambah 0 | total Raw: 30
+- Master Promo baru/berubah: 0 | Raw ditambah 0 | total Raw: 34
+- Return baru/berubah: 0 | Raw ditambah 0 | total Raw: 150
+
+QUALITY CHECK — SALES
+
+QUALITY CHECK — RETURN
+- Tidak dijalankan karena tidak ada data baru atau perubahan.
+
+STAGING LAYER
+- Sales lolos ke Staging: 1
+- Sales dimuat ke Staging: 1
+- Return lolos ke Staging: 0
+- Return dimuat ke Staging: 0
+
+WAREHOUSE LAYER
+- Fact Sales siap dimuat : 1
+- Fact Sales baru        : 0
+- Fact Sales diperbarui  : 1
+- Total Fact Sales ditulis: 1
+- Fact Return siap dimuat: 0
+- Fact Return baru       : 0
+- Fact Return diperbarui : 0
+- Total Fact Return ditulis: 0
+
+JUMLAH BARIS DALAM DATABASE
+- raw.shopee_orders                 : 221
+- raw.tokopedia_transactions        : 220
+- raw.website_transactions          : 477
+- raw.offline_store_sales           : 220
+- raw.product_master                : 30
+- raw.promo_master                  : 34
+- raw.return_events                 : 150
+- staging.stg_sales                 : 874
+- staging.stg_returns               : 150
+- warehouse.fact_sales              : 874
+- warehouse.fact_returns            : 150
+2026-11-16T21:23:04.171648+07:00 | WARNING | pipeline.alerts | pipeline_email_skipped | status=SUCCESS
+========================================================================
+PIPELINE SUCCESS
+========================================================================
+Run ID          : 47446b0f-33b6-48b1-b840-149e2bed0964
+Pipeline        : ecommerce_sales_pipeline
+Mulai           : 2026-11-16T21:23:04.527564+07:00
+Selesai         : 2026-11-16T21:23:06.658625+07:00
+Durasi          : 2.131 Detik
+
+RINGKASAN RECORD
+- Kandidat Transaksi kanal : 2
+- Kandidat Master Produk   : 0
+- Baris Promo diproses     : 0
+- Kandidat Return baru     : 2
+- Total baris semua sumber : 4
+
+RINCIAN PER SUMBER
+- Master Produk: sumber 30 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Master Promo: katalog 68 | valid katalog 24 | baru/berubah 0 | ditolak 0 | duplikat 0 | Kode promo cocok 588/588
+- SHOPEE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- TOKOPEDIA: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- WEBSITE: sumber 228 | kandidat 2 | valid 2 | ditolak 0 | duplikat dilewati 0
+- OFFLINE_STORE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Return: sumber 302 | berubah 2 | valid 2 | ditolak 0 | duplikat 0 | Raw ditambah 2 | Staging dimuat 2 | Fact ditulis 2
+
+RAW LAYER
+- Transaksi kanal baru/berubah: 2 | Raw ditambah 2 | total Raw: 1140
+- Master Produk baru/berubah: 0 | Raw ditambah 0 | total Raw: 30
+- Master Promo baru/berubah: 0 | Raw ditambah 0 | total Raw: 34
+- Return baru/berubah: 2 | Raw ditambah 2 | total Raw: 152
+
+QUALITY CHECK — SALES
+
+QUALITY CHECK — RETURN
+- Baris sumber: 302 | berubah: 2 | tidak berubah: 300
+- Diperiksa: 2
+- Valid: 2
+- Ditolak: 0
+- Duplikat: 0
+
+STAGING LAYER
+- Sales lolos ke Staging: 2
+- Sales dimuat ke Staging: 2
+- Return lolos ke Staging: 2
+- Return dimuat ke Staging: 2
+
+WAREHOUSE LAYER
+- Fact Sales siap dimuat : 2
+- Fact Sales baru        : 2
+- Fact Sales diperbarui  : 0
+- Total Fact Sales ditulis: 2
+- Fact Return siap dimuat: 2
+- Fact Return baru       : 2
+- Fact Return diperbarui : 0
+- Total Fact Return ditulis: 2
+
+JUMLAH BARIS DALAM DATABASE
+- raw.shopee_orders                 : 221
+- raw.tokopedia_transactions        : 220
+- raw.website_transactions          : 479
+- raw.offline_store_sales           : 220
+- raw.product_master                : 30
+- raw.promo_master                  : 34
+- raw.return_events                 : 152
+- staging.stg_sales                 : 876
+- staging.stg_returns               : 152
+- warehouse.fact_sales              : 876
+- warehouse.fact_returns            : 152
+2026-11-16T21:23:06.673792+07:00 | WARNING | pipeline.alerts | pipeline_email_skipped | status=SUCCESS
+========================================================================
+PIPELINE SUCCESS
+========================================================================
+Run ID          : f1d8d4c6-252a-4c91-b149-ac31590ee583
+Pipeline        : ecommerce_sales_pipeline
+Mulai           : 2026-11-16T21:23:06.950361+07:00
+Selesai         : 2026-11-16T21:23:08.291970+07:00
+Durasi          : 1.342 Detik
+
+RINGKASAN RECORD
+- Kandidat Transaksi kanal : 0
+- Kandidat Master Produk   : 0
+- Baris Promo diproses     : 0
+- Kandidat Return baru     : 1
+- Total baris semua sumber : 1
+
+RINCIAN PER SUMBER
+- Master Produk: sumber 30 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Master Promo: katalog 68 | valid katalog 0 | baru/berubah 0 | ditolak 0 | duplikat 0
+- SHOPEE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- TOKOPEDIA: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- WEBSITE: sumber 228 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- OFFLINE_STORE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Return: sumber 302 | berubah 1 | valid 0 | ditolak 1 | duplikat 0 | Raw ditambah 1
+
+RAW LAYER
+- Transaksi kanal baru/berubah: 0 | Raw ditambah 0 | total Raw: 1140
+- Master Produk baru/berubah: 0 | Raw ditambah 0 | total Raw: 30
+- Master Promo baru/berubah: 0 | Raw ditambah 0 | total Raw: 34
+- Return baru/berubah: 1 | Raw ditambah 1 | total Raw: 153
+
+QUALITY CHECK — SALES
+
+QUALITY CHECK — RETURN
+- Baris sumber: 302 | berubah: 1 | tidak berubah: 301
+- Diperiksa: 1
+- Valid: 0
+- Ditolak: 1
+- Duplikat: 0
+
+- Tanggal tidak valid: 1
+Rincian: return_date harus berformat YYYY-MM-DD: 1
+
+STAGING LAYER
+- Sales lolos ke Staging: 0
+- Sales dimuat ke Staging: 0
+- Return lolos ke Staging: 0
+- Return dimuat ke Staging: 0
+
+WAREHOUSE LAYER
+- Fact Sales siap dimuat : 0
+- Fact Sales baru        : 0
+- Fact Sales diperbarui  : 0
+- Total Fact Sales ditulis: 0
+- Fact Return siap dimuat: 0
+- Fact Return baru       : 0
+- Fact Return diperbarui : 0
+- Total Fact Return ditulis: 0
+
+JUMLAH BARIS DALAM DATABASE
+- raw.shopee_orders                 : 221
+- raw.tokopedia_transactions        : 220
+- raw.website_transactions          : 479
+- raw.offline_store_sales           : 220
+- raw.product_master                : 30
+- raw.promo_master                  : 34
+- raw.return_events                 : 153
+- staging.stg_sales                 : 876
+- staging.stg_returns               : 152
+- warehouse.fact_sales              : 876
+- warehouse.fact_returns            : 152
+2026-11-16T21:23:08.313018+07:00 | WARNING | pipeline.alerts | pipeline_email_skipped | status=SUCCESS
+2026-11-16T21:23:09.115147+07:00 | INFO | pipeline.runner | return_stale_correction_retry_scan | run_id=68a47385-9055-4acf-83e9-6f42c5482628
+========================================================================
+PIPELINE SUCCESS
+========================================================================
+Run ID          : 68a47385-9055-4acf-83e9-6f42c5482628
+Pipeline        : ecommerce_sales_pipeline
+Mulai           : 2026-11-16T21:23:08.625394+07:00
+Selesai         : 2026-11-16T21:23:09.870483+07:00
+Durasi          : 1.245 Detik
+
+RINGKASAN RECORD
+- Kandidat Transaksi kanal : 0
+- Kandidat Master Produk   : 0
+- Baris Promo diproses     : 0
+- Kandidat Return baru     : 2
+- Total baris semua sumber : 2
+
+RINCIAN PER SUMBER
+- Master Produk: sumber 30 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Master Promo: katalog 68 | valid katalog 0 | baru/berubah 0 | ditolak 0 | duplikat 0
+- SHOPEE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- TOKOPEDIA: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- WEBSITE: sumber 228 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- OFFLINE_STORE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Return: sumber 302 | berubah 2 | valid 1 | ditolak 0 | duplikat 1 | Raw ditambah 2
+
+RAW LAYER
+- Transaksi kanal baru/berubah: 0 | Raw ditambah 0 | total Raw: 1140
+- Master Produk baru/berubah: 0 | Raw ditambah 0 | total Raw: 30
+- Master Promo baru/berubah: 0 | Raw ditambah 0 | total Raw: 34
+- Return baru/berubah: 2 | Raw ditambah 2 | total Raw: 155
+
+QUALITY CHECK — SALES
+
+QUALITY CHECK — RETURN
+- Baris sumber: 302 | berubah: 2 | tidak berubah: 300
+- Diperiksa: 2
+- Valid: 1
+- Ditolak: 0
+- Duplikat: 1
+
+STAGING LAYER
+- Sales lolos ke Staging: 0
+- Sales dimuat ke Staging: 0
+- Return lolos ke Staging: 1
+- Return dimuat ke Staging: 0
+
+WAREHOUSE LAYER
+- Fact Sales siap dimuat : 0
+- Fact Sales baru        : 0
+- Fact Sales diperbarui  : 0
+- Total Fact Sales ditulis: 0
+- Fact Return siap dimuat: 1
+- Fact Return baru       : 0
+- Fact Return diperbarui : 0
+- Total Fact Return ditulis: 0
+
+JUMLAH BARIS DALAM DATABASE
+- raw.shopee_orders                 : 221
+- raw.tokopedia_transactions        : 220
+- raw.website_transactions          : 479
+- raw.offline_store_sales           : 220
+- raw.product_master                : 30
+- raw.promo_master                  : 34
+- raw.return_events                 : 155
+- staging.stg_sales                 : 876
+- staging.stg_returns               : 152
+- warehouse.fact_sales              : 876
+- warehouse.fact_returns            : 152
+2026-11-16T21:23:09.883928+07:00 | WARNING | pipeline.alerts | pipeline_email_skipped | status=SUCCESS
+========================================================================
+PIPELINE SUCCESS
+========================================================================
+Run ID          : d83f912f-384e-4843-8787-4408ed90d383
+Pipeline        : ecommerce_sales_pipeline
+Mulai           : 2026-11-16T21:23:14.201112+07:00
+Selesai         : 2026-11-16T21:23:16.060569+07:00
+Durasi          : 1.86 Detik
+
+RINGKASAN RECORD
+- Kandidat Transaksi kanal : 1
+- Kandidat Master Produk   : 0
+- Baris Promo diproses     : 0
+- Kandidat Return baru     : 0
+- Total baris semua sumber : 1
+
+RINCIAN PER SUMBER
+- Master Produk: sumber 30 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Master Promo: katalog 22 | valid katalog 12 | baru/berubah 0 | ditolak 0 | duplikat 10 | Dimensi Promo diproses 12 | Kode promo cocok 587/587
+- SHOPEE: sumber 220 | kandidat 1 | valid 1 | ditolak 0 | duplikat dilewati 0
+- TOKOPEDIA: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- WEBSITE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- OFFLINE_STORE: sumber 220 | kandidat 0 | valid 0 | ditolak 0 | duplikat dilewati 0
+- Return: sumber 150 | berubah 0 | valid 0 | ditolak 0 | duplikat 0
+
+RAW LAYER
+- Transaksi kanal baru/berubah: 1 | Raw ditambah 1 | total Raw: 1141
+- Master Produk baru/berubah: 0 | Raw ditambah 0 | total Raw: 30
+- Master Promo baru/berubah: 0 | Raw ditambah 0 | total Raw: 34
+- Return baru/berubah: 0 | Raw ditambah 0 | total Raw: 155
+
+QUALITY CHECK — SALES
+
+QUALITY CHECK — RETURN
+- Tidak dijalankan karena tidak ada data baru atau perubahan.
+
+STAGING LAYER
+- Sales lolos ke Staging: 1
+- Sales dimuat ke Staging: 1
+- Return lolos ke Staging: 0
+- Return dimuat ke Staging: 0
+
+WAREHOUSE LAYER
+- Fact Sales siap dimuat : 1
+- Fact Sales baru        : 0
+- Fact Sales diperbarui  : 1
+- Total Fact Sales ditulis: 1
+- Fact Return siap dimuat: 0
+- Fact Return baru       : 0
+- Fact Return diperbarui : 0
+- Total Fact Return ditulis: 0
+
+JUMLAH BARIS DALAM DATABASE
+- raw.shopee_orders                 : 222
+- raw.tokopedia_transactions        : 220
+- raw.website_transactions          : 479
+- raw.offline_store_sales           : 220
+- raw.product_master                : 30
+- raw.promo_master                  : 34
+- raw.return_events                 : 155
+- staging.stg_sales                 : 876
+- staging.stg_returns               : 152
+- warehouse.fact_sales              : 876
+- warehouse.fact_returns            : 152
+2026-11-16T21:23:16.073178+07:00 | WARNING | pipeline.alerts | pipeline_email_skipped | status=SUCCESS

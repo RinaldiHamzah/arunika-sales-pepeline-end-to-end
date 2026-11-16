@@ -222,13 +222,6 @@ function renderRunExplanation(run) {
   const promoCandidate = valueOf(promo, 'processed');
   const returnCandidate = valueOf(returns, 'processed');
   const totalCandidates = channelCandidates + productCandidate + promoCandidate + returnCandidate;
-  const salesValid = channels.reduce((sum, name) => sum + valueOf(sourceByName[name], 'validated_records'), 0);
-  const productValid = valueOf(sourceByName.PRODUCT_MASTER, 'validated_records');
-  const totalValid = salesValid + productValid + valueOf(promo, 'validated') + valueOf(returns, 'validated');
-  const totalRejected = [...channels, 'PRODUCT_MASTER'].reduce((sum, name) => sum + valueOf(sourceByName[name], 'rejected_records'), 0)
-    + valueOf(promo, 'rejected') + valueOf(returns, 'rejected');
-  const totalDuplicates = [...channels, 'PRODUCT_MASTER'].reduce((sum, name) => sum + valueOf(sourceByName[name], 'duplicate_records'), 0)
-    + valueOf(promo, 'duplicates') + valueOf(returns, 'duplicates');
   const issueLabels = {
     missing_value: 'Nilai kosong',
     duplicate_business_key: 'Duplikat unique key',
@@ -253,14 +246,9 @@ function renderRunExplanation(run) {
   const summarySection = listSection('Ringkasan Record', [
     `Kandidat Transaksi kanal: ${number(channelCandidates)}`,
     `Kandidat Master Produk: ${number(productCandidate)}`,
-    `Kandidat Promo baru: ${number(promoCandidate)}`,
+    `Baris Promo diproses: ${number(promoCandidate)}`,
     `Kandidat Return baru: ${number(returnCandidate)}`,
     `Total baris semua sumber: ${number(totalCandidates)}`,
-    `Total valid: ${number(totalValid)}`,
-    `Total ditolak: ${number(totalRejected)}`,
-    `Total duplikat: ${number(totalDuplicates)}`,
-    `Fact Sales ditulis: ${number(warehouse.facts_written ?? run.loaded_records)}`,
-    `Fact Return ditulis: ${number(returnWarehouse.facts_written ?? returns.warehouse_written)}`,
   ]);
   const sourceDetails = [];
   const sourceQualityByName = Object.fromEntries((quality?.by_source || []).map(source => [source.source_name, source]));
@@ -389,7 +377,7 @@ function renderRunExplanation(run) {
 
 export function renderOperationRows(runs = []) {
   if (!runs.length) {
-    return '<tr><td class="empty" colspan="9">Belum ada pipeline run.</td></tr>';
+    return '<tr><td class="empty" colspan="10">Belum ada pipeline run.</td></tr>';
   }
   return runs.map(run => {
     const returnFacts = run.report_summary?.return_warehouse?.facts_written
@@ -399,6 +387,7 @@ export function renderOperationRows(runs = []) {
         <td class="operation-run-cell" title="${escapeHtml(run.run_id)}">${escapeHtml(String(run.run_id).slice(0, 8))}${renderRunExplanation(run)}</td>
         <td>${statusBadge(run.status)}</td>
         <td>${formatJakartaDateTime(run.started_at)}</td>
+        <td>${formatJakartaDateTime(run.ended_at)}</td>
         <td>${run.duration_seconds == null ? '—' : Number(run.duration_seconds).toFixed(1) + 's'}</td>
         <td>${number(run.extracted_records)}</td>
         <td>${number(run.validated_records)}</td>

@@ -53,7 +53,7 @@
             </div>
             <h3>Tambahkan Batch</h3>
             <p class="helper-text">
-              Upload CSV akan langsung menjalankan pipeline. Tunggu hingga selesai sebelum upload file berikutnya.
+              Upload csv untuk menyimpan data ke file sumber.
             </p>
             <div class="settings-form">
               <label>
@@ -79,13 +79,13 @@
               <button id="upload-button" class="button button-secondary" type="button">Upload CSV</button>
             </div>
             <p id="upload-status" class="upload-status hidden" role="status" aria-live="polite"></p>
-            <p class="settings-footnote">Urutan yang disarankan: Master Produk, Master Promo, kanal penjualan, lalu Return. Setiap upload diproses sebagai satu run; tombol Jalankan tetap tersedia untuk menjalankan ulang secara manual.</p>
+            <p class="settings-footnote">Upload csv bedasarkan sumber data dipilih.</p>
           </section>
 
           <section class="card settings-card pipeline-action-card">
             <div class="settings-card-header">
               <span class="step-number">02</span>
-              <p class="eyebrow">Pantau atau jalankan ulang</p>
+              <p class="eyebrow">Langkah 2 · Proses data tersimpan</p>
             </div>
             <h3>Jalankan Pipeline</h3>
             <p class="pipeline-summary" aria-label="Alur pipeline: CSV Source, Raw Layer, Data Quality, Validasi, Transformasi, Staging, Data Warehouse, SQL Analytics, Dashboard">
@@ -161,6 +161,7 @@
                     <th>Run ID</th>
                     <th>Status</th>
                     <th>Mulai</th>
+                    <th>Selesai</th>
                     <th>Durasi</th>
                     <th title="Transaksi kanal baru atau berubah pada run ini">Kandidat Sales</th>
                     <th>Valid Sales</th>

@@ -68,6 +68,27 @@ def test_html_email_escapes_report_content_and_places_conclusion_last():
     assert body.index("Kesimpulan") > body.index("ERROR")
 
 
+def test_html_email_summary_uses_compact_two_column_metric_cards():
+    body = format_pipeline_report_html({
+        "status": "SUCCESS",
+        "run_id": "run-summary",
+        "started_at": "2026-11-16T10:00:00+07:00",
+        "ended_at": "2026-11-16T10:00:01+07:00",
+        "extracted_records": 44,
+        "validated_records": 32,
+        "rejected_records": 0,
+        "duplicate_records": 12,
+        "loaded_records": 0,
+    })
+
+    assert 'class="summary-cell" width="50%"' in body
+    assert ">Total valid<" not in body
+    assert ">Total ditolak<" not in body
+    assert ">Total duplikat<" not in body
+    assert ">Fact Sales ditulis<" not in body
+    assert ">Fact Return ditulis<" not in body
+
+
 def test_gmail_app_password_spaces_are_removed(monkeypatch):
     events = []
 

@@ -33,6 +33,7 @@ from pipeline.reporting import (
     auxiliary_source_summary,
     database_table_counts,
     outcome_message,
+    quality_result_counts,
     quality_staging_summary,
     run_report_summary,
     summarize_sources,
@@ -316,9 +317,16 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
             snapshots.get(source.source_name, {}).get("file_checksum_sha256") != source.checksum_sha256
             for source in promo_sources
         )
-        promo_deltas = [
+        changed_promo_sources = [
             source for source in promo_sources
             if snapshots.get(source.source_name, {}).get("file_checksum_sha256") != source.checksum_sha256
+        ]
+        promo_deltas = [
+            filter_unseen_rows(
+                source,
+                set(snapshots.get(source.source_name, {}).get("payload_hashes", [])),
+            )
+            for source in changed_promo_sources
         ]
         # Bukti sumber promo harus tersimpan walaupun validasi bisnis kemudian gagal.
         with engine.begin() as connection:
@@ -353,11 +361,6 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
             "incremental_extract",
             lambda: [filter_unseen_rows(source, raw_hashes[source.source_name]) for source in scanned_sources],
         )
-        promo_deltas = [
-            source
-            for source in promo_sources
-            if snapshots.get(source.source_name, {}).get("file_checksum_sha256") != source.checksum_sha256
-        ]
         return_source_hashes = set(snapshots.get("RETURN_EVENTS", {}).get("payload_hashes", []))
         with engine.connect() as connection:
             stale_return_rows = connection.execute(
@@ -513,7 +516,7 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
                     **load_dimensions(connection, product_delta, staging_rows),
                     "promotions": (
                         load_promotion_dimension(connection, promotion_master)
-                        if promotion_master is not None else 0
+                        if promo_changed and promotion_master is not None else 0
                     ),
                 },
             )
@@ -569,7 +572,11 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
                     if detail["source_name"] == "PRODUCT_MASTER"
                     else detail["source_name"].lower().replace("_store", "")
                 )
-                result = quality_results[key].summary
+                result = (
+                    quality_result_counts(quality_results[key], product_source.row_numbers)
+                    if key == "product"
+                    else quality_results[key].summary
+                )
                 detail.update(
                     validated_records=result["valid_records"],
                     rejected_records=result["invalid_records"],
@@ -590,6 +597,7 @@ def _run(engine, source_dir, reserved_run_id, orchestration_run_id):
                     quality_results,
                     passed_to_staging=incremental_count,
                     written_to_staging=staged_count,
+                    selected_row_numbers={"product": product_source.row_numbers},
                 ),
                 eligible_facts=incremental_count,
                 inserted_facts=fact_inserted_count,

@@ -8,7 +8,7 @@
       @media only screen and (max-width: 600px) {
         .email-shell { padding: 10px 5px !important; }
         .hero-cell { padding: 15px !important; }
-        .summary-cell { width: 33.33% !important; padding: 3px !important; }
+        .summary-cell { width: 50% !important; padding: 3px !important; }
         .source-name { white-space: normal !important; }
       }
     </style>
@@ -57,21 +57,18 @@
             {% if section.kind == "summary" %}
             <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
               {% for row in section.rows %}
-                {% if loop.index0 is divisibleby 3 %}<tr>{% endif %}
-                <td class="summary-cell" width="33%" style="width:33.33%;padding:4px;vertical-align:top">
+                {% if loop.index0 is divisibleby 2 %}<tr>{% endif %}
+                <td class="summary-cell" width="50%" style="width:50%;padding:4px;vertical-align:top">
                   <table role="presentation" width="100%" cellspacing="0" cellpadding="0"
                     style="border:1px solid #dce8e5;border-radius:8px;background:#fff">
                     <tr><td style="padding:8px 9px 2px;color:#60736f;font:10px Arial,sans-serif">{{ row.label }}</td></tr>
                     <tr><td style="padding:0 9px 8px;color:#123c35;font:bold 17px Arial,sans-serif">{{ row.value }}</td></tr>
                   </table>
                 </td>
-                {% if loop.last and loop.length % 3 == 1 %}
-                <td class="summary-cell" width="33%" style="width:33.33%;padding:4px"></td>
-                <td class="summary-cell" width="33%" style="width:33.33%;padding:4px"></td>
-                {% elif loop.last and loop.length % 3 == 2 %}
-                <td class="summary-cell" width="33%" style="width:33.33%;padding:4px"></td>
+                {% if loop.last and loop.length is odd %}
+                <td class="summary-cell" width="50%" style="width:50%;padding:4px"></td>
                 {% endif %}
-                {% if loop.index is divisibleby 3 or loop.last %}</tr>{% endif %}
+                {% if loop.index is divisibleby 2 or loop.last %}</tr>{% endif %}
               {% endfor %}
             </table>
             {% elif section.kind == "sources" %}

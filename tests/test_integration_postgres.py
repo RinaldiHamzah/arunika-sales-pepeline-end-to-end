@@ -5,8 +5,10 @@ import json
 import os
 import shutil
 import tempfile
+import time
 from decimal import Decimal
 from pathlib import Path
+from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
@@ -155,6 +157,8 @@ def test_full_pipeline_and_incremental_acceptance(monkeypatch):
         "return_refund.csv",
     ):
         shutil.copy2(ROOT / "data" / "source" / name, source_dir / name)
+    with (source_dir / "return_refund.csv").open(newline="", encoding="utf-8") as file:
+        expected_return_rows = len(list(csv.DictReader(file)))
     (source_dir / "source_manifest.json").write_text(
         json.dumps(
             {
@@ -280,8 +284,8 @@ def test_full_pipeline_and_incremental_acceptance(monkeypatch):
     assert first["staging"] >= before["staging"]
     assert first["facts"] >= before["facts"]
     with engine.connect() as connection:
-        assert connection.execute(text("SELECT COUNT(*) FROM staging.stg_returns")).scalar_one() == 100
-        assert connection.execute(text("SELECT COUNT(*) FROM warehouse.fact_returns")).scalar_one() == 100
+        assert connection.execute(text("SELECT COUNT(*) FROM staging.stg_returns")).scalar_one() == expected_return_rows
+        assert connection.execute(text("SELECT COUNT(*) FROM warehouse.fact_returns")).scalar_one() == expected_return_rows
     assert second["raw"] == first["raw"], "unchanged source rows must not be ingested again"
     assert second["staging"] == first["staging"]
     assert second["return_staging"] == first["return_staging"]
@@ -306,8 +310,44 @@ def test_full_pipeline_and_incremental_acceptance(monkeypatch):
         assert report["source_records"] == report["skipped_unchanged_records"]
         assert report["extracted_records"] == 0
         assert "tanpa data baru atau perubahan" in report["outcome_message"]
-        assert report["report_summary"]["raw"]["product_master"]["new_or_changed"] == 0
+    assert report["report_summary"]["raw"]["product_master"]["new_or_changed"] == 0
     assert duplicate_facts == 0
+
+    # Appending catalog definitions should add only those new rows to Raw,
+    # not duplicate the unchanged catalog rows from the rewritten CSV file.
+    promo_path = source_dir / "promo_master.csv"
+    with promo_path.open(newline="", encoding="utf-8") as file:
+        promo_rows = list(csv.DictReader(file))
+        promo_fields = list(promo_rows[0])
+    promo_batch = uuid4().hex[:10].upper()
+    for index in range(12):
+        promo_rows.append({
+            "promo_code": f"TEST{promo_batch}{index:02d}",
+            "promo_name": f"Promo acceptance {index + 1}",
+            "discount_type": "percentage",
+            "discount_value": "5",
+            "start_date": "2026-01-01",
+            "end_date": "2026-12-31",
+            "status": "active",
+        })
+    with promo_path.open("w", newline="", encoding="utf-8") as file:
+        writer = csv.DictWriter(file, fieldnames=promo_fields)
+        writer.writeheader()
+        writer.writerows(promo_rows)
+    with engine.connect() as connection:
+        promo_raw_before = connection.execute(text("SELECT COUNT(*) FROM raw.promo_master")).scalar_one()
+    promo_run_id = run(source_dir)
+    with engine.connect() as connection:
+        promo_raw_after = connection.execute(text("SELECT COUNT(*) FROM raw.promo_master")).scalar_one()
+        promo_summary = connection.execute(
+            text("SELECT report_summary FROM audit.pipeline_runs WHERE run_id=:run_id"),
+            {"run_id": promo_run_id},
+        ).scalar_one()
+    promo_metrics = next(
+        item for item in promo_summary["auxiliary_sources"] if item["source_name"] == "PROMO_MASTER"
+    )
+    assert promo_raw_after - promo_raw_before == 12
+    assert promo_metrics["processed"] == promo_metrics["raw_inserted"] == 12
 
     _append_valid_website_rows(source_dir, 20)
     run(source_dir)
@@ -421,6 +461,7 @@ def test_full_pipeline_and_incremental_acceptance(monkeypatch):
 
     # Ensure the admin operations API that feeds Settings exposes the warning.
     from dataclasses import replace
+
     from dashboard import routes
     from dashboard.app import app
 
@@ -581,7 +622,7 @@ def test_full_pipeline_and_incremental_acceptance(monkeypatch):
             """),
                 {"order_id": order_id},
             )
-    assert third_successes == second_successes + 1
+    assert third_successes == second_successes + 2  # Satu run promo incremental disisipkan di atas.
 
     from dashboard.app import app
 
@@ -759,6 +800,11 @@ def test_full_pipeline_and_incremental_acceptance(monkeypatch):
         writer = csv.DictWriter(file, fieldnames=return_fields)
         writer.writeheader()
         writer.writerows(return_rows)
+    with engine.connect() as connection:
+        promo_state_before = connection.execute(text("""
+            SELECT COUNT(*) FILTER (WHERE is_active), COUNT(*)
+            FROM warehouse.dim_promotion
+        """)).one()
     invalid_return_run = run(source_dir)
     with engine.connect() as connection:
         stale_return = connection.execute(text("""
@@ -771,10 +817,19 @@ def test_full_pipeline_and_incremental_acceptance(monkeypatch):
             SELECT return_date FROM warehouse.fact_returns
             WHERE source_name='SHOPEE' AND return_id=:return_id AND return_line_number=:line
         """), {"return_id": event_id, "line": event_line}).scalar_one()
+        promo_state = connection.execute(text("""
+            SELECT COUNT(*) FILTER (WHERE is_active), COUNT(*)
+            FROM warehouse.dim_promotion
+        """)).one()
+        invalid_run_summary = connection.execute(text("""
+            SELECT report_summary FROM audit.pipeline_runs WHERE run_id=:run_id
+        """), {"run_id": invalid_return_run}).scalar_one()
     assert stale_return.rejected_run_id == invalid_return_run
     assert stale_return.resolved_at is None
     assert "return_date" in stale_return.rejection_reason
     assert preserved_return_date == original_fact_date
+    assert promo_state == promo_state_before
+    assert invalid_run_summary["dimensions"]["promotions_processed"] == 0
 
     operations_payload = client.get("/api/admin/operations", headers=headers).get_json()
     assert operations_payload["stale_fact_correction_count"] >= 1
@@ -810,3 +865,38 @@ def test_full_pipeline_and_incremental_acceptance(monkeypatch):
         """), {"business_key": f"SHOPEE:{event_id}", "line": event_line}).one()
     assert resolved_return.resolved_at is not None
     assert resolved_return.resolved_run_id == resolved_return_run
+
+    # Exercise the real dashboard worker launcher against this isolated DB,
+    # then run the same source snapshot through Airflow's shared runner task.
+    dashboard_run = client.post("/api/pipeline/run", headers=headers)
+    assert dashboard_run.status_code == 202, dashboard_run.get_json()
+    dashboard_run_id = dashboard_run.get_json()["run_id"]
+    deadline = time.monotonic() + 90
+    dashboard_result = None
+    while time.monotonic() < deadline:
+        progress = client.get(
+            f"/api/pipeline/progress?run_id={dashboard_run_id}", headers=headers
+        )
+        assert progress.status_code == 200, progress.get_json()
+        dashboard_result = progress.get_json()["run"]
+        if dashboard_result["status"] in {"SUCCESS", "FAILED", "PARTIAL_SUCCESS"}:
+            break
+        time.sleep(0.25)
+    assert dashboard_result is not None
+    assert dashboard_result["status"] == "SUCCESS", dashboard_result
+
+    # Airflow is supported through its Linux container runtime; local Windows
+    # Python has no supported Airflow SDK import path.
+    if os.name != "nt":
+        from airflow.orchestration import run_pipeline_task
+
+        airflow_run_id = run_pipeline_task(
+            ti=SimpleNamespace(run_id="manual__isolated_acceptance"),
+            run_id="manual__isolated_acceptance",
+        )
+        with engine.connect() as connection:
+            airflow_run = connection.execute(
+                text("SELECT status, extracted_records, orchestration_run_id FROM audit.pipeline_runs WHERE run_id=:id"),
+                {"id": airflow_run_id},
+            ).one()
+        assert tuple(airflow_run) == ("SUCCESS", 0, "manual__isolated_acceptance")

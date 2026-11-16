@@ -8,8 +8,8 @@ import tempfile
 from io import StringIO
 from pathlib import Path
 
-from pipeline.promotions import PROMO_MASTER_COLUMNS
 from pipeline.extract.product import PRODUCT_SOURCE_FILE
+from pipeline.promotions import PROMO_MASTER_COLUMNS
 from pipeline.returns import RETURN_COLUMNS, RETURN_SOURCE_FILE
 from pipeline.validation.contracts import RAW_COLUMNS, SOURCE_SPECS, required_raw_columns
 

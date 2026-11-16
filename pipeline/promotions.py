@@ -122,6 +122,10 @@ def apply_channel_promotions(
                 promo = master[code]
                 if date_error or not promo["start_date"] <= parsed_date.date() <= promo["end_date"]:
                     raise ValueError(f"Promo {code} tidak berlaku pada tanggal order {key[0]}/{key[1]}")
+                if promo["status"] != "active":
+                    raise ValueError(
+                        f"Promo {code} berstatus {promo['status']} dan tidak dapat digunakan pada {key[0]}/{key[1]}"
+                    )
                 quantity = _decimal(row[spec["quantity"]], "quantity")
                 unit_price = _decimal(row[spec["unit_price"]], "unit_price", allow_zero=True)
                 gross = (quantity * unit_price).quantize(Decimal("0.01"))

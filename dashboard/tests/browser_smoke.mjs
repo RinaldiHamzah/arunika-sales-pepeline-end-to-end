@@ -51,6 +51,13 @@ const fixture = {
       run_id: 'test-pipeline-001', status: 'SUCCESS', started_at: '2026-11-14T00:35:00+07:00',
       loaded_records: 448, fact_inserted_records: 448,
       report_summary: { return_warehouse: { facts_written: 100 } },
+      auxiliary_sources: [
+        { source_name: 'PROMO_MASTER', source_records: 24, processed: 24, validated: 12,
+          catalog_checked: 24, catalog_validated: 12, duplicates: 12, catalog_duplicates: 12 },
+        { source_name: 'RETURN_EVENTS', validation_scope: 'delta', source_records: 4,
+          processed: 3, unchanged: 1, raw_inserted: 3, validated: 1, duplicates: 1,
+          rejected: 1, warehouse_written: 1 },
+      ],
     },
     pipeline_success_rate: 100, pipeline_duration: 3.1, rejected_record_rate: 5.8,
     source_freshness: [], stages: [], known_city_coverage_rate: 100,
@@ -94,8 +101,12 @@ const server = createServer(async (req, res) => {
             processed: 3, unchanged: 1, raw_inserted: 3, validated: 1, duplicates: 1,
             rejected: 1, warehouse_written: 1 },
         ] },
-        source_metrics: [{ source_name: 'SHOPEE', source_records: 120, skipped_unchanged_records: 100,
-          extracted_records: 20, validated_records: 18, rejected_records: 2, duplicate_records: 0 }],
+        source_metrics: [
+          { source_name: 'PRODUCT_MASTER', source_records: 20, extracted_records: 0, validated_records: 20,
+            rejected_records: 0, duplicate_records: 0 },
+          { source_name: 'SHOPEE', source_records: 120, skipped_unchanged_records: 100,
+            extracted_records: 20, validated_records: 18, rejected_records: 2, duplicate_records: 0 },
+        ],
       }] }));
     } else if (url.pathname === '/api/pipeline/run') {
       pipelineRunCount++;
@@ -290,15 +301,17 @@ try {
   await until("!document.getElementById('refresh-button').disabled");
   assert.equal(await evaluate("document.getElementById('page-info').textContent"), 'Halaman 1 / 3');
   await evaluate("location.hash='settings'; document.getElementById('admin-token').value='fixture-only'; document.getElementById('operations-button').click()");
-  await until("document.querySelectorAll('#operation-run-rows td').length===9");
+  await until("document.querySelectorAll('#operation-run-rows td').length===10");
   assert.equal(await evaluate("!document.getElementById('stale-corrections-panel').classList.contains('hidden')"), true);
   assert.equal(await evaluate("document.getElementById('stale-corrections-rows').textContent.includes('RET-UI-001')"), true);
   assert.equal(await evaluate("document.getElementById('stale-corrections-rows').textContent.includes('Return / SHOPEE')"), true);
+  assert.equal(await evaluate("document.querySelector('#operation-run-rows td:nth-child(4)').textContent.includes('2026')"), true);
   assert.equal(await evaluate("document.querySelector('#operation-run-rows td:last-child').textContent"), '1');
   assert.equal(await evaluate("document.getElementById('operation-latest-sales-facts').textContent"), '18');
   assert.equal(await evaluate("document.getElementById('operation-latest-return-facts').textContent"), '1');
   await evaluate("document.querySelector('.run-explanation').open=true");
   assert.equal(await evaluate("document.querySelector('.run-explanation').textContent.includes('18 fact ditulis')"), true);
+  assert.equal(await evaluate("['Total valid:', 'Total ditolak:', 'Total duplikat:', 'Fact Sales ditulis:', 'Fact Return ditulis:'].some(label => document.querySelector('.run-explanation .run-findings').textContent.includes(label))"), false);
   assert.equal(await evaluate("document.querySelector('.run-explanation').textContent.includes('Ringkasan Record')"), true);
   assert.equal(await evaluate("document.querySelector('.run-explanation').textContent.includes('Raw Layer')"), true);
   assert.equal(await evaluate("document.querySelector('.run-explanation').textContent.includes('Quality Check — Return')"), true);
@@ -319,12 +332,20 @@ try {
   assert.equal(await evaluate("document.querySelector('.quality-source-detail').open"), true);
   assert.equal(await evaluate("document.querySelector('.run-explanation').textContent.includes('Warehouse tidak dijalankan')"), false);
   await until("document.getElementById('pipeline-progress').textContent.includes('staging_load')");
+  assert.equal(await evaluate("document.getElementById('upload-button').textContent"), 'Upload CSV', 'Upload label stays stable while pipeline runs');
+  assert.equal(await evaluate("document.getElementById('upload-button').disabled"), true, 'Upload is disabled while pipeline runs');
   assert.ok(requests.includes('/api/pipeline/run'));
   await until("document.getElementById('run-pipeline').disabled===false");
   const runsBeforeUpload = pipelineRunCount;
   await evaluate("const input=document.getElementById('upload-file'); const dt=new DataTransfer(); dt.items.add(new File(['order_id\\n1'], 'new-batch.csv', {type:'text/csv'})); input.files=dt.files; input.dispatchEvent(new Event('change')); document.getElementById('upload-button').click()");
-  await until("document.getElementById('upload-status').textContent.includes('tidak ada baris baru atau berubah')");
-  assert.equal(pipelineRunCount, runsBeforeUpload + 1, 'Successful upload starts exactly one pipeline run');
+  await until("document.getElementById('upload-status').textContent.includes('Data belum diproses')");
+  assert.equal(pipelineRunCount, runsBeforeUpload, 'Successful upload does not start a pipeline');
+  assert.equal(await evaluate("document.getElementById('run-pipeline').disabled"), false, 'Pipeline can be started after upload');
+  assert.equal(await evaluate("document.getElementById('upload-button').disabled"), false, 'Another source can be uploaded before the run');
+  await evaluate("document.getElementById('run-pipeline').click()");
+  await until("document.getElementById('run-pipeline').disabled===false");
+  assert.equal(pipelineRunCount, runsBeforeUpload + 1, 'Manual run starts exactly one pipeline after upload');
+  assert.equal(await evaluate("document.getElementById('upload-status').classList.contains('hidden')"), true, 'Completed run details stay in pipeline history');
   assert.equal(await evaluate("document.getElementById('upload-button').disabled"), false, 'Upload is re-enabled after the run completes');
   fail = true;
   await send('Page.navigate', { url: origin + '/?case=initial-failure#settings' });

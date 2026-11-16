@@ -82,10 +82,10 @@ def test_pipeline_log_includes_auxiliary_and_cumulative_database_counts():
     assert "Master Promo: katalog 12 | valid katalog 12 | baru/berubah 12" in output
     assert "Return: sumber 100" in output
     assert "Total baris semua sumber : 612" in output
-    assert "Total valid              : 580" in output
-    assert "Total ditolak            : 28" in output
-    assert "Total duplikat           : 4" in output
-    assert "Fact Return ditulis      : 100" in output
+    assert "Total valid              : 580" not in output
+    assert "Total ditolak            : 28" not in output
+    assert "Total duplikat           : 4" not in output
+    assert "Fact Return ditulis      : 100" not in output
     assert "JUMLAH BARIS DALAM DATABASE" in output
     assert "raw.promo_master" in output and "12" in output
     assert "raw.return_events" in output and "100" in output
@@ -101,6 +101,32 @@ def test_pipeline_log_includes_auxiliary_and_cumulative_database_counts():
     assert "Return: sumber 100 | berubah 100 | valid 100 | ditolak 0 | duplikat 0" in output
     for source_name in ("SHOPEE", "TOKOPEDIA", "WEBSITE", "OFFLINE_STORE"):
         assert f"{source_name}: sumber 120 | kandidat 120" in output
+
+
+def test_pipeline_log_totals_only_include_product_rows_processed_in_current_run():
+    record = SimpleNamespace(
+        report_summary={
+            "auxiliary_sources": [{
+                "source_name": "PROMO_MASTER", "source_records": 24, "processed": 24,
+                "validated": 12, "duplicates": 12, "catalog_validated": 12,
+            }],
+            "database_table_counts": {},
+        },
+        source_metrics=[{
+            "source_name": "PRODUCT_MASTER", "source_records": 20, "extracted_records": 0,
+            "validated_records": 20, "rejected_records": 0, "duplicate_records": 0,
+        }],
+        status="SUCCESS", loaded_records=0,
+    )
+
+    output = _PrettyConsoleFormatter()._format_pipeline_completion(record)
+
+    assert "Baris Promo diproses     : 24" in output
+    assert "Total baris semua sumber : 24" in output
+    assert "Total valid              : 12" not in output
+    assert "Total ditolak            : 0" not in output
+    assert "Total duplikat           : 12" not in output
+    assert "Master Produk: sumber 20 | kandidat 0 | valid 0" in output
 
 
 def test_auxiliary_summary_preserves_scope_and_noop_metrics():
@@ -190,6 +216,25 @@ def test_return_quality_log_matches_sales_on_incremental_noop():
     assert "Dimensi Produk diproses 0" not in source_details
     assert "Staging dimuat 0" not in source_details
     assert "Fact ditulis 0" not in source_details
+
+
+def test_promo_report_counts_only_new_rows_not_full_changed_catalog():
+    catalog = source([{"promo_code": f"P{i}"} for i in range(22)], "PROMO_MASTER")
+    delta = source([{"promo_code": f"NEW{i}"} for i in range(12)], "PROMO_MASTER")
+    returns = source([], "RETURN_EVENTS")
+    metrics = {"PROMO_MASTER": {
+        "valid": 12, "duplicates": 10, "catalog_checked": 22,
+        "catalog_validated": 12, "promo_codes_checked": 0, "promo_codes_matched": 0,
+    }}
+
+    summary = auxiliary_source_summary(
+        [catalog], [delta], metrics, returns, returns,
+    )[0]
+
+    assert summary["source_records"] == 22
+    assert summary["processed"] == summary["raw_inserted"] == 12
+    assert summary["catalog_validated"] == 12
+    assert summary["catalog_duplicates"] == 10
 
 
 def source(rows, name="SHOPEE"):
@@ -490,3 +535,60 @@ def test_quality_summary_keeps_detailed_sources_but_excludes_product_from_transa
     assert summary["duplicate_business_key"]["total"] == 1
     assert summary["missing_value"]["total"] == 0
     assert [item["source_name"] for item in summary["by_source"]] == ["SHOPEE", "PRODUCT_MASTER"]
+    assert summary["checked_records"] == 4
+    assert summary["valid_records"] == 2
+    assert summary["rejected_records"] == 1
+    assert summary["duplicate_records"] == 1
+
+
+def test_sales_quality_report_explicitly_says_when_checked_rows_have_no_findings():
+    quality = {
+        "checked_records": 2,
+        "valid_records": 2,
+        "rejected_records": 0,
+        "duplicate_records": 0,
+        "warning_count": 0,
+        **{
+            key: {"total": 0, "by_field": {}}
+            for key in (
+                "missing_value", "duplicate_business_key", "invalid_quantity", "invalid_price",
+                "invalid_status", "invalid_date", "unmapped_product", "type_cast_failure",
+            )
+        },
+    }
+    report = {
+        "status": "SUCCESS",
+        "report_summary": {"raw": {}, "quality_staging": quality, "warehouse": {}},
+    }
+
+    email_body = format_pipeline_report(report)
+    log_record = SimpleNamespace(
+        report_summary=report["report_summary"], source_metrics=[], status="SUCCESS"
+    )
+    log_body = _PrettyConsoleFormatter()._format_pipeline_completion(log_record)
+
+    assert "Diperiksa: 2 | valid: 2 | ditolak: 0 | duplikat: 0 | peringatan: 0" in email_body
+    assert "Tidak ada temuan quality check." in email_body
+    assert "Diperiksa: 2 | valid: 2 | ditolak: 0 | duplikat: 0 | peringatan: 0" in log_body
+    assert "Tidak ditemukan masalah pada aturan quality check yang dikonfigurasi." in log_body
+
+
+def test_quality_summary_scopes_unchanged_product_master_out_of_run_totals():
+    product = SimpleNamespace(
+        clean=pd.DataFrame([{"source_row_number": 1}, {"source_row_number": 2}]),
+        rejected=pd.DataFrame(columns=["source_row_number"]),
+        duplicates=pd.DataFrame(columns=["source_row_number"]),
+        issues=pd.DataFrame(columns=["source_row_number", "severity", "rule", "field"]),
+        summary={"source": "product", "extracted_records": 2, "valid_records": 2,
+                 "invalid_records": 0, "duplicate_records": 0, "warning_count": 0},
+    )
+
+    summary = quality_staging_summary(
+        {"product": product},
+        passed_to_staging=0,
+        written_to_staging=0,
+        selected_row_numbers={"product": []},
+    )
+
+    assert summary["by_source"][0]["processed"] == 0
+    assert summary["by_source"][0]["valid"] == 0

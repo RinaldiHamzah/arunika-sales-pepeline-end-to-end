@@ -177,25 +177,6 @@ def format_pipeline_report(report):
     promo_candidate = count(promo.get("processed"))
     return_candidate = count(returns.get("processed"))
     all_candidates = sales_candidates + product_candidate + promo_candidate + return_candidate
-    sales_valid = sum(count(source_by_name.get(name, {}).get("validated_records")) for name in channels)
-    if not any(name in source_by_name for name in channels):
-        sales_valid = count(report.get("validated_records"))
-    all_valid = sales_valid + count(source_by_name.get("PRODUCT_MASTER", {}).get("validated_records")) + count(promo.get("validated")) + count(returns.get("validated"))
-    all_rejected = (
-        (
-            sum(count(source_by_name.get(name, {}).get("rejected_records")) for name in (*channels, "PRODUCT_MASTER"))
-            if source_by_name else count(report.get("rejected_records"))
-        )
-        + count(promo.get("rejected")) + count(returns.get("rejected"))
-    )
-    all_duplicates = (
-        (
-            sum(count(source_by_name.get(name, {}).get("duplicate_records")) for name in (*channels, "PRODUCT_MASTER"))
-            if source_by_name else count(report.get("duplicate_records"))
-        )
-        + count(promo.get("duplicates")) + count(returns.get("duplicates"))
-    )
-
     lines = [
         "PT Arunika Beauty Indonesia",
         f"PIPELINE {status} — {report.get('started_at', 'WIB')}",
@@ -206,16 +187,12 @@ def format_pipeline_report(report):
         f"Selesai         : {report.get('ended_at', '—')}",
         f"Durasi          : {duration()}", "",
         "RINGKASAN RECORD",
-        f"- Kandidat Transaksi kanal : {sales_candidates}",
+        f"- Kandidat Transaksi       : {sales_candidates}",
         f"- Kandidat Master Produk   : {product_candidate}",
-        f"- Kandidat Promo baru      : {promo_candidate}",
-        f"- Kandidat Return baru     : {return_candidate}",
+        f"- Kandidat Master Promo    : {promo_candidate}",
+        f"- Kandidat Return          : {return_candidate}",
         f"- Total baris semua sumber : {all_candidates}",
-        f"- Total valid              : {all_valid}",
-        f"- Total ditolak            : {all_rejected}",
-        f"- Total duplikat           : {all_duplicates}",
-        f"- Fact Sales ditulis       : {count(warehouse.get('facts_written', report.get('loaded_records')))}",
-        f"- Fact Return ditulis      : {count(return_warehouse.get('facts_written', returns.get('warehouse_written')))}", "",
+        "",
         "RINCIAN PER SUMBER",
     ]
 
@@ -283,6 +260,16 @@ def format_pipeline_report(report):
 
     lines.extend(["", "QUALITY CHECK — SALES"])
     if isinstance(quality, dict):
+        lines.append(
+            "- Diperiksa: {checked_records} | valid: {valid_records} | ditolak: {rejected_records} | "
+            "duplikat: {duplicate_records} | peringatan: {warning_count}".format(
+                checked_records=quality.get("checked_records", 0),
+                valid_records=quality.get("valid_records", 0),
+                rejected_records=quality.get("rejected_records", 0),
+                duplicate_records=quality.get("duplicate_records", 0),
+                warning_count=quality.get("warning_count", 0),
+            )
+        )
         for key, label in (
             ("missing_value", "Nilai kosong"),
             ("duplicate_business_key", "Baris terdampak duplikat business key"),
@@ -371,10 +358,6 @@ def format_pipeline_report_html(report):
                 execution[label.strip()] = value.strip()
     ended = execution.get("Selesai", "Belum direkam")
     duration_text = execution.get("Durasi", "Belum direkam")
-    success = status == "SUCCESS"
-    status_color = "#087f5b" if success else "#b42318"
-    status_bg = "#e6f4ef" if success else "#fef0ef"
-
     sections = []
     current_title = None
     current_rows = []

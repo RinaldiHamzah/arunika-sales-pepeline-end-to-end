@@ -182,11 +182,26 @@ def test_schema_and_bad_csv_fail_explicitly(tmp_path):
     with pytest.raises(ValueError, match="duplicate column"):
         read_source(path)
     path.write_text("sku,price\n1,1,extra\n", encoding="utf-8")
-    with pytest.raises(ValueError, match="row width"):
+    with pytest.raises(ValueError, match=r"row width at line 2 \(3 columns; expected 2\)"):
         read_source(path)
     path.write_text("sku\n1\n", encoding="utf-8")
     with pytest.raises(ValueError, match="missing columns"):
         analyze(path, "product")
+
+
+def test_read_source_ignores_empty_and_whitespace_only_lines_but_keeps_empty_cells(tmp_path):
+    path = tmp_path / "promo_master.csv"
+    path.write_text(
+        "\npromo_code,promo_name\nPROMO1,Promo Satu\n\n   \nPROMO2,\n",
+        encoding="utf-8",
+    )
+
+    frame, _ = read_source(path)
+
+    assert frame.to_dict("records") == [
+        {"promo_code": "PROMO1", "promo_name": "Promo Satu"},
+        {"promo_code": "PROMO2", "promo_name": ""},
+    ]
 
 
 def test_current_sources_unchanged_reconciled_and_reproducible(tmp_path):

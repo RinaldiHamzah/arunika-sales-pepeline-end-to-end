@@ -51,16 +51,27 @@ def read_source(path, payload=None):
     """Hash byte yang benar-benar diurai dengan tetap mempertahankan teks, sel kosong, dan identifier."""
     payload = path.read_bytes() if payload is None else payload
     reader = csv.reader(io.StringIO(payload.decode("utf-8-sig"), newline=""))
-    try:
-        header = next(reader)
-    except StopIteration as exc:
-        raise ValueError(f"{path.name}: empty file without header") from exc
+    header = next((row for row in reader if not _is_blank_csv_line(row)), None)
+    if header is None:
+        raise ValueError(f"{path.name}: empty file without header")
     if len(set(header)) != len(header):
         raise ValueError(f"{path.name}: duplicate column names")
-    rows = list(reader)
-    if any(len(row) != len(header) for row in rows):
-        raise ValueError(f"{path.name}: malformed CSV row width")
+    rows = []
+    for row in reader:
+        if _is_blank_csv_line(row):
+            continue
+        if len(row) != len(header):
+            raise ValueError(
+                f"{path.name}: malformed CSV row width at line {reader.line_num} "
+                f"({len(row)} columns; expected {len(header)})"
+            )
+        rows.append(row)
     return pd.DataFrame(rows, columns=header, dtype="string"), sha256(payload).hexdigest()
+
+
+def _is_blank_csv_line(row):
+    """Abaikan hanya baris fisik kosong/spasi, bukan baris data dengan sel kosong."""
+    return not row or (len(row) == 1 and not row[0].strip())
 
 
 def frame(rows, columns):

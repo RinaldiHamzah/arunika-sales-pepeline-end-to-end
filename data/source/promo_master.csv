@@ -8,3 +8,6 @@ OCTOBER8,Promo Oktober,percentage,8,2026-10-01,2026-12-31,active
 FIXED10K,Potongan Nominal Sepuluh Ribu,fixed,10000,2026-01-01,2026-12-31,active
 FIXED15K,Potongan Nominal Lima Belas Ribu,fixed,15000,2026-01-01,2026-12-31,paused
 NEWUSER10,Diskon Pengguna Baru,percentage,10,2026-01-01,2026-12-31,active
+FLASH25,Flash Sale Juni,percentage,25,2026-06-10,2026-06-20,expired
+
+
